@@ -2,7 +2,7 @@
 extends EditorPlugin
 
 const AUTOLOAD_NAME = "TourefL"
-const AUTOLOAD_PATH = "res://addons/touref-l/autoload.gd"
+const AUTOLOAD_PATH = "res://addons/touref-l/Scripts/autoload.gd"
 
 const  MSG_PLUGIN_ENABLED = "TourefL : Plugin enabled"
 const  MSG_PLUGIN_DISABLED = "TourefL : Plugin disabled"
