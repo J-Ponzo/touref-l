@@ -1,0 +1,80 @@
+[gd_scene load_steps=2 format=3 uid="uid://cxo8r10ga547b"]
+
+[ext_resource type="Script" uid="uid://b84jbs5fymo5x" path="res://addons/touref-l/Scripts/Editor/tl_shader_editor_dock.gd" id="1_2w5c8"]
+
+[node name="TlShaderEditorDock" type="VBoxContainer"]
+custom_minimum_size = Vector2(0, 400)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_2w5c8")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShaderFilesPanel" type="VBoxContainer" parent="HSplitContainer"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="FileListTopBar" type="HBoxContainer" parent="HSplitContainer/ShaderFilesPanel"]
+layout_mode = 2
+
+[node name="NewButton" type="Button" parent="HSplitContainer/ShaderFilesPanel/FileListTopBar"]
+layout_mode = 2
+text = "New"
+
+[node name="DuplicateButton" type="Button" parent="HSplitContainer/ShaderFilesPanel/FileListTopBar"]
+layout_mode = 2
+text = "Duplicate"
+
+[node name="RemoveButton" type="Button" parent="HSplitContainer/ShaderFilesPanel/FileListTopBar"]
+layout_mode = 2
+text = "Remove"
+
+[node name="SearchLine" type="LineEdit" parent="HSplitContainer/ShaderFilesPanel"]
+layout_mode = 2
+placeholder_text = "Search..."
+
+[node name="ShaderFilesTree" type="Tree" parent="HSplitContainer/ShaderFilesPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShaderEditorPanel" type="VBoxContainer" parent="HSplitContainer"]
+layout_mode = 2
+
+[node name="ShaderEditorTopBar" type="HBoxContainer" parent="HSplitContainer/ShaderEditorPanel"]
+layout_mode = 2
+
+[node name="SaveButton" type="Button" parent="HSplitContainer/ShaderEditorPanel/ShaderEditorTopBar"]
+layout_mode = 2
+disabled = true
+text = "Save"
+
+[node name="CompileButton" type="Button" parent="HSplitContainer/ShaderEditorPanel/ShaderEditorTopBar"]
+layout_mode = 2
+disabled = true
+text = "Compile"
+
+[node name="FileNameLabel" type="Label" parent="HSplitContainer/ShaderEditorPanel/ShaderEditorTopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Empty"
+horizontal_alignment = 1
+
+[node name="VSplitContainer" type="VSplitContainer" parent="HSplitContainer/ShaderEditorPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShaderCodeEdit" type="CodeEdit" parent="HSplitContainer/ShaderEditorPanel/VSplitContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+editable = false
+gutters_draw_line_numbers = true
+
+[node name="ConsoleTextEdit" type="TextEdit" parent="HSplitContainer/ShaderEditorPanel/VSplitContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+editable = false
