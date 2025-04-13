@@ -23,22 +23,33 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="NewButton" type="Button" parent="HSplitContainer/ShaderFilesPanel/FileListTopBar"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "New"
+size_flags_horizontal = 3
+text = "New
+"
 
-[node name="DuplicateButton" type="Button" parent="HSplitContainer/ShaderFilesPanel/FileListTopBar"]
+[node name="LoadButton" type="Button" parent="HSplitContainer/ShaderFilesPanel/FileListTopBar"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Duplicate"
+size_flags_horizontal = 3
+text = "Load"
 
-[node name="RemoveButton" type="Button" parent="HSplitContainer/ShaderFilesPanel/FileListTopBar"]
+[node name="CloseButton" type="Button" parent="HSplitContainer/ShaderFilesPanel/FileListTopBar"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Remove"
+size_flags_horizontal = 3
+disabled = true
+text = "Close"
 
 [node name="SearchLine" type="LineEdit" parent="HSplitContainer/ShaderFilesPanel"]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 placeholder_text = "Search..."
 
-[node name="ShaderFilesTree" type="Tree" parent="HSplitContainer/ShaderFilesPanel"]
+[node name="ShaderFilesList" type="ItemList" parent="HSplitContainer/ShaderFilesPanel"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -48,33 +59,39 @@ layout_mode = 2
 [node name="ShaderEditorTopBar" type="HBoxContainer" parent="HSplitContainer/ShaderEditorPanel"]
 layout_mode = 2
 
+[node name="FileNameLabel" type="Label" parent="HSplitContainer/ShaderEditorPanel/ShaderEditorTopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Empty"
+horizontal_alignment = 1
+
 [node name="SaveButton" type="Button" parent="HSplitContainer/ShaderEditorPanel/ShaderEditorTopBar"]
+unique_name_in_owner = true
 layout_mode = 2
 disabled = true
 text = "Save"
 
 [node name="CompileButton" type="Button" parent="HSplitContainer/ShaderEditorPanel/ShaderEditorTopBar"]
+unique_name_in_owner = true
 layout_mode = 2
 disabled = true
 text = "Compile"
-
-[node name="FileNameLabel" type="Label" parent="HSplitContainer/ShaderEditorPanel/ShaderEditorTopBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Empty"
-horizontal_alignment = 1
 
 [node name="VSplitContainer" type="VSplitContainer" parent="HSplitContainer/ShaderEditorPanel"]
 layout_mode = 2
 size_flags_vertical = 3
 
 [node name="ShaderCodeEdit" type="CodeEdit" parent="HSplitContainer/ShaderEditorPanel/VSplitContainer"]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
 editable = false
 gutters_draw_line_numbers = true
 
 [node name="ConsoleTextEdit" type="TextEdit" parent="HSplitContainer/ShaderEditorPanel/VSplitContainer"]
-custom_minimum_size = Vector2(0, 50)
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 editable = false
