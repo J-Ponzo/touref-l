@@ -52,8 +52,10 @@ func _enter_tree() -> void:
 	texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sub_viewport.add_child(texture_rect)
 
+var scene 
+
 func _ready() -> void:
-	var scene = get_tree().current_scene
+	scene = get_tree().current_scene
 	scene.get_parent().add_child.call_deferred(native_sub_viewport_container)
 	scene.reparent.call_deferred(native_sub_viewport)
 	
@@ -108,7 +110,8 @@ func _process(delta: float) -> void:
 		pass
 	else:
 		if active_renderer_idx != INVALID_RENDERER_IDX and active_renderer_idx != NATIVE_RENDERER_IDX:
-			renderers[active_renderer_idx]._render()
+			if scene != null:
+				renderers[active_renderer_idx]._render(scene)
 			
 func _unhandled_input(event):
 	if event is InputEventKey:

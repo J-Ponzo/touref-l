@@ -12,5 +12,5 @@ func _setup() -> void:
 func _cleanup() -> void:
 	pass
 
-func _render() -> void:
+func _render(root : Node) -> void:
 	pass
