@@ -259,7 +259,12 @@ func _unhandled_key_input(event):
 		_on_save_shortcut_invoked()
 
 func _on_save_shortcut_invoked():
-	save_shader_action()
+	if current_shader_key.is_empty():
+		return
+		
+	var current_edited_shader : EditedShader = edited_shaders[current_shader_key]
+	if current_edited_shader.is_dirty:
+		save_shader_action()
 
 func _on_file_removed(path: String):
 	if edited_shaders.has(path):
