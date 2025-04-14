@@ -50,6 +50,10 @@ var _editor_interface : EditorInterface
 func set_editor_interface(editor_interface_inst : EditorInterface):
 	_editor_interface = editor_interface_inst
 	_editor_interface.get_resource_filesystem().connect("resources_reload", _on_resources_reload)
+	_editor_interface.get_file_system_dock().connect("file_removed", _on_file_removed)
+	_editor_interface.get_file_system_dock().connect("folder_removed", _on_dir_removed)
+	_editor_interface.get_file_system_dock().connect("files_moved", _on_file_moved)
+	_editor_interface.get_file_system_dock().connect("folder_moved", _on_dir_moved)
 
 func _ready() -> void:
 	var key_event := InputEventKey.new()
@@ -169,13 +173,18 @@ func save_shader_action() -> void:
 	_set_shader_dirty(current_shader_key, false)
 	
 func close_shader_action() -> void:
-	var idx : int = edited_shaders[current_shader_key].idx
-	edited_shaders.erase(current_shader_key)
+	close_shader(current_shader_key)
+	
+func close_shader(shader_key : String) -> void:
+	var idx : int = edited_shaders[shader_key].idx
+	edited_shaders.erase(shader_key)
 	%ShaderFilesList.remove_item(idx)
 	for value in edited_shaders.values():
 		if value.idx > idx:
 			value.idx -= 1
-	set_current_shader("")
+	
+	if shader_key == current_shader_key:
+		set_current_shader("")
 
 func compile_shader_action() -> void:
 	var current_edited_shader : EditedShader = edited_shaders[current_shader_key]
@@ -212,7 +221,7 @@ func _set_shader_dirty(shader_key : String, dirty : bool) -> void:
 	var decorated_name = shader_key.get_file() + suffix
 	%ShaderFilesList.set_item_text(edited_shader.idx, decorated_name)
 	
-	if shader_key == shader_key:
+	if shader_key == current_shader_key:
 		var decorated_path = shader_key + suffix
 		%FileNameLabel.text = decorated_path
 		%SaveButton.disabled = !dirty
@@ -251,3 +260,32 @@ func _unhandled_key_input(event):
 
 func _on_save_shortcut_invoked():
 	save_shader_action()
+
+func _on_file_removed(path: String):
+	if edited_shaders.has(path):
+		close_shader(path)
+	
+func _on_dir_removed(path: String):
+	for key : String in edited_shaders.keys():
+		if key.begins_with(path):
+			close_shader(key)
+
+func _on_file_moved(old_path: String, new_path: String):
+	if edited_shaders.has(old_path):
+		_move_shader(old_path, new_path)
+		
+func _on_dir_moved(old_path: String, new_path: String):
+	for key : String in edited_shaders.keys():
+		if key.begins_with(old_path):
+			_move_shader(old_path, new_path)
+			
+func _move_shader(old_key: String, new_key: String):
+	var moved_shader : EditedShader = edited_shaders[old_key]
+	edited_shaders.erase(old_key)
+	edited_shaders[new_key] = moved_shader
+	%ShaderFilesList.set_item_text(moved_shader.idx, new_key.get_file())
+	
+	if old_key == current_shader_key:
+		set_current_shader(new_key)
+	
+	_set_shader_dirty(new_key, moved_shader.is_dirty)
