@@ -21,9 +21,12 @@ var native_sub_viewport : SubViewport
 
 func _enter_tree() -> void:
 	for renderer_def : TL_RendererDef in registry.rederer_defs:
-		var instance = renderer_def.renderer_script.new()
+		var instance : = renderer_def.renderer_script.new()
 		if instance is _TL_Renderer:
-			renderers.append(instance)
+			var renderer : _TL_Renderer = instance
+			renderer.vertex_shader_src = renderer_def.vertex_shader.source_code
+			renderer.fragment_shader_src = renderer_def.fragment_shader.source_code
+			renderers.append(renderer)
 		else :
 			push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)
 	
