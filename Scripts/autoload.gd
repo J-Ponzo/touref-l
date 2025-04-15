@@ -21,12 +21,16 @@ var native_sub_viewport : SubViewport
 
 func _enter_tree() -> void:
 	for renderer_def : TL_RendererDef in registry.rederer_defs:
-		var instance : = renderer_def.renderer_script.new()
-		if instance is _TL_Renderer:
-			var renderer : _TL_Renderer = instance
-			renderer.vertex_shader_src = renderer_def.vertex_shader.source_code
-			renderer.fragment_shader_src = renderer_def.fragment_shader.source_code
-			renderers.append(renderer)
+		var renderer_inst = renderer_def.renderer_script.new()
+		if renderer_inst is _TL_Renderer:
+			var scn_proxy_inst = renderer_def.scene_proxy_script.new()
+			if scn_proxy_inst is _TL_SceneProxy:
+				var scene_proxy : _TL_SceneProxy = scn_proxy_inst
+				var renderer : _TL_Renderer = renderer_inst
+				renderer.scene_proxy = scene_proxy
+				renderer.vertex_shader_src = renderer_def.vertex_shader.source_code
+				renderer.fragment_shader_src = renderer_def.fragment_shader.source_code
+				renderers.append(renderer)
 		else :
 			push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)
 	
@@ -85,6 +89,7 @@ func _put_native_renderer_offline() -> void:
 func _put_custom_renderer_offline(renderer_idx : int) -> void:
 	texture_rect.texture = null
 	active_renderer_idx = INVALID_RENDERER_IDX
+	renderers[renderer_idx].scene_proxy._cleanup()
 	renderers[renderer_idx]._cleanup()
 
 func _put_renderer_online(renderer_idx : int) -> void:
@@ -100,6 +105,7 @@ func _put_native_renderer_online() -> void:
 
 func _put_custom_renderer_online(renderer_idx : int) -> void:
 	renderers[renderer_idx]._setup()
+	renderers[renderer_idx].scene_proxy._setup(scene)
 	
 	var render_target_from_rd : Texture2DRD = Texture2DRD.new()
 	render_target_from_rd.texture_rd_rid = renderers[renderer_idx].render_target
