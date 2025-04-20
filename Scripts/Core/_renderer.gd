@@ -6,6 +6,9 @@ var scene_proxy : _TL_SceneProxy
 
 var rd = RenderingServer.get_rendering_device()
 
+func get_render_target() -> RID:
+	return RID()
+
 func _setup() -> void:
 	pass
 	

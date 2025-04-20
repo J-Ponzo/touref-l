@@ -108,7 +108,7 @@ func _put_custom_renderer_online(renderer_idx : int) -> void:
 	renderers[renderer_idx].scene_proxy._setup(scene)
 	
 	var render_target_from_rd : Texture2DRD = Texture2DRD.new()
-	render_target_from_rd.texture_rd_rid = renderers[renderer_idx].render_target
+	render_target_from_rd.texture_rd_rid = renderers[renderer_idx].get_render_target()
 	texture_rect.texture = render_target_from_rd
 	
 func _process(delta: float) -> void:
