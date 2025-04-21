@@ -21,6 +21,7 @@ class SpotLightProxy extends  _LightProxy:
 	var location : Vector3
 	var direction : Vector3
 	var angle : float
+	var angle_attenuation : float
 
 class CameraProxy:
 	var view_matrix : Projection
