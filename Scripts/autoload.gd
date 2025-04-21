@@ -28,8 +28,16 @@ func _enter_tree() -> void:
 				var scene_proxy : _TL_SceneProxy = scn_proxy_inst
 				var renderer : _TL_Renderer = renderer_inst
 				renderer.scene_proxy = scene_proxy
-				renderer.vertex_shader_src = renderer_def.vertex_shader.source_code
-				renderer.fragment_shader_src = renderer_def.fragment_shader.source_code
+				
+				var path : String = renderer_def.vertex_shader.resource_path
+				var raw_source : String = renderer_def.vertex_shader.source_code
+				var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source)
+				renderer.vertex_shader_src = preprocessed_source
+				
+				path = renderer_def.fragment_shader.resource_path
+				raw_source = renderer_def.fragment_shader.source_code
+				preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
+				renderer.fragment_shader_src = preprocessed_source
 				renderers.append(renderer)
 		else :
 			push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)

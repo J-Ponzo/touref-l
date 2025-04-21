@@ -191,10 +191,13 @@ func compile_shader_action() -> void:
 	
 	var shader_source = RDShaderSource.new()
 	shader_source.language = RenderingDevice.SHADER_LANGUAGE_GLSL
+	var raw_source = edited_shaders[current_shader_key].content
+	var path = current_shader_key
+	var preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
 	if current_shader_key.get_extension() == EXTENSIONS["Vertex"] :
-		shader_source.source_vertex = edited_shaders[current_shader_key].content
+		shader_source.source_vertex = preprocessed_source
 	else :
-		shader_source.source_fragment = edited_shaders[current_shader_key].content
+		shader_source.source_fragment = preprocessed_source
 	
 	var rd = RenderingServer.get_rendering_device()
 	var result = rd.shader_compile_spirv_from_source(shader_source)
