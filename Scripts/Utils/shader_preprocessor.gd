@@ -1,9 +1,12 @@
 extends Object
 class_name TL_Shader_Preprocessor
 
+static var use_filenames_in_line_directives : bool = true
+
 static func preprocess(path : String, raw_source: String) -> String:
 	var already_included_paths = {}
 	var preprocessed_source : String = _expand_includes_rec(path, raw_source, already_included_paths)
+	print(preprocessed_source)
 	return preprocessed_source
 
 static func _expand_includes_rec(path : String, raw_source: String, already_included_paths : Dictionary) -> String:
@@ -14,7 +17,26 @@ static func _expand_includes_rec(path : String, raw_source: String, already_incl
 	
 	var output = ""
 	
-	for line in raw_source.split("\n"):
-		output += line + "\n"
+	var lines : PackedStringArray = raw_source.split("\n")
+	for l in range(0, lines.size()) :
+		var line : String = lines[l]
+		
+		var versionRegex = RegEx.new()
+		versionRegex.compile("^#version\\s+([0-9]+)")
+		
+		var includeRegex = RegEx.new()
+		includeRegex.compile("^#include\\s+\"(.*)\"")
+		
+		var match : RegExMatch = includeRegex.search(line)
+		if match:
+			var include_path : String = match.get_string(1)
+			var include_raw_source : String = FileAccess.get_file_as_string(include_path)
+			output += "#line %d \"%s\" \n" % [1, include_path if use_filenames_in_line_directives else ""]
+			output += _expand_includes_rec(include_path, include_raw_source, already_included_paths)
+			output += "#line %d \"%s\" \n" % [l + 1, path if use_filenames_in_line_directives else ""]
+		else:
+			output += line + "\n"
+			if use_filenames_in_line_directives and versionRegex.search(line):
+				output += "#extension GL_GOOGLE_cpp_style_line_directive : require\n"
 
 	return output
