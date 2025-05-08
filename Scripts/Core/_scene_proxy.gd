@@ -5,6 +5,7 @@ class MeshProxy:
 	var index_data : PackedInt32Array
 	var position_data : PackedVector3Array
 	var normal_data : PackedVector3Array
+	var tangent_data : PackedFloat32Array
 	var uv_data : PackedVector2Array
 	var material_proxy : MaterialProxy
 
