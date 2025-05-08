@@ -125,7 +125,7 @@ func _process(delta: float) -> void:
 	else:
 		if active_renderer_idx != INVALID_RENDERER_IDX and active_renderer_idx != NATIVE_RENDERER_IDX:
 			if scene != null:
-				renderers[active_renderer_idx]._render(scene)
+				renderers[active_renderer_idx]._render()
 			
 func _unhandled_input(event):
 	if event is InputEventKey:

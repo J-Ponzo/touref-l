@@ -6,6 +6,12 @@ class MeshProxy:
 	var position_data : PackedVector3Array
 	var normal_data : PackedVector3Array
 	var uv_data : PackedVector2Array
+	var material_proxy : MaterialProxy
+
+class MaterialProxy:
+	var albedo_tex : RID
+	var normal_tex : RID
+	var orm_tex : RID
 
 class _LightProxy:
 	var color : Color
