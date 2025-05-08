@@ -18,14 +18,18 @@ class _LightProxy:
 	var color : Color
 	var intensity : float
 
-class OmniLightProxy extends _LightProxy:
+class _LocalizedLight extends _LightProxy:
 	var location : Vector3
+	var range : float
+	var attenuation : float
+
+class OmniLightProxy extends _LocalizedLight:
+	pass
 
 class DirectionalLightProxy extends  _LightProxy:	
 	var direction : Vector3
 
-class SpotLightProxy extends  _LightProxy:	
-	var location : Vector3
+class SpotLightProxy extends  _LocalizedLight:	
 	var direction : Vector3
 	var angle : float
 	var angle_attenuation : float
