@@ -6,9 +6,9 @@ const  ERR_CANNOT_OPEN_FILE = "TourefL : Cannot save glsl shader (failed to open
 func _get_recognized_extensions(resource: Resource) -> PackedStringArray:
 	TL_Plugin.debug_print("TL_GLSLShaderSaver._get_recognized_extensions(resource: Resource = %s) invoked" % resource)
 	if resource is TL_GLSLShader:
-		return ["frag", "vert"]
+		return ["frag", "vert", "glslinc"]
 	return []
-	
+
 func _recognize(resource: Resource) -> bool:
 	TL_Plugin.debug_print("TL_GLSLShaderSaver._recognize(resource: Resource = %s) invoked" % resource)
 	return resource is TL_GLSLShader

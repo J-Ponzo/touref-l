@@ -5,7 +5,7 @@ const  ERR_CANNOT_OPEN_FILE = "TourefL : Cannot load glsl shader (failed to open
 
 func _get_recognized_extensions() -> PackedStringArray:
 	TL_Plugin.debug_print("TL_GLSLShaderLoader._get_recognized_extensions() invoked")
-	return ["frag", "vert"]
+	return ["frag", "vert", "glslinc"]
 
 func  _recognize_path(path: String, type: StringName) -> bool:
 	TL_Plugin.debug_print("TL_GLSLShaderLoader._recognize_path(path: String = %s, type: StringName = %s) invoked" % [path, type])

@@ -2,7 +2,7 @@
 extends Control
 class_name TL_ShaderEditorDock
 
-const EXTENSIONS = {"Vertex": "vert", "Fragment": "frag"}
+const EXTENSIONS = {"Vertex": "vert", "Fragment": "frag", "Include": "glslinc"}		# We use glslinc extention because glsl rise conflict with Godot native RDShaderFile resource type
 const DIRTY_SUFFIX = " (*)"
 
 const ERR_FAILED_SAVE_SHADER = "Touref-L: Failed to save shader : %s"
@@ -162,7 +162,7 @@ func set_current_shader(new_shader_key : String) -> bool:
 	%ShaderCodeEdit.text = current_edited_shader.content
 	%ConsoleTextEdit.text = current_edited_shader.last_compile_output
 	%CloseButton.disabled = false
-	%CompileButton.disabled = false
+	%CompileButton.disabled = current_shader_key.get_extension() == ".glsl"
 	
 	_set_shader_dirty(current_shader_key, current_edited_shader.is_dirty)
 	
@@ -196,8 +196,9 @@ func compile_shader_action() -> void:
 	var preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
 	if current_shader_key.get_extension() == EXTENSIONS["Vertex"] :
 		shader_source.source_vertex = preprocessed_source
-	else :
+	elif current_shader_key.get_extension() == EXTENSIONS["Fragment"] :
 		shader_source.source_fragment = preprocessed_source
+
 	
 	var rd = RenderingServer.get_rendering_device()
 	var result = rd.shader_compile_spirv_from_source(shader_source)
