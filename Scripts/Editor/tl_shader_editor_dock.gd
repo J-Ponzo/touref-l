@@ -164,7 +164,7 @@ func set_current_shader(new_shader_key : String) -> bool:
 	%ShaderCodeEdit.text = current_edited_shader.content
 	%ConsoleTextEdit.text = current_edited_shader.last_compile_output
 	%CloseButton.disabled = false
-	%CompileButton.disabled = current_shader_key.get_extension() == ".glsl"
+	%CompileButton.disabled = false
 	
 	_set_shader_dirty(current_shader_key, current_edited_shader.is_dirty)
 	
@@ -196,12 +196,14 @@ func compile_shader_action() -> void:
 	var raw_source = edited_shaders[current_shader_key].content
 	var path = current_shader_key
 	var preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
-	if current_shader_key.get_extension() == EXTENSIONS["Vertex"] :
+	if current_shader_key.get_extension() == EXTENSIONS["Vertex"]:
 		shader_source.source_vertex = preprocessed_source
-	elif current_shader_key.get_extension() == EXTENSIONS["Fragment"] :
+	elif current_shader_key.get_extension() == EXTENSIONS["Fragment"]:
 		shader_source.source_fragment = preprocessed_source
+	elif current_shader_key.get_extension() == EXTENSIONS["Include"]:
+		var dummy_shader_preprocessed_source = TL_Shader_Preprocessor.generate_dummy_shader_for_partial_source(path, raw_source)
+		shader_source.source_vertex = dummy_shader_preprocessed_source
 
-	
 	var rd = RenderingServer.get_rendering_device()
 	var result = rd.shader_compile_spirv_from_source(shader_source)
 	

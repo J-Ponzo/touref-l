@@ -1,7 +1,7 @@
 extends Object
 class_name TL_Shader_Preprocessor
 
-static var use_filenames_in_line_directives : bool = true
+const use_filenames_in_line_directives : bool = true
 
 static func preprocess(path : String, raw_source: String) -> String:
 	var already_included_paths = {}
@@ -40,3 +40,17 @@ static func _expand_includes_rec(path : String, raw_source: String, already_incl
 				output += "#extension GL_GOOGLE_cpp_style_line_directive : require\n"
 
 	return output
+
+static func generate_dummy_shader_for_partial_source(partial_source_path: String, raw_partial_source: String) -> String:
+	var dummy_shader = ""
+	dummy_shader += "#version 450\n"
+	if use_filenames_in_line_directives:
+		dummy_shader += "#extension GL_GOOGLE_cpp_style_line_directive : require\n"
+	
+	dummy_shader += "#line %d \"%s\" \n" % [1, partial_source_path if use_filenames_in_line_directives else ""]
+	dummy_shader += _expand_includes_rec(partial_source_path, raw_partial_source, {})
+	dummy_shader += "#line %d \"%s\" \n" % [-1, "<dummy_shader>" if use_filenames_in_line_directives else ""]
+
+	dummy_shader += "void main() { }"
+
+	return dummy_shader
