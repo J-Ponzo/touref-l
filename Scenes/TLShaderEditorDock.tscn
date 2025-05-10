@@ -1,6 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://cxo8r10ga547b"]
+[gd_scene load_steps=5 format=3 uid="uid://cxo8r10ga547b"]
 
 [ext_resource type="Script" uid="uid://b84jbs5fymo5x" path="res://addons/touref-l/Scripts/Editor/tl_shader_editor_dock.gd" id="1_2w5c8"]
+[ext_resource type="Script" uid="uid://do3p7noan2o6j" path="res://addons/touref-l/Scripts/Editor/glsl_syntax_highlighter.gd" id="2_m7sgb"]
+[ext_resource type="Script" uid="uid://cyd6qdng5qafd" path="res://addons/touref-l/Scripts/Editor/glsl_code_edit.gd" id="3_o6qcj"]
+
+[sub_resource type="SyntaxHighlighter" id="SyntaxHighlighter_m7sgb"]
+script = ExtResource("2_m7sgb")
 
 [node name="TlShaderEditorDock" type="VBoxContainer"]
 custom_minimum_size = Vector2(0, 400)
@@ -88,7 +93,17 @@ visible = false
 layout_mode = 2
 size_flags_vertical = 3
 editable = false
+minimap_draw = true
+syntax_highlighter = SubResource("SyntaxHighlighter_m7sgb")
+highlight_all_occurrences = true
+highlight_current_line = true
 gutters_draw_line_numbers = true
+code_completion_enabled = true
+indent_automatic = true
+auto_brace_completion_enabled = true
+auto_brace_completion_highlight_matching = true
+script = ExtResource("3_o6qcj")
+metadata/_custom_type_script = "uid://cyd6qdng5qafd"
 
 [node name="ConsoleTextEdit" type="TextEdit" parent="HSplitContainer/ShaderEditorPanel/VSplitContainer"]
 unique_name_in_owner = true
