@@ -95,6 +95,8 @@ func _ready() -> void:
 	%CompileButton.connect("pressed", compile_shader_action)
 	
 	%ShaderCodeEdit.connect("text_changed", _on_shader_code_changed)
+	%ShaderCodeEdit.syntax_highlighter = TL_GLSLSyntaxHighlighter.new()
+
 	%ShaderFilesList.connect("item_selected", _on_shader_selected)
 
 func new_shader_action() -> void:
