@@ -2,7 +2,10 @@
 extends CodeEdit
 class_name TL_GLSLCodeEdit
 
-@export var code_conpletion_on_typing = true
+@export var completion_on_typing : bool = true
+@export var completion_delay : float = 0.3
+
+var nb_completion_delay_running = 0
 
 func _ready():
 	code_completion_enabled = true
@@ -43,7 +46,7 @@ func _on_text_changed():
 	var is_shrinking = last_size > text.length()
 	last_size = text.length()
 	
-	if !code_conpletion_on_typing:
+	if !completion_on_typing:
 		return
 	
 	if is_shrinking:
@@ -53,9 +56,22 @@ func _on_text_changed():
 	if unicode_before == -1 || TL_GLSLSyntax.is_symbol(unicode_before):
 		cancel_code_completion()
 		return
-	
-	add_static_code_completion_options()
-	update_code_completion_options(true)
+
+	start_completion_delay(completion_delay)
+
+func start_completion_delay(delay : float) -> void:
+	nb_completion_delay_running += 1
+	await get_tree().create_timer(delay).timeout
+	_on_completion_delay_over()
+
+
+func _on_completion_delay_over() -> void:
+	nb_completion_delay_running -= 1
+	if nb_completion_delay_running == 0 :
+		print("open completion")
+		add_static_code_completion_options()
+		update_code_completion_options(true)
+
 
 func find_unicode_before_caret() -> int:
 	var caret_col : int = get_caret_column()
