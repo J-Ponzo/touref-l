@@ -2,6 +2,7 @@
 extends CodeEdit
 class_name TL_GLSLCodeEdit
 
+var parser : TL_GLSLParser = TL_GLSLParser.new()
 @export var completion_on_typing : bool = true
 @export var completion_delay : float = 0.3
 
@@ -53,7 +54,7 @@ func _on_text_changed():
 		return
 	
 	var unicode_before = find_unicode_before_caret()
-	if unicode_before == -1 || TL_GLSLSyntax.is_symbol(unicode_before):
+	if unicode_before == -1 || TL_CharUtils.is_symbol(unicode_before):
 		cancel_code_completion()
 		return
 
@@ -68,10 +69,18 @@ func start_completion_delay(delay : float) -> void:
 func _on_completion_delay_over() -> void:
 	nb_completion_delay_running -= 1
 	if nb_completion_delay_running == 0 :
-		print("open completion")
+		
 		add_static_code_completion_options()
 		update_code_completion_options(true)
 
+		print("start parsing")
+		var start_time = Time.get_ticks_usec()
+		parser.tokenize_all(text)
+		var tokens = parser.tokens
+		var end_time = Time.get_ticks_usec()
+		var elapsed = end_time - start_time
+		print("parsing over : %sms" % (elapsed / 1000.0))
+		print(parser.debug_tokens_to_str(tokens))
 
 func find_unicode_before_caret() -> int:
 	var caret_col : int = get_caret_column()

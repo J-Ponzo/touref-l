@@ -20,7 +20,7 @@ func _get_line_syntax_highlighting(line_number: int) -> Dictionary:
 	var cur_symb_streak = ""
 	for col in line.length():
 		var unicode : int = line.unicode_at(col)
-		if TL_GLSLSyntax.is_symbol(unicode):
+		if TL_CharUtils.is_symbol(unicode):
 			if cur_word.is_empty():
 				cur_symb_streak += line[col]
 			else:
@@ -62,7 +62,7 @@ func _get_line_syntax_highlighting(line_number: int) -> Dictionary:
 func are_digits(word : String) -> bool:
 	for i in word.length():
 		var unicode : int = word.unicode_at(i)
-		if !TL_GLSLSyntax.is_digit(unicode):
+		if !TL_CharUtils.is_digit(unicode):
 			return false
 	return true
 
@@ -73,10 +73,10 @@ func build_color_map(words : Dictionary) -> Dictionary:
 			color_map[word["start"]] = {"color": SYMBOL_COLOR}
 			var word_content = word["word"]
 			for i in word_content.length():
-				if word_content.unicode_at(i) == TL_GLSLSyntax.CHAR_TO_UNICODE['#']:
+				if word_content.unicode_at(i) == TL_CharUtils.CHAR_TO_UNICODE['#']:
 					color_map[word["start"] + i] = {"color": PREPROC_COLOR}
 					return color_map
-				if i + 1 < word_content.length() && word_content.unicode_at(i) == TL_GLSLSyntax.CHAR_TO_UNICODE['/'] && word_content.unicode_at(i + 1) == TL_GLSLSyntax.CHAR_TO_UNICODE['/']:
+				if i + 1 < word_content.length() && word_content.unicode_at(i) == TL_CharUtils.CHAR_TO_UNICODE['/'] && word_content.unicode_at(i + 1) == TL_CharUtils.CHAR_TO_UNICODE['/']:
 					color_map[word["start"] + i] = {"color": COMMENT_COLOR}
 					return color_map
 

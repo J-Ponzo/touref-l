@@ -194,27 +194,3 @@ const GLSL_STD_FUNCS = [
 	"dfdy", 
 	"fwidth"
 ]
-
-const CHAR_TO_UNICODE = {
-	'\t': 9,
-	' ': 32,
-	'!': 33,
-	'"': 34,
-	'#': 35,
-	'/': 47,
-	'0': 48,
-	'9': 57,
-	':': 58,
-	'@': 64,
-	'[': 91,
-	'_': 95,
-	'`': 96,
-	'{': 123,
-	'~': 126,
-}
-
-static func is_digit(unicode : int) -> bool:
-	return (unicode >= CHAR_TO_UNICODE['0'] && unicode <= CHAR_TO_UNICODE['9']);;
-
-static func is_symbol(unicode : int) -> bool:
-	return unicode != CHAR_TO_UNICODE['_'] && ((unicode >= CHAR_TO_UNICODE['!'] && unicode <= CHAR_TO_UNICODE['/']) || (unicode >= CHAR_TO_UNICODE[':'] && unicode <= CHAR_TO_UNICODE['@']) || (unicode >= CHAR_TO_UNICODE['['] && unicode <= CHAR_TO_UNICODE['`']) || (unicode >= CHAR_TO_UNICODE['{'] && unicode <= CHAR_TO_UNICODE['~']) || unicode == CHAR_TO_UNICODE['\t'] || unicode == CHAR_TO_UNICODE[' ']);
