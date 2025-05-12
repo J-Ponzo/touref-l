@@ -95,8 +95,6 @@ func _ready() -> void:
 	%CompileButton.connect("pressed", compile_shader_action)
 	
 	%ShaderCodeEdit.connect("text_changed", _on_shader_code_changed)
-	%ShaderCodeEdit.syntax_highlighter = TL_GLSLSyntaxHighlighter.new()
-
 	%ShaderFilesList.connect("item_selected", _on_shader_selected)
 
 func new_shader_action() -> void:
@@ -167,7 +165,12 @@ func set_current_shader(new_shader_key : String) -> bool:
 	%CompileButton.disabled = false
 	
 	_set_shader_dirty(current_shader_key, current_edited_shader.is_dirty)
-	
+
+	var glsl_syntax_highlighter : TL_GLSLSyntaxHighlighter = TL_GLSLSyntaxHighlighter.new() 
+	glsl_syntax_highlighter._setup(current_edited_shader.content, [])
+	%ShaderCodeEdit.syntax_highlighter = glsl_syntax_highlighter
+	# %ShaderCodeEdit.syntax_highlighter = TestSyntaxHighlighter.new()
+
 	return true
 
 func save_shader_action() -> void:
@@ -209,7 +212,7 @@ func compile_shader_action() -> void:
 	
 	var err_text = result.compile_error_vertex + result.compile_error_fragment
 	current_edited_shader.last_compile_output = "Compile SUCCESS" if err_text.is_empty() else err_text
-	set_current_shader(current_shader_key)
+	# set_current_shader(current_shader_key) TODO not sur why I did this. Check it does not break something if removed 
 
 # The "dirty" detection strategy could be heavy on big files but until 5000 lines it's
 # still not noticable. So we keep with this until it's a problem.

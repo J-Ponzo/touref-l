@@ -43,14 +43,42 @@ func _on_code_completion_requested():
 	add_static_code_completion_options()
 	update_code_completion_options(true)
 
+# TODO find a way to speedup that
+func get_caret_position() -> int:
+	var position := 0
+	var caret_line := get_caret_line()
+	var caret_column := get_caret_column()
+
+	for i in range(caret_line):
+		position += get_line(i).length() + 1  # +1 for implicit '\n'
+
+	position += caret_column
+	return position
+
+var prev_text : String
 func _on_text_changed():
-	var is_shrinking = last_size > text.length()
+	var size_delta = text.length() - last_size
 	last_size = text.length()
+
+	var caret_pos : int = get_caret_position()
+	var delta_chunk : String
+	if size_delta > 0:	# insertion
+		delta_chunk = text.substr(caret_pos - size_delta, size_delta)
+	else :				# suppression
+		delta_chunk = prev_text.substr(caret_pos, -size_delta)
+	
+	prev_text = text
+
+	var casted : TL_GLSLSyntaxHighlighter = syntax_highlighter
+	var origin_line = caret_pos - size_delta
+	var nb_line_breaks = sign(size_delta) * delta_chunk.countn('\n')
+	if nb_line_breaks != 0:
+		casted.register_line_break_event(origin_line, nb_line_breaks)
 	
 	if !completion_on_typing:
 		return
 	
-	if is_shrinking:
+	if size_delta < 0:
 		return
 	
 	var unicode_before = find_unicode_before_caret()
@@ -73,14 +101,14 @@ func _on_completion_delay_over() -> void:
 		add_static_code_completion_options()
 		update_code_completion_options(true)
 
-		print("start parsing")
-		var start_time = Time.get_ticks_usec()
-		parser.tokenize_all(text)
-		var tokens = parser.tokens
-		var end_time = Time.get_ticks_usec()
-		var elapsed = end_time - start_time
-		print("parsing over : %sms" % (elapsed / 1000.0))
-		print(parser.debug_tokens_to_str(tokens))
+		# print("start parsing")
+		# var start_time = Time.get_ticks_usec()
+		# parser.tokenize_all(text)
+		# var tokens = parser.tokens
+		# var end_time = Time.get_ticks_usec()
+		# var elapsed = end_time - start_time
+		# print("parsing over : %sms" % (elapsed / 1000.0))
+		# print(parser.debug_tokens_to_str(tokens))
 
 func find_unicode_before_caret() -> int:
 	var caret_col : int = get_caret_column()
