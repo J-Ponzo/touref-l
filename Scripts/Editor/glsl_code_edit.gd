@@ -9,7 +9,7 @@ var parser : TL_GLSLParser = TL_GLSLParser.new()
 var nb_completion_delay_running = 0
 
 # TODO find something more reliable for persistant debug reatures
-var _is_debug = true
+var _is_debug = false
 
 func _ready():
 	code_completion_enabled = true

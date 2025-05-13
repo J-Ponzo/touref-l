@@ -23,6 +23,10 @@ class Token:
 	var line : int
 	var col : int
 
+class TokensData:
+	var tokens : Array[Token] = []
+	var idx_by_line : Dictionary[int, Array] = {}
+
 class TextIterator:
 	var text_lines : PackedStringArray
 	var text_size : int
@@ -56,17 +60,17 @@ class TextIterator:
 		self.tick_count = 0
 
 	func mark_last_ticked() -> void:
-		print("mark_last_ticked start %d %d %d" % [p, l, c])
+		# print("mark_last_ticked start %d %d %d" % [p, l, c])
 		if last_ticked == -2:
 			return
 		marked_c = c - 1
 		marked_p = p - 1
 		marked_l = l
-		print("mark_last_ticked marked %d %d %d" % [marked_p, marked_l, marked_c])
+		# print("mark_last_ticked marked %d %d %d" % [marked_p, marked_l, marked_c])
 		if marked_c == -1:
 			marked_l = l - 1
 			marked_c = text_lines[marked_l].length() - 1
-			print("mark_last_ticked fixed marked %d %d %d" % [marked_p, marked_l, marked_c])
+			# print("mark_last_ticked fixed marked %d %d %d" % [marked_p, marked_l, marked_c])
 
 	func rest_of_line() -> String:
 		if p == text_size:
@@ -116,28 +120,29 @@ class TextIterator:
 		return unicodes
 
 var ti : TextIterator = TextIterator.new()
-var tokens : Array[Token] = []
+var tokens_data : TokensData
 
 func tokenize_all(source : String) -> void:
 	reset(source)
-	if ti.tick() != -1:
-		stream_tokenize(source.length())
+	if ti.last_ticked != -1:
+		batch_tokenize(source.length())
 
 func reset(source : String) -> void:
-	tokens.clear()
+	tokens_data = TokensData.new()
 	ti.reset(source)
+	ti.tick()
 
-func stream_tokenize(nb_ticks : int) -> bool:
+func batch_tokenize(nb_ticks : int) -> bool:
 	ti.tick_count = 0
 
 	for i in range(0, nb_ticks):
 		var unicode : int = ti.last_ticked
 		if unicode == -1:
-			print("unicode == -1")
+			# print("unicode == -1")
 			return true
 		
 		if ti.tick_count > nb_ticks:
-			print("ti.tick_count > nb_ticks")
+			# print("ti.tick_count > nb_ticks")
 			return false
 
 		if TL_CharUtils.is_whitespace(unicode):
@@ -156,8 +161,15 @@ func stream_tokenize(nb_ticks : int) -> bool:
 			_parse_operator_token()
 		else:
 			_parse_malformed_token()
-	print("exit on end of function")
+	# print("exit on end of function")
 	return false
+
+func _store_token(token : Token):
+	if tokens_data.idx_by_line.has(token.line):
+		tokens_data.idx_by_line[token.line].append(tokens_data.tokens.size())
+	else :
+		tokens_data.idx_by_line[token.line] = [tokens_data.tokens.size()]
+	tokens_data.tokens.append(token)
 
 func _parse_whitespace_token() -> void:
 	ti.mark_last_ticked()
@@ -168,7 +180,8 @@ func _parse_whitespace_token() -> void:
 		unicode = ti.tick()
 
 	var token : Token = _create_token(ETokenType.Whitespace, data, ti.marked_p, ti.marked_l, ti.marked_c)
-	tokens.append(token)
+
+	_store_token(token)
 
 func _parse_preprocessor_token() -> void:
 	ti.mark_last_ticked()
@@ -177,7 +190,7 @@ func _parse_preprocessor_token() -> void:
 	ti.tick()
 
 	var token : Token = _create_token(ETokenType.Preprocessor, data, ti.marked_p, ti.marked_l, ti.marked_c)
-	tokens.append(token)
+	_store_token(token)
 
 func _parse_numeric_token() -> void:
 	ti.mark_last_ticked()
@@ -197,7 +210,7 @@ func _parse_numeric_token() -> void:
 	elif dot_count > 1:
 		type = ETokenType.Malformed
 	var token : Token = _create_token(type, data, ti.marked_p, ti.marked_l, ti.marked_c)
-	tokens.append(token)
+	_store_token(token)
 
 func _parse_identifier_token() -> void:
 	ti.mark_last_ticked()
@@ -214,7 +227,7 @@ func _parse_identifier_token() -> void:
 	elif TL_GLSLSyntax.GLSL_BASE_TYPES.has(data) || TL_GLSLSyntax.GLSL_STD_FUNCS.has(data):
 		type = ETokenType.BuiltIn
 	var token : Token = _create_token(type, data, ti.marked_p, ti.marked_l, ti.marked_c)
-	tokens.append(token)
+	_store_token(token)
 
 func _parse_linecomment_token() -> void:
 	ti.mark_last_ticked()
@@ -223,7 +236,7 @@ func _parse_linecomment_token() -> void:
 	ti.tick()
 
 	var token : Token = _create_token(ETokenType.LineComment, data, ti.marked_p, ti.marked_l, ti.marked_c)
-	tokens.append(token)
+	_store_token(token)
 
 func _parse_blockcomment_token() -> void:
 	ti.mark_last_ticked()
@@ -241,20 +254,20 @@ func _parse_blockcomment_token() -> void:
 		ti.multi_tick(2)
 
 	var token : Token = _create_token(ETokenType.BlockComment, data, ti.marked_p, ti.marked_l, ti.marked_c)
-	tokens.append(token)
+	_store_token(token)
 
 func _parse_operator_token() -> void:
 	ti.mark_last_ticked()
 	var data : String = char(ti.last_ticked)
 	var token : Token = _create_token(ETokenType.Operator, data, ti.marked_p, ti.marked_l, ti.marked_c)
-	tokens.append(token)
+	_store_token(token)
 	ti.tick()
 
 func _parse_malformed_token() -> void:
 	ti.mark_last_ticked()
 	var data : String = char(ti.last_ticked)
 	var token : Token = _create_token(ETokenType.Malformed, data, ti.marked_p, ti.marked_l, ti.marked_c)
-	tokens.append(token)
+	_store_token(token)
 	ti.tick()
 
 func _create_token(type , data : String, pos : int, line : int, col : int) -> Token:

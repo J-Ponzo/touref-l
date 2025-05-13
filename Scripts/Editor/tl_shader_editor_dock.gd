@@ -12,17 +12,23 @@ const WARN_SHADER_ALREADY_LOADED = "Touref-L: The shader %s is already loaded"
 const MSG_CONFIRM_RELOAD_EDITED = "Touref-L: The shader %s has been modified by another program.\nThose changes conflicts with your local version. Do you want to reload it anyway ?"
 
 class EditedShader:
+	# TODO find something more reliable for persistant debug reatures
+	var _is_debug = false
+
 	var shader : TL_GLSLShader
 	var idx : int
 	var is_dirty : bool
 	var content : String
 	var sha_256 : PackedByteArray
 	var last_compile_output : String
+	var syntax_highlighter : TL_GLSLSyntaxHighlighter
 		
 	func load_from_shader_resource():
 		content = shader.source_code
 		sha_256 = content.sha256_buffer()
 		is_dirty = false
+		syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
+		syntax_highlighter._setup(content, null)
 	
 	func save_to_shader_resource():
 		shader.source_code = content
@@ -36,8 +42,38 @@ class EditedShader:
 	func update_dirty_flag():
 		is_dirty = content.sha256_buffer() != sha_256
 
+	var ast_update_thread : Thread
+	var want_cancel_ast_update = false
+	var parser : TL_GLSLParser= TL_GLSLParser.new() 
+	var tokenize_batch_size : int = 4096
+
+	signal tokenize_finished()
+
+	func ast_update() -> void:
+		if ast_update_thread != null and ast_update_thread.is_alive():
+			want_cancel_ast_update = true
+			ast_update_thread.wait_to_finish()
+
+		parser.reset(content)
+
+		want_cancel_ast_update = false
+		ast_update_thread = Thread.new()
+		ast_update_thread.start(_asyn_ast_update)
+
+	func _asyn_ast_update() -> void:
+		while not want_cancel_ast_update:
+			if parser.batch_tokenize(tokenize_batch_size):
+				break
+		if not want_cancel_ast_update:
+			syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
+			syntax_highlighter._setup(content, parser.tokens_data)
+			call_deferred("_emit_tokenize_finished")
+	
+	func _emit_tokenize_finished() -> void:
+		tokenize_finished.emit()
+
 var current_shader_key : String = ""
-var edited_shaders : Dictionary
+var edited_shaders : Dictionary[String, EditedShader]
 
 var save_shortcut := Shortcut.new()
 var create_shader_dialog : TLShaderCreateDialog = preload("res://addons/touref-l/Scenes/TLShaderCreateDialog.tscn").instantiate()
@@ -135,7 +171,13 @@ func _load_shader(path : String) -> void:
 	
 	set_current_shader(path)
 
+func _on_edited_shader_tokenize_finished() -> void:
+	%ShaderCodeEdit.syntax_highlighter = edited_shaders[current_shader_key].syntax_highlighter
+
 func set_current_shader(new_shader_key : String) -> bool:
+	if edited_shaders.has(current_shader_key):
+		edited_shaders[current_shader_key].disconnect("tokenize_finished", _on_edited_shader_tokenize_finished)
+
 	current_shader_key = new_shader_key
 	
 	if current_shader_key.is_empty():
@@ -153,23 +195,21 @@ func set_current_shader(new_shader_key : String) -> bool:
 		push_error(ERR_UNKOWN_SHADER % current_shader_key)
 		return false
 	
-	var current_edited_shader = edited_shaders[current_shader_key]
-	if not %ShaderFilesList.is_selected(current_edited_shader.idx):
-		%ShaderFilesList.select(current_edited_shader.idx)
+	var new_edited_shader = edited_shaders[current_shader_key]
+	new_edited_shader.connect("tokenize_finished", _on_edited_shader_tokenize_finished)
+	if not %ShaderFilesList.is_selected(new_edited_shader.idx):
+		%ShaderFilesList.select(new_edited_shader.idx)
 	%FileNameLabel.text = current_shader_key
 	%ShaderCodeEdit.editable = true
 	%ShaderCodeEdit.visible = true
-	%ShaderCodeEdit.text = current_edited_shader.content
-	%ConsoleTextEdit.text = current_edited_shader.last_compile_output
+	%ShaderCodeEdit.text = new_edited_shader.content
+	%ConsoleTextEdit.text = new_edited_shader.last_compile_output
 	%CloseButton.disabled = false
 	%CompileButton.disabled = false
 	
-	_set_shader_dirty(current_shader_key, current_edited_shader.is_dirty)
+	_set_shader_dirty(current_shader_key, new_edited_shader.is_dirty)
 
-	var glsl_syntax_highlighter : TL_GLSLSyntaxHighlighter = TL_GLSLSyntaxHighlighter.new() 
-	glsl_syntax_highlighter._setup(current_edited_shader.content, [])
-	%ShaderCodeEdit.syntax_highlighter = glsl_syntax_highlighter
-	# %ShaderCodeEdit.syntax_highlighter = TestSyntaxHighlighter.new()
+	%ShaderCodeEdit.syntax_highlighter = new_edited_shader.syntax_highlighter
 
 	return true
 
@@ -219,6 +259,7 @@ func compile_shader_action() -> void:
 func _on_shader_code_changed():
 	var current_shader : EditedShader = edited_shaders[current_shader_key]
 	current_shader.content = %ShaderCodeEdit.text
+	current_shader.ast_update()
 	var was_dirty = current_shader.is_dirty
 	current_shader.update_dirty_flag()
 	if was_dirty != current_shader.is_dirty:

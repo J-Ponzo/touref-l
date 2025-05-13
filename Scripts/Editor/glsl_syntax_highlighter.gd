@@ -27,31 +27,28 @@ class LineBreakEvent:
 			return line - nb_line_breaks
 
 # TODO find something more reliable for persistant debug reatures
-var _is_debug = true
+var _is_debug = false
 
 var _line_break_history_stack : Array[LineBreakEvent]
 var _color_map_cache : Dictionary[int, Dictionary] = {}
-var _original_color_maps : Array[Dictionary] = []
+var _original_color_maps : Dictionary[int, Dictionary] = {}
 
 # TODO check if both _original_text & _original_text_lines are used
 var _original_text : String
 var _original_text_lines : PackedStringArray
-var _tokens : Array[TL_GLSLParser.Token]
+var _tokens_data = TL_GLSLParser.TokensData
 
 # TODO remove this debug things
 var differential_color_map = {0 : {"color" : Color.MAGENTA}}
 
-func _setup(original_text : String, tokens : Array[TL_GLSLParser.Token]) -> void:
+func _setup(original_text : String, _tokens_data : TL_GLSLParser.TokensData) -> void:
 	self._original_text
-	self._tokens = tokens
+	self._tokens_data = _tokens_data
 	# fill caches
 	_original_text_lines = original_text.split('\n', true);
-	for l in range(0, _original_text_lines.size()):
-		var color_map : Dictionary = _build_color_map(l, _original_text_lines[l])
-		_original_color_maps.append(color_map)
 	
 	if _is_debug:
-		print("TL_GLSLSyntaxHighlighter._setup(original_text=%s, tokens=%s) invoked :" % [original_text, tokens])
+		print("TL_GLSLSyntaxHighlighter._setup(original_text=%s, _tokens_data=%s) invoked :" % [original_text, _tokens_data])
 		print("\t_original_text_lines:%s" % _original_text_lines)
 		print("\t_color_map_cache:%s" % _color_map_cache)
 		print("\t_original_color_maps:%s" % _original_color_maps)
@@ -70,7 +67,8 @@ func _get_line_syntax_highlighting(line_number: int) -> Dictionary:
 	return _build_color_map(line_number, line)
 
 func _build_color_map(line_number: int, line: String) -> Dictionary:
-	print("TL_GLSLSyntaxHighlighter._build_color_map(line_number=%d, line=%s) invoked :" % [line_number, line])
+	if _is_debug:
+		print("TL_GLSLSyntaxHighlighter._build_color_map(line_number=%d, line=%s) invoked :" % [line_number, line])
 	var key = line.hash()
 	if _color_map_cache.has(key):
 		return _color_map_cache[key]
@@ -79,7 +77,8 @@ func _build_color_map(line_number: int, line: String) -> Dictionary:
 
 	# TODO optimize, we don't need prefix/sufix content, just their size
 	var original_line : int = _lookup_original_line(line_number)
-	print("\toriginal_line:%d" % original_line)
+	if _is_debug:
+		print("\toriginal_line:%d" % original_line)
 	if original_line == -1:
 		color_map = _build_default_color_map(line)
 	else:
@@ -97,6 +96,10 @@ func _build_color_map(line_number: int, line: String) -> Dictionary:
 				print("\tuntouched_prefix:'%s'" % untouched_prefix)
 				print("\taltered_part:'%s'" % altered_part)
 				print("\tuntouched_suffix:'%s'" % untouched_suffix)
+			
+			if !_original_color_maps.has(original_line):
+				var original_color_map : Dictionary = _build_color_map(original_line, _original_text_lines[original_line])
+				_original_color_maps[original_line] = original_color_map
 			color_map = _build_mixed_color_map(_original_color_maps[original_line], untouched_prefix.length() - 1, altered_part, line.length() - untouched_suffix.length())
 
 	_color_map_cache[key] = color_map
@@ -104,7 +107,8 @@ func _build_color_map(line_number: int, line: String) -> Dictionary:
 	return color_map
 
 func _build_mixed_color_map(original_color_map : Dictionary, last_prefix_pos : int, altered_part : String, first_suffix_pos : int) -> Dictionary:
-	print("TL_GLSLSyntaxHighlighter._build_mixed_color_map(original_color_map=%s, last_prefix_pos=%d, altered_part=%s, first_suffix_pos=%d) invoked :" % [original_color_map, last_prefix_pos, altered_part, first_suffix_pos])
+	if _is_debug:
+		print("TL_GLSLSyntaxHighlighter._build_mixed_color_map(original_color_map=%s, last_prefix_pos=%d, altered_part=%s, first_suffix_pos=%d) invoked :" % [original_color_map, last_prefix_pos, altered_part, first_suffix_pos])
 	var mixed_color_map : Dictionary = {}
 	for pos in original_color_map.keys():
 		if pos <= last_prefix_pos:
