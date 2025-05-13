@@ -26,55 +26,64 @@ class LineBreakEvent:
 		else:
 			return line - nb_line_breaks
 
-var line_break_history_stack : Array[LineBreakEvent]
-var color_map_cache : Dictionary[int, Dictionary] = {}
-var original_color_maps : Array[Dictionary] = []
+# TODO find something more reliable for persistant debug reatures
+var _is_debug = true
 
-# TODO check if both original_text & original_text_lines are used
-var original_text : String
-var original_text_lines : PackedStringArray
-var tokens : Array[TL_GLSLParser.Token]
+var _line_break_history_stack : Array[LineBreakEvent]
+var _color_map_cache : Dictionary[int, Dictionary] = {}
+var _original_color_maps : Array[Dictionary] = []
+
+# TODO check if both _original_text & _original_text_lines are used
+var _original_text : String
+var _original_text_lines : PackedStringArray
+var _tokens : Array[TL_GLSLParser.Token]
 
 # TODO remove this debug things
 var differential_color_map = {0 : {"color" : Color.MAGENTA}}
 
 func _setup(original_text : String, tokens : Array[TL_GLSLParser.Token]) -> void:
-	self.original_text
-	self.tokens = tokens
+	self._original_text
+	self._tokens = tokens
 	# fill caches
-	original_text_lines = original_text.split('\n', true);
-	for l in range(0, original_text_lines.size()):
-		var color_map : Dictionary = _build_color_map(l, original_text_lines[l])
-		original_color_maps.append(color_map)
+	_original_text_lines = original_text.split('\n', true);
+	for l in range(0, _original_text_lines.size()):
+		var color_map : Dictionary = _build_color_map(l, _original_text_lines[l])
+		_original_color_maps.append(color_map)
 	
-	print(original_text_lines)
-	print(color_map_cache)
-	print(original_color_maps)
+	if _is_debug:
+		print("TL_GLSLSyntaxHighlighter._setup(original_text=%s, tokens=%s) invoked :" % [original_text, tokens])
+		print("\t_original_text_lines:%s" % _original_text_lines)
+		print("\t_color_map_cache:%s" % _color_map_cache)
+		print("\t_original_color_maps:%s" % _original_color_maps)
+		print(_original_text_lines)
+		print(_color_map_cache)
+		print(_original_color_maps)
 
 func register_line_break_event(origin_line : int, nb_line_breaks : int) -> void:
 	var line_break_event = LineBreakEvent.new()
 	line_break_event.origin_line = origin_line
 	line_break_event.nb_line_breaks = nb_line_breaks
-	line_break_history_stack.insert(0, line_break_event)
+	_line_break_history_stack.insert(0, line_break_event)
 
 func _get_line_syntax_highlighting(line_number: int) -> Dictionary:
 	var line : String = get_text_edit().get_line(line_number)
 	return _build_color_map(line_number, line)
 
 func _build_color_map(line_number: int, line: String) -> Dictionary:
+	print("TL_GLSLSyntaxHighlighter._build_color_map(line_number=%d, line=%s) invoked :" % [line_number, line])
 	var key = line.hash()
-	if color_map_cache.has(key):
-		return color_map_cache[key]
+	if _color_map_cache.has(key):
+		return _color_map_cache[key]
 
 	var color_map : Dictionary
 
 	# TODO optimize, we don't need prefix/sufix content, just their size
 	var original_line : int = _lookup_original_line(line_number)
-	print(original_line)
+	print("\toriginal_line:%d" % original_line)
 	if original_line == -1:
 		color_map = _build_default_color_map(line)
 	else:
-		var original_text_line : String = original_text_lines[original_line]
+		var original_text_line : String = _original_text_lines[original_line]
 		var untouched_prefix : String = _find_common_prefix(original_text_line, line)
 		if original_text_line.length() == untouched_prefix.length():
 			color_map = _build_default_color_map(line)
@@ -82,30 +91,44 @@ func _build_color_map(line_number: int, line: String) -> Dictionary:
 			var untouched_suffix : String = _find_common_suffix(original_text_line, line)
 			var altered_part_length : int = line.length() - untouched_prefix.length() - untouched_suffix.length()
 			var altered_part : String = line.substr(untouched_prefix.length(), altered_part_length)
-			print("altered_part_length:%s" % altered_part_length)
-			print("original_text_line:%s" % original_text_line)
-			print("untouched_prefix:%s" % untouched_prefix)
-			print("altered_part:%s" % altered_part)
-			print("untouched_suffix:%s" % untouched_suffix)
-			color_map = _build_mixed_color_map(original_color_maps[original_line], untouched_prefix.length(), altered_part, line.length() - untouched_suffix.length())
+			if _is_debug:
+				print("\taltered_part_length:%d" % altered_part_length)
+				print("\toriginal_text_line:'%s'" % original_text_line)
+				print("\tuntouched_prefix:'%s'" % untouched_prefix)
+				print("\taltered_part:'%s'" % altered_part)
+				print("\tuntouched_suffix:'%s'" % untouched_suffix)
+			color_map = _build_mixed_color_map(_original_color_maps[original_line], untouched_prefix.length() - 1, altered_part, line.length() - untouched_suffix.length())
 
-	color_map_cache[key] = color_map
+	_color_map_cache[key] = color_map
 
 	return color_map
 
 func _build_mixed_color_map(original_color_map : Dictionary, last_prefix_pos : int, altered_part : String, first_suffix_pos : int) -> Dictionary:
+	print("TL_GLSLSyntaxHighlighter._build_mixed_color_map(original_color_map=%s, last_prefix_pos=%d, altered_part=%s, first_suffix_pos=%d) invoked :" % [original_color_map, last_prefix_pos, altered_part, first_suffix_pos])
 	var mixed_color_map : Dictionary = {}
 	for pos in original_color_map.keys():
-		if pos < last_prefix_pos:
+		if pos <= last_prefix_pos:
 			mixed_color_map[pos] = original_color_map[pos]
-		elif pos >= first_suffix_pos:
+		elif pos > last_prefix_pos:
 			mixed_color_map[pos + altered_part.length()] = original_color_map[pos]
+	
+	if _is_debug:		
+		print("\tmixed_color_map(no alt part):%s" % mixed_color_map)
 
 	var alterd_part_color_map : Dictionary = _build_default_color_map(altered_part)
 	for pos in alterd_part_color_map.keys():
-		mixed_color_map[pos + last_prefix_pos] = alterd_part_color_map[pos]
+		mixed_color_map[pos + last_prefix_pos + 1] = alterd_part_color_map[pos]
 
-	return alterd_part_color_map
+	var sorted_mixed_color_map : Dictionary = {}
+	var keys = mixed_color_map.keys()
+	keys.sort()
+	for key in keys:
+		sorted_mixed_color_map[key] = mixed_color_map[key]
+
+	if _is_debug:		
+		print("\tsorted_mixed_color_map(final):%s" % sorted_mixed_color_map)
+
+	return sorted_mixed_color_map
 
 func _find_common_suffix(str1 : String, str2 : String) -> String:
 	var result : String
@@ -127,7 +150,7 @@ func _find_common_prefix(str1 : String, str2 : String) -> String:
 
 func _lookup_original_line(actual_line : int) -> int:
 	var line = actual_line
-	for event : LineBreakEvent in line_break_history_stack:
+	for event : LineBreakEvent in _line_break_history_stack:
 		line = event.revert(line)
 		if line == -1:
 			break

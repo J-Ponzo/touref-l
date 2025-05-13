@@ -8,10 +8,14 @@ var parser : TL_GLSLParser = TL_GLSLParser.new()
 
 var nb_completion_delay_running = 0
 
+# TODO find something more reliable for persistant debug reatures
+var _is_debug = true
+
 func _ready():
 	code_completion_enabled = true
 	connect("text_changed", _on_text_changed)
 	connect("code_completion_requested", _on_code_completion_requested)
+	connect("text_set", _on_text_set)
 
 func _confirm_code_completion(replace: bool) -> void:
 	var completion_base_size = find_completion_base().length()
@@ -56,17 +60,29 @@ func get_caret_position() -> int:
 	return position
 
 var prev_text : String
-func _on_text_changed():
-	var size_delta = text.length() - last_size
-	last_size = text.length()
+func _on_text_set() -> void:
+	prev_text = text
 
+func _on_text_changed():
+	if _is_debug:
+		print("TL_GLSLCodeEdit._on_text_changed() invoked :")
+
+	var size_delta = text.length() - prev_text.length()
 	var caret_pos : int = get_caret_position()
+
+	if _is_debug:
+		print("\tsize_delta:%d" % size_delta)
+		print("\tcaret_pos:%s" % caret_pos)
+
 	var delta_chunk : String
 	if size_delta > 0:	# insertion
 		delta_chunk = text.substr(caret_pos - size_delta, size_delta)
 	else :				# suppression
 		delta_chunk = prev_text.substr(caret_pos, -size_delta)
 	
+	if _is_debug:
+		print("\tdelta_chunk:%s" % delta_chunk)
+
 	prev_text = text
 
 	var casted : TL_GLSLSyntaxHighlighter = syntax_highlighter
@@ -117,8 +133,6 @@ func find_unicode_before_caret() -> int:
 		
 	var current_line = get_line(get_caret_line())
 	return current_line.unicode_at(caret_col - 1)
-
-var last_size : int = 0
 
 func add_static_code_completion_options() -> void:
 	for word in TL_GLSLSyntax.GLSL_BASE_TYPES:
