@@ -85,7 +85,7 @@ func _build_color_map(line_number: int, line: String) -> Dictionary:
 		var original_text_line : String = _original_text_lines[original_line]
 		var untouched_prefix : String = _find_common_prefix(original_text_line, line)
 		if original_text_line.length() == untouched_prefix.length():
-			color_map = _build_default_color_map(line)
+			color_map = _build_best_color_map(line_number, line)
 		else:
 			var untouched_suffix : String = _find_common_suffix(original_text_line, line)
 			var altered_part_length : int = line.length() - untouched_prefix.length() - untouched_suffix.length()
@@ -105,6 +105,13 @@ func _build_color_map(line_number: int, line: String) -> Dictionary:
 	_color_map_cache[key] = color_map
 
 	return color_map
+
+func _build_best_color_map(line_number: int, line: String) -> Dictionary:
+	if _tokens_data != null:
+		return _build_token_color_map(line_number, line)
+	else:
+		return _build_default_color_map(line)
+
 
 func _build_mixed_color_map(original_color_map : Dictionary, last_prefix_pos : int, altered_part : String, first_suffix_pos : int) -> Dictionary:
 	if _is_debug:
@@ -134,38 +141,43 @@ func _build_mixed_color_map(original_color_map : Dictionary, last_prefix_pos : i
 
 	return sorted_mixed_color_map
 
-func _find_common_suffix(str1 : String, str2 : String) -> String:
-	var result : String
-	for i in range(0, min(str1.length(), str2.length())):
-		if str1[str1.length() - 1 - i] == str2[str2.length() -1 - i]:
-			result += str1[str1.length() - 1 - i]
-		else:
-			break
-	return result.reverse()
+# TODO check if line: String is necessary
+func _build_token_color_map(line_number: int, line: String) -> Dictionary:
+	var color_map : Dictionary
 
-func _find_common_prefix(str1 : String, str2 : String) -> String:
-	var result : String
-	for i in range(0, min(str1.length(), str2.length())):
-		if str1[i] == str2[i]:
-			result += str1[i]
-		else:
-			break
-	return result
+	var color : Color
+	if _tokens_data.idx_by_line.has(line_number):
+		var line_tokens = _tokens_data.extract_line_token_no_check(line_number)
+		if line_tokens[0].line != 0:
+			color = _get_color_from_token(_tokens_data.get_first_token_before_line(line_number))
+			color_map[0] = {"color": color}
+		for token in line_tokens:
+			color = _get_color_from_token(token)
+			color_map[token.col] = {"color": color}
+	else :
+		color = _get_color_from_token(_tokens_data.get_first_token_before_line(line_number))
+		color_map[0] = {"color": color}
 
-func _lookup_original_line(actual_line : int) -> int:
-	var line = actual_line
-	for event : LineBreakEvent in _line_break_history_stack:
-		line = event.revert(line)
-		if line == -1:
-			break
-	return line
+	return color_map
 
-func _are_digits(word : String) -> bool:
-	for i in word.length():
-		var unicode : int = word.unicode_at(i)
-		if !TL_CharUtils.is_digit(unicode):
-			return false
-	return true
+func _get_color_from_token(token : TL_GLSLParser.Token) -> Color:
+	if token.type == TL_GLSLParser.ETokenType.BlockComment or token.type == TL_GLSLParser.ETokenType.LineComment:
+		return COMMENT_COLOR
+	elif token.type == TL_GLSLParser.ETokenType.Preprocessor:
+		return PREPROC_COLOR
+	elif token.type == TL_GLSLParser.ETokenType.Operator:
+		return SYMBOL_COLOR
+	elif token.type == TL_GLSLParser.ETokenType.Float or token.type == TL_GLSLParser.ETokenType.Integer:
+		return NUMERIC_COLOR
+	elif token.type == TL_GLSLParser.ETokenType.Identifier:
+		return TEXT_COLOR
+	elif token.type == TL_GLSLParser.ETokenType.BuiltIn:
+		return GLSL_STD_FUNCNAME_COLOR if TL_GLSLSyntax.GLSL_STD_FUNCS.has(token.data) else GLSL_BASE_TYPES_COLOR
+	elif token.type == TL_GLSLParser.ETokenType.Keyword:
+		return GLSL_CONTROL_FLOW_COLOR if TL_GLSLSyntax.GLSL_CONTROL_FLOW.has(token.data) else GLSL_QUALIFIERS_COLOR
+	else:
+		return Color.MAGENTA
+
 
 func _build_default_color_map(line : String) -> Dictionary:
 	var words : Dictionary = {}
@@ -238,3 +250,36 @@ func _build_color_map_from_words(words : Dictionary) -> Dictionary:
 		else:
 			color_map[word["start"]] = {"color": TEXT_COLOR}
 	return color_map
+
+func _find_common_suffix(str1 : String, str2 : String) -> String:
+	var result : String
+	for i in range(0, min(str1.length(), str2.length())):
+		if str1[str1.length() - 1 - i] == str2[str2.length() -1 - i]:
+			result += str1[str1.length() - 1 - i]
+		else:
+			break
+	return result.reverse()
+
+func _find_common_prefix(str1 : String, str2 : String) -> String:
+	var result : String
+	for i in range(0, min(str1.length(), str2.length())):
+		if str1[i] == str2[i]:
+			result += str1[i]
+		else:
+			break
+	return result
+
+func _lookup_original_line(actual_line : int) -> int:
+	var line = actual_line
+	for event : LineBreakEvent in _line_break_history_stack:
+		line = event.revert(line)
+		if line == -1:
+			break
+	return line
+
+func _are_digits(word : String) -> bool:
+	for i in word.length():
+		var unicode : int = word.unicode_at(i)
+		if !TL_CharUtils.is_digit(unicode):
+			return false
+	return true

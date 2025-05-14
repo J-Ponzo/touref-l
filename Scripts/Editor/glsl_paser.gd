@@ -25,7 +25,29 @@ class Token:
 
 class TokensData:
 	var tokens : Array[Token] = []
-	var idx_by_line : Dictionary[int, Array] = {}
+	var idx_by_line : Dictionary[int, Array] = {}	# 'values' are indicies of token at line 'key' from the 'tokens' array
+	func extract_line_token_no_check(line : int) -> Array[Token]:
+		var tokens_line : Array[Token] = []
+		for i in idx_by_line[line]:
+			tokens_line.append(tokens[i])
+		return tokens_line
+	func get_first_token_before_line(line : int) -> Token:
+		line -= 1
+		if line < 0:
+			return null
+		while not idx_by_line.has(line):
+			line -= 1
+			if line < 0:
+				return null
+		var last_idx_of_line = idx_by_line[line][idx_by_line[line].size() - 1]
+		return tokens[last_idx_of_line]
+		# var first_idx_of_line = idx_by_line[line][0]
+		# return tokens[first_idx_of_line - 1] if first_idx_of_line != 0 else null
+	func debug_tokens_to_str() -> String:
+		var str : String = "DEBUG TOKENS (%d)\n" % tokens.size()
+		for token in tokens:
+			str += str(token.type) + " " + token.data + " " + str(token.pos) + " " + str(token.line) + " " + str(token.col) + "\n"
+		return str
 
 class TextIterator:
 	var text_lines : PackedStringArray
@@ -147,16 +169,16 @@ func batch_tokenize(nb_ticks : int) -> bool:
 
 		if TL_CharUtils.is_whitespace(unicode):
 			_parse_whitespace_token()
+		elif unicode == TL_CharUtils.CHAR_TO_UNICODE['/'] && ti.rest_of_line().unicode_at(0) == TL_CharUtils.CHAR_TO_UNICODE['/']:
+			_parse_linecomment_token()
+		elif unicode == TL_CharUtils.CHAR_TO_UNICODE['/'] && ti.rest_of_line().unicode_at(0) == TL_CharUtils.CHAR_TO_UNICODE['*']:
+			_parse_blockcomment_token()
 		elif unicode == TL_CharUtils.CHAR_TO_UNICODE['#']:
 			_parse_preprocessor_token()
 		elif TL_CharUtils.is_digit(unicode):
 			_parse_numeric_token()
 		elif TL_CharUtils.is_identifier_head(unicode):
 			_parse_identifier_token()
-		elif unicode == TL_CharUtils.CHAR_TO_UNICODE['/'] && ti.rest_of_line().unicode_at(0) == TL_CharUtils.CHAR_TO_UNICODE['/']:
-			_parse_linecomment_token()
-		elif unicode == TL_CharUtils.CHAR_TO_UNICODE['/'] && ti.rest_of_line().unicode_at(0) == TL_CharUtils.CHAR_TO_UNICODE['*']:
-			_parse_blockcomment_token()
 		elif TL_CharUtils.is_symbol(unicode):	# Check Operators after comments so that starting '/' is not considered as Operator
 			_parse_operator_token()
 		else:
@@ -278,9 +300,3 @@ func _create_token(type , data : String, pos : int, line : int, col : int) -> To
 	token.line = line
 	token.col = col
 	return token
-
-func debug_tokens_to_str(tokens : Array[Token]) -> String:
-	var str : String = "DEBUG TOKENS (%d)\n" % tokens.size()
-	for token in tokens:
-		str += str(token.type) + " " + token.data + " " + str(token.pos) + " " + str(token.line) + " " + str(token.col) + "\n"
-	return str

@@ -29,6 +29,7 @@ class EditedShader:
 		is_dirty = false
 		syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
 		syntax_highlighter._setup(content, null)
+		ast_update()
 	
 	func save_to_shader_resource():
 		shader.source_code = content
@@ -71,6 +72,9 @@ class EditedShader:
 	
 	func _emit_tokenize_finished() -> void:
 		tokenize_finished.emit()
+
+# TODO find something more reliable for persistant debug reatures
+var _is_debug = false
 
 var current_shader_key : String = ""
 var edited_shaders : Dictionary[String, EditedShader]
@@ -173,6 +177,8 @@ func _load_shader(path : String) -> void:
 
 func _on_edited_shader_tokenize_finished() -> void:
 	%ShaderCodeEdit.syntax_highlighter = edited_shaders[current_shader_key].syntax_highlighter
+	if _is_debug:
+		print(%ShaderCodeEdit.syntax_highlighter._tokens_data.debug_tokens_to_str())
 
 func set_current_shader(new_shader_key : String) -> bool:
 	if edited_shaders.has(current_shader_key):
