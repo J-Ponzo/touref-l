@@ -252,7 +252,7 @@ func compile_shader_action() -> void:
 	
 	var err_text = result.compile_error_vertex + result.compile_error_fragment
 	current_edited_shader.last_compile_output = "Compile SUCCESS" if err_text.is_empty() else err_text
-	# set_current_shader(current_shader_key) TODO not sur why I did this. Check it does not break something if removed 
+	%ConsoleTextEdit.text = current_edited_shader.last_compile_output
 
 # The "dirty" detection strategy could be heavy on big files but until 5000 lines it's
 # still not noticable. So we keep with this until it's a problem.
