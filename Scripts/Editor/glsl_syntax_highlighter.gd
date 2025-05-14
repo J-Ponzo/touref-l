@@ -36,12 +36,12 @@ var _original_color_maps : Dictionary[int, Dictionary] = {}
 # TODO check if both _original_text & _original_text_lines are used
 var _original_text : String
 var _original_text_lines : PackedStringArray
-var _tokens_data = TL_GLSLParser.TokensData
+var _tokens_data = TL_GLSLTokenizer.TokensData
 
 # TODO remove this debug things
 var differential_color_map = {0 : {"color" : Color.MAGENTA}}
 
-func _setup(original_text : String, _tokens_data : TL_GLSLParser.TokensData) -> void:
+func _setup(original_text : String, _tokens_data : TL_GLSLTokenizer.TokensData) -> void:
 	self._original_text
 	self._tokens_data = _tokens_data
 	# fill caches
@@ -160,20 +160,20 @@ func _build_token_color_map(line_number: int, line: String) -> Dictionary:
 
 	return color_map
 
-func _get_color_from_token(token : TL_GLSLParser.Token) -> Color:
-	if token.type == TL_GLSLParser.ETokenType.BlockComment or token.type == TL_GLSLParser.ETokenType.LineComment:
+func _get_color_from_token(token : TL_GLSLTokenizer.Token) -> Color:
+	if token.type == TL_GLSLTokenizer.ETokenType.BlockComment or token.type == TL_GLSLTokenizer.ETokenType.LineComment:
 		return COMMENT_COLOR
-	elif token.type == TL_GLSLParser.ETokenType.Preprocessor:
+	elif token.type == TL_GLSLTokenizer.ETokenType.Preprocessor:
 		return PREPROC_COLOR
-	elif token.type == TL_GLSLParser.ETokenType.Operator:
+	elif token.type == TL_GLSLTokenizer.ETokenType.Operator:
 		return SYMBOL_COLOR
-	elif token.type == TL_GLSLParser.ETokenType.Float or token.type == TL_GLSLParser.ETokenType.Integer:
+	elif token.type == TL_GLSLTokenizer.ETokenType.Float or token.type == TL_GLSLTokenizer.ETokenType.Integer:
 		return NUMERIC_COLOR
-	elif token.type == TL_GLSLParser.ETokenType.Identifier:
+	elif token.type == TL_GLSLTokenizer.ETokenType.Identifier:
 		return TEXT_COLOR
-	elif token.type == TL_GLSLParser.ETokenType.BuiltIn:
+	elif token.type == TL_GLSLTokenizer.ETokenType.BuiltIn:
 		return GLSL_STD_FUNCNAME_COLOR if TL_GLSLSyntax.GLSL_STD_FUNCS.has(token.data) else GLSL_BASE_TYPES_COLOR
-	elif token.type == TL_GLSLParser.ETokenType.Keyword:
+	elif token.type == TL_GLSLTokenizer.ETokenType.Keyword:
 		return GLSL_CONTROL_FLOW_COLOR if TL_GLSLSyntax.GLSL_CONTROL_FLOW.has(token.data) else GLSL_QUALIFIERS_COLOR
 	else:
 		return Color.MAGENTA

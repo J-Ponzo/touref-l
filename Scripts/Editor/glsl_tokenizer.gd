@@ -1,5 +1,5 @@
 extends Resource
-class_name TL_GLSLParser
+class_name TL_GLSLTokenizer
 
 enum ETokenType {
 	BlockComment,
@@ -119,7 +119,7 @@ class TextIterator:
 		line_start_last_tick = c == 0
 
 		# if l >= text_lines.size():
-		# 	push_error("TL_GLSLParser.TextIterator.tick() reashed eof but p(%d) != text_size(%d). It should not happen !" % [p, text_size])
+		# 	push_error("TL_GLSLTokenizer.TextIterator.tick() reashed eof but p(%d) != text_size(%d). It should not happen !" % [p, text_size])
 		# 	return -1
 
 		last_ticked = text_lines[l].unicode_at(c)

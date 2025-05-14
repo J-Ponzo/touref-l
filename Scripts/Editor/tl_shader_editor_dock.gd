@@ -45,7 +45,7 @@ class EditedShader:
 
 	var ast_update_thread : Thread
 	var want_cancel_ast_update = false
-	var parser : TL_GLSLParser= TL_GLSLParser.new() 
+	var parser : TL_GLSLTokenizer= TL_GLSLTokenizer.new() 
 	var tokenize_batch_size : int = 4096
 
 	signal tokenize_finished()
