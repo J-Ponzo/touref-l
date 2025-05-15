@@ -119,6 +119,10 @@ const GLSL_TYPE_QUALIFIERS = [
 	"struct"
 ]
 
+const GLSL_FUNC_QUALIFIERS = [
+	"inline"
+]
+
 const GLSL_STD_FUNCS = [
 	"abs", 
 	"sign",
