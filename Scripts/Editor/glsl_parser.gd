@@ -12,58 +12,55 @@ class TokenGrpLeaf extends TokenGrpNode :
 
 var _tokens : Array[TL_GLSLTokenizer.Token]
 var _tok_idx : int = 0
-var _token_grp_stack : Array[TokenGrpBody]
+
+var _tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
 
 func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	_tokens = tokens
 
 	var root : TokenGrpBody = _rec_generate_token_grp()
-	print("ROOT")
 	return root
 	
 func _rec_generate_token_grp() -> TokenGrpBody:
 	var body : TokenGrpBody = TokenGrpBody.new()
-	var tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
 	while _tok_idx < _tokens.size():
 		if _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Operator:
 			if _tokens[_tok_idx].data == ';':
-				tokens_accumulated.append(_tokens[_tok_idx])
-				var token_grp_leaf : TokenGrpLeaf = _create_token_grp_leaf(tokens_accumulated)
-				body.token_grp_nodes.append(token_grp_leaf)
-				tokens_accumulated.clear()
+				_accumulate(_tokens[_tok_idx])
+				_fill_with_accumulated(body)
 			elif _tokens[_tok_idx].data == '{':
-				var token_grp_leaf : TokenGrpLeaf = _create_token_grp_leaf(tokens_accumulated)
-				body.token_grp_nodes.append(token_grp_leaf)
-				tokens_accumulated.clear()
+				_fill_with_accumulated(body)
 				_tok_idx += 1
 				var token_grp_body = _rec_generate_token_grp()
 				body.token_grp_nodes.append(token_grp_body)
 			elif _tokens[_tok_idx].data == '}':
 				break
 			else :
-				if not is_ignored_token_type(_tokens[_tok_idx].type):
-					tokens_accumulated.append(_tokens[_tok_idx])
+				_accumulate(_tokens[_tok_idx])
 		elif _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Preprocessor:
-			if tokens_accumulated.size() > 0:
-				var token_grp_leaf : TokenGrpLeaf = _create_token_grp_leaf(tokens_accumulated)
-				body.token_grp_nodes.append(token_grp_leaf)
-				tokens_accumulated.clear()
+			_fill_with_accumulated(body)
 			var token_grp_leaf : TokenGrpLeaf = _create_token_grp_leaf([_tokens[_tok_idx]])
 			body.token_grp_nodes.append(token_grp_leaf)
 		else :
-			if not is_ignored_token_type(_tokens[_tok_idx].type):
-				tokens_accumulated.append(_tokens[_tok_idx])
+			_accumulate(_tokens[_tok_idx])
 		_tok_idx += 1
 
-	if tokens_accumulated.size() > 0:
-		var token_grp_leaf : TokenGrpLeaf = _create_token_grp_leaf(tokens_accumulated)
-		body.token_grp_nodes.append(token_grp_leaf)
-		# print(debug_token_grp_to_str(token_grp_leaf))
+	_fill_with_accumulated(body)
 
 	return body
 
 func is_ignored_token_type(type : TL_GLSLTokenizer.ETokenType) -> bool:
 	return type == TL_GLSLTokenizer.ETokenType.BlockComment || type == TL_GLSLTokenizer.ETokenType.LineComment || type == TL_GLSLTokenizer.ETokenType.Whitespace || type == TL_GLSLTokenizer.ETokenType.EOF
+
+func _accumulate(token : TL_GLSLTokenizer.Token):
+	if not is_ignored_token_type(token.type):
+		_tokens_accumulated.append(token)
+
+func _fill_with_accumulated(body : TokenGrpBody):
+	if _tokens_accumulated.size() > 0:
+		var token_grp_leaf : TokenGrpLeaf = _create_token_grp_leaf(_tokens_accumulated)
+		_tokens_accumulated.clear()
+		body.token_grp_nodes.append(token_grp_leaf)
 
 func _create_token_grp_leaf(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpLeaf:
 	var token_grp_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
