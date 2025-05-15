@@ -19,7 +19,7 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	_tokens = tokens
 
 	var root : TokenGrpBody = _rec_generate_token_grp()
-	_identify_grps_in(root)
+	_rec_identify_grps_in(root)
 
 	return root
 
@@ -27,7 +27,7 @@ func _rec_identify_grps_in(grp_node : TokenGrpNode) -> void:
 	if grp_node is TokenGrpLeaf:
 		_identify_grp_leaf(grp_node)
 	else :
-		_identify_grp_body(grp_body)
+		_identify_grp_body(grp_node)
 
 func _identify_grp_leaf(grp_leaf : TokenGrpLeaf) -> void:
 	pass
