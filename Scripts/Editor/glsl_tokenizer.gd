@@ -43,6 +43,7 @@ class TokensData:
 		return tokens[last_idx_of_line]
 		# var first_idx_of_line = idx_by_line[line][0]
 		# return tokens[first_idx_of_line - 1] if first_idx_of_line != 0 else null
+	# TODO replace with _to_string()
 	func debug_tokens_to_str() -> String:
 		var str : String = "DEBUG TOKENS (%d)\n" % tokens.size()
 		for token in tokens:
@@ -244,7 +245,7 @@ func _parse_identifier_token() -> void:
 		unicode = ti.tick()
 
 	var type : ETokenType = ETokenType.Identifier
-	if TL_GLSLSyntax.GLSL_CONTROL_FLOW.has(data) || TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(data):
+	if TL_GLSLSyntax.GLSL_FUNC_QUALIFIERS.has(data) || TL_GLSLSyntax.GLSL_CONTROL_FLOW.has(data) || TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(data):
 		type = ETokenType.Keyword
 	elif TL_GLSLSyntax.GLSL_BASE_TYPES.has(data) || TL_GLSLSyntax.GLSL_STD_FUNCS.has(data):
 		type = ETokenType.BuiltIn

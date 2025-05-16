@@ -53,7 +53,7 @@ class TokenFuncHead extends TokenGrpLeaf:
 		var params_str : String = ""
 		for param in params:
 			params_str += param.to_string() + ", "
-		# str += params_str.substr(0, params_str.length() - 2)
+		params_str += params_str.substr(0, params_str.length() - 2)
 		str += params_str + ")|"
 
 		return str
@@ -75,6 +75,9 @@ class TokenFuncHead extends TokenGrpLeaf:
 		else:
 			result.return_type = leaf.tokens[identifier_idx - 1].data
 
+		for i : int in range(0, identifier_idx - 1):
+			result.qualifiers.append(leaf.tokens[i].data)
+
 		if leaf.tokens.size() <= identifier_idx + 1 or leaf.tokens[identifier_idx + 1].type != TL_GLSLTokenizer.ETokenType.Operator or leaf.tokens[identifier_idx + 1].data != '(':
 			return null
 		
@@ -87,12 +90,9 @@ class TokenFuncHead extends TokenGrpLeaf:
 			params_toks_line.append(leaf.tokens[i])
 		var split_toks = TL_GLSLParser.split_toks_line(params_toks_line,  TL_GLSLTokenizer.ETokenType.Operator)
 		for param_toks in split_toks:
-			var param : FuncParam = FuncParam.new()
-			param.name = param_toks[param_toks.size() - 1].data
-			param.type = param_toks[param_toks.size() - 2].data
-			for i in range(0, param_toks.size() - 2):
-				param.qualifiers.append(param_toks[i])
-			result.params.append(param)
+			var param : FuncParam = FuncParam.parse_param_toks_line(param_toks)
+			if param != null:
+				result.params.append(param)
 
 		result.tokens.append_array(leaf.tokens)
 		return result
@@ -105,8 +105,30 @@ class FuncParam :
 		var str : String = ""
 		for qualifier in qualifiers:
 			str += qualifier + " "
-		str += type + " " + name
+		str += type 
+		if name != "":
+			str += " " + name
 		return str
+
+	# static func parse_param_toks_line(toks_line :  Array[TL_GLSLTokenizer.Token]) -> FuncParam:
+	static func parse_param_toks_line(toks_line :  Array) -> FuncParam:
+		var param : FuncParam = FuncParam.new()
+		var type_idx : int = -1
+		for i in range(0, toks_line.size()):
+			if toks_line[i].type == TL_GLSLTokenizer.ETokenType.BuiltIn && TL_GLSLSyntax.GLSL_BASE_TYPES.has(toks_line[i].data):
+				type_idx = i
+				param.type = toks_line[type_idx].data
+				break
+		if type_idx == -1:
+			return null
+		
+		for i : int in range(0, type_idx - 1):
+			param.qualifiers.append(toks_line[i])
+
+		if toks_line.size() > type_idx + 2:
+			param.name = toks_line[type_idx + 1].data
+
+		return param
 
 var _tokens : Array[TL_GLSLTokenizer.Token]
 var _tok_idx : int = 0
