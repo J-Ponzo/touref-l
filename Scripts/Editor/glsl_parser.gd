@@ -2,10 +2,21 @@ extends Object
 class_name TL_GLSLParser
 
 class TokenGrpNode :
-	pass
+	var parent : TokenGrpBody = null
+	var idx_in_parent : int = -1
+	func replace_with(new_grp_node : TokenGrpNode) -> bool:
+		if parent == null:
+			return false
+		new_grp_node.parent = parent
+		parent._children[idx_in_parent] = new_grp_node
+		return true
 
 class TokenGrpBody extends TokenGrpNode :
-	var token_grp_nodes : Array[TokenGrpNode]
+	var _children : Array[TokenGrpNode] = []
+	func attach_child(child : TokenGrpNode) -> void:
+		child.idx_in_parent = _children.size()
+		_children.append(child)
+		child.parent = self
 
 class TokenGrpLeaf extends TokenGrpNode :
 	var tokens : Array[TL_GLSLTokenizer.Token]
@@ -16,7 +27,7 @@ class TokenGrpLeaf extends TokenGrpNode :
 		return str
 
 static func split_toks_line(toks_line : Array[TL_GLSLTokenizer.Token], type : TL_GLSLTokenizer.ETokenType):
-	var result : Array[Array] = []
+	var result : Array[Array]
 	var i : int = 0
 	for tok : TL_GLSLTokenizer.Token in toks_line:
 		if tok.type == type:
@@ -33,7 +44,20 @@ class TokenFuncHead extends TokenGrpLeaf:
 	var return_type : String
 	var name : String
 	var params : Array[FuncParam] 
-		
+
+	func _to_string() -> String:
+		var str : String = "<FUNC_HEAD>|"
+		for qualifier in qualifiers:
+			str += qualifier + " "
+		str += return_type + " " + name + "("
+		var params_str : String = ""
+		for param in params:
+			params_str += param.to_string() + ", "
+		# str += params_str.substr(0, params_str.length() - 2)
+		str += params_str + ")|"
+
+		return str
+
 	static func try_create_from(leaf : TokenGrpLeaf) -> TokenFuncHead:
 		var result : TokenFuncHead = TokenFuncHead.new()
 
@@ -51,7 +75,7 @@ class TokenFuncHead extends TokenGrpLeaf:
 		else:
 			result.return_type = leaf.tokens[identifier_idx - 1].data
 
-		if leaf.tokens[identifier_idx + 1].type != TL_GLSLTokenizer.ETokenType.Operator or leaf.tokens[identifier_idx + 1].data != '(':
+		if leaf.tokens.size() <= identifier_idx + 1 or leaf.tokens[identifier_idx + 1].type != TL_GLSLTokenizer.ETokenType.Operator or leaf.tokens[identifier_idx + 1].data != '(':
 			return null
 		
 		var last_token : TL_GLSLTokenizer.Token = leaf.tokens[leaf.tokens.size() - 1]
@@ -77,6 +101,12 @@ class FuncParam :
 	var qualifiers : Array[String]
 	var type : String
 	var name : String
+	func _to_string() -> String:
+		var str : String = ""
+		for qualifier in qualifiers:
+			str += qualifier + " "
+		str += type + " " + name
+		return str
 
 var _tokens : Array[TL_GLSLTokenizer.Token]
 var _tok_idx : int = 0
@@ -98,10 +128,14 @@ func _rec_identify_grps_in(grp_node : TokenGrpNode) -> void:
 		_identify_grp_body(grp_node)
 
 func _identify_grp_leaf(grp_leaf : TokenGrpLeaf) -> void:
-	pass
+	var identified : TokenGrpNode
+	identified = TokenFuncHead.try_create_from(grp_leaf)
+	if identified != null:
+		grp_leaf.replace_with(identified)
 
 func _identify_grp_body(grp_body : TokenGrpBody) -> void:
-	pass
+	for grp_node : TokenGrpNode in grp_body._children:
+		_rec_identify_grps_in(grp_node)
 
 func _rec_generate_token_grp() -> TokenGrpBody:
 	var body : TokenGrpBody = TokenGrpBody.new()
@@ -114,7 +148,7 @@ func _rec_generate_token_grp() -> TokenGrpBody:
 				_fill_with_accumulated(body)
 				_tok_idx += 1
 				var token_grp_body = _rec_generate_token_grp()
-				body.token_grp_nodes.append(token_grp_body)
+				body.attach_child(token_grp_body)
 			elif _tokens[_tok_idx].data == '}':
 				break
 			else :
@@ -122,7 +156,7 @@ func _rec_generate_token_grp() -> TokenGrpBody:
 		elif _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Preprocessor:
 			_fill_with_accumulated(body)
 			var token_grp_leaf : TokenGrpLeaf = _create_token_grp_leaf([_tokens[_tok_idx]])
-			body.token_grp_nodes.append(token_grp_leaf)
+			body.attach_child(token_grp_leaf)
 		else :
 			_accumulate(_tokens[_tok_idx])
 		_tok_idx += 1
@@ -142,7 +176,7 @@ func _fill_with_accumulated(body : TokenGrpBody):
 	if _tokens_accumulated.size() > 0:
 		var token_grp_leaf : TokenGrpLeaf = _create_token_grp_leaf(_tokens_accumulated)
 		_tokens_accumulated.clear()
-		body.token_grp_nodes.append(token_grp_leaf)
+		body.attach_child(token_grp_leaf)
 
 func _create_token_grp_leaf(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpLeaf:
 	var token_grp_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
@@ -162,7 +196,7 @@ static func _rec_debug_token_grp_to_str(token_grp_node : TokenGrpNode, depth : i
 		str += indent + leaf.to_string() + "\n"
 	else :
 		var body : TokenGrpBody = token_grp_node
-		for child in body.token_grp_nodes:
+		for child in body._children:
 			str += _rec_debug_token_grp_to_str(child , depth + 1)
 	
 	return str
