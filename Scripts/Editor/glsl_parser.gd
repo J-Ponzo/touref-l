@@ -125,7 +125,7 @@ class FuncParam :
 		for i : int in range(0, type_idx - 1):
 			param.qualifiers.append(toks_line[i])
 
-		if toks_line.size() > type_idx + 2:
+		if toks_line.size() > type_idx + 1:
 			param.name = toks_line[type_idx + 1].data
 
 		return param
