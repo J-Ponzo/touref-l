@@ -122,6 +122,7 @@ const GLSL_DEFINITION = [
 	"struct"
 ]
 
+# TODO check if inline is valid in glsl
 const GLSL_FUNC_QUALIFIERS = [
 	"inline"
 ]
