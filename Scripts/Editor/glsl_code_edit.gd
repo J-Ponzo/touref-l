@@ -140,6 +140,12 @@ func add_static_code_completion_options() -> void:
 	
 	for word in TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS:
 		add_code_completion_option(CodeEdit.KIND_PLAIN_TEXT, word, word)
+
+	for word in TL_GLSLSyntax.GLSL_DEFINITION:
+		add_code_completion_option(CodeEdit.KIND_PLAIN_TEXT, word, word)
+
+	for word in TL_GLSLSyntax.GLSL_FUNC_QUALIFIERS:
+		add_code_completion_option(CodeEdit.KIND_PLAIN_TEXT, word, word)
 		
 	for word in TL_GLSLSyntax.GLSL_CONTROL_FLOW:
 		add_code_completion_option(CodeEdit.KIND_PLAIN_TEXT, word, word)

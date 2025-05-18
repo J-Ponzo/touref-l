@@ -115,7 +115,10 @@ const GLSL_TYPE_QUALIFIERS = [
 	"patch", 
 	"smooth", 
 	"flat", 
-	"noperspective",
+	"noperspective"
+]
+
+const GLSL_DEFINITION = [
 	"struct"
 ]
 

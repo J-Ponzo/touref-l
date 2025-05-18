@@ -4,15 +4,52 @@ class_name TL_GLSLParser
 class TokenGrpNode :
 	var parent : TokenGrpBody = null
 	var idx_in_parent : int = -1
+
 	func replace_with(new_grp_node : TokenGrpNode) -> bool:
 		if parent == null:
 			return false
 		new_grp_node.parent = parent
+		new_grp_node.idx_in_parent = idx_in_parent
 		parent._children[idx_in_parent] = new_grp_node
+
+		var prev_leaf : TokenGrpLeaf
+		var next_leaf : TokenGrpLeaf
+		if self is TokenGrpLeaf:
+			var leaf : TokenGrpLeaf = self
+			prev_leaf = leaf.prev_leaf
+			next_leaf = leaf.next_leaf
+		else :
+			var body : TokenGrpBody = self
+			prev_leaf = body.get_first_leaf().prev_leaf
+			next_leaf = body.get_last_leaf().next_leaf
+
+		if new_grp_node is TokenGrpLeaf:
+			var leaf : TokenGrpLeaf = new_grp_node
+			leaf.prev_leaf = prev_leaf
+			leaf.next_leaf = next_leaf
+		else :
+			var body : TokenGrpBody = new_grp_node
+			body.get_first_leaf().prev_leaf = prev_leaf
+			body.get_last_leaf().next_leaf = next_leaf
+
 		return true
 
 class TokenGrpBody extends TokenGrpNode :
 	var _children : Array[TokenGrpNode] = []
+	func get_first_leaf() -> TokenGrpLeaf:
+		if _children[0] is TokenGrpLeaf:
+			return _children[0]
+		else :
+			var body : TokenGrpBody = _children[0]
+			return body.get_first_leaf()
+
+	func get_last_leaf() -> TokenGrpLeaf:
+		if _children[_children.size() - 1] is TokenGrpLeaf:
+			return _children[_children.size() - 1]
+		else :
+			var body : TokenGrpBody = _children[_children.size() - 1]
+			return body.get_last_leaf()
+		
 	func attach_child(child : TokenGrpNode) -> void:
 		child.idx_in_parent = _children.size()
 		_children.append(child)
@@ -20,6 +57,18 @@ class TokenGrpBody extends TokenGrpNode :
 
 class TokenGrpLeaf extends TokenGrpNode :
 	var tokens : Array[TL_GLSLTokenizer.Token]
+	var prev_leaf : TokenGrpLeaf
+	var next_leaf : TokenGrpLeaf
+
+	func remove() -> void:
+		if prev_leaf != null:
+			prev_leaf.next_leaf = next_leaf
+		if next_leaf != null:
+			next_leaf.prev_leaf = prev_leaf
+		parent._children.remove_at(idx_in_parent)
+		for i in range(idx_in_parent, parent._children.size()):
+			parent._children[i].idx_in_parent -= 1
+
 	func _to_string() -> String:
 		var str : String = "|"
 		for token in tokens:
@@ -38,7 +87,77 @@ static func split_toks_line(toks_line : Array[TL_GLSLTokenizer.Token], type : TL
 			result[i].append(tok)
 	return result
 
-# TODO make this work with func qualifiers (inline)
+class TokenStruct extends TokenGrpLeaf:
+	var name : String
+	var members : Array[StructMember]
+	var variable_name : String
+
+	static func try_create_from(body : TokenGrpBody) -> TokenStruct:
+		var result : TokenStruct = TokenStruct.new()
+
+		if body.parent == null || body.idx_in_parent == 0:
+			return null
+
+		var struct_head : TokenGrpLeaf
+		if not body.parent._children[body.idx_in_parent - 1] is TokenGrpLeaf :
+			return null
+		else :
+			struct_head = body.parent._children[body.idx_in_parent - 1]
+
+		if struct_head.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword || struct_head.tokens[0].data != "struct":
+			return null
+		
+		if struct_head.tokens[1].type != TL_GLSLTokenizer.ETokenType.Identifier:
+			return null
+		else:
+			result.name = struct_head.tokens[1].data
+		
+		for child in body._children:
+			if not child is TokenGrpLeaf:
+				return null
+
+			var leaf_child : TokenGrpLeaf = child
+			var member :StructMember = StructMember.new()
+			if  leaf_child.tokens[0].type != TL_GLSLTokenizer.ETokenType.BuiltIn || not TL_GLSLSyntax.GLSL_BASE_TYPES.has(leaf_child.tokens[0].data):
+				return null
+			else:
+				member.type = leaf_child.tokens[0].data
+
+			if  leaf_child.tokens[1].type != TL_GLSLTokenizer.ETokenType.Identifier:
+				return null
+			else:
+				member.name = leaf_child.tokens[1].data
+			
+			result.members.append(member)
+
+		var struct_variable : TokenGrpLeaf
+		if body.idx_in_parent + 1 < body.parent._children.size() && body.parent._children[body.idx_in_parent + 1] is TokenGrpLeaf:
+			struct_variable = body.parent._children[body.idx_in_parent + 1]
+			if struct_variable.tokens[0].type == TL_GLSLTokenizer.ETokenType.Identifier:
+				result.variable_name = struct_variable.tokens[0].data
+
+		return result
+
+	func _to_string() -> String:
+		var str : String = "<STRUCT>|struct "
+		str += name + "{"
+		var members_str : String = ""
+		for member in members:
+			members_str += member.to_string() + "; "
+		members_str = members_str.substr(0, members_str.length() - 2)
+		str += members_str + "}"
+		if variable_name != "":
+			str += " " + variable_name
+		return str
+
+class StructMember :
+	var type : String
+	var name : String
+
+	func _to_string() -> String:
+		var str : String = type + " " + name
+		return str;
+
 class TokenFuncHead extends TokenGrpLeaf:
 	var qualifiers : Array[String]
 	var return_type : String
@@ -139,25 +258,80 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	_tokens = tokens
 
 	var root : TokenGrpBody = _rec_generate_token_grp()
+	var leaf : TokenGrpLeaf = _rec_link_leaves(root, null)
+	var linked_leaves : Array[TokenGrpLeaf]
+	
+	# TODO remove this debug stub
+	while leaf != null:
+		linked_leaves.insert(0, leaf)
+		leaf = leaf.prev_leaf
+	for linked_leaf in linked_leaves:
+		print(linked_leaf)
+	# TODO
+
 	_rec_identify_grps_in(root)
 
 	return root
 
-func _rec_identify_grps_in(grp_node : TokenGrpNode) -> void:
+func _rec_link_leaves(grp_node : TokenGrpNode, last_leaf : TokenGrpLeaf) -> TokenGrpLeaf:
 	if grp_node is TokenGrpLeaf:
-		_identify_grp_leaf(grp_node)
-	else :
-		_identify_grp_body(grp_node)
+		var leaf : TokenGrpLeaf = grp_node
+		leaf.prev_leaf = last_leaf
+		if last_leaf != null:
+			last_leaf.next_leaf = leaf
+		return leaf
+	if grp_node is TokenGrpBody:
+		var body : TokenGrpBody = grp_node
+		for node_grp : TokenGrpNode in body._children:
+			last_leaf = _rec_link_leaves(node_grp, last_leaf)
+	return last_leaf
 
-func _identify_grp_leaf(grp_leaf : TokenGrpLeaf) -> void:
+func _rec_identify_grps_in(grp_node : TokenGrpNode) -> int:
+	if grp_node is TokenGrpLeaf:
+		return _identify_grp_leaf(grp_node)
+	else :
+		return _identify_grp_body(grp_node)
+
+func _identify_grp_leaf(grp_leaf : TokenGrpLeaf) -> int:
 	var identified : TokenGrpNode
 	identified = TokenFuncHead.try_create_from(grp_leaf)
 	if identified != null:
 		grp_leaf.replace_with(identified)
+	return 0
 
-func _identify_grp_body(grp_body : TokenGrpBody) -> void:
-	for grp_node : TokenGrpNode in grp_body._children:
-		_rec_identify_grps_in(grp_node)
+func _identify_grp_body(grp_body : TokenGrpBody) -> int:
+	var nb_removed : int = 0
+	var identified : TokenGrpNode
+	identified = TokenStruct.try_create_from(grp_body)
+	if identified != null:
+		var struct_grp : TokenStruct = identified
+		var head_leaf : TokenGrpLeaf = grp_body.parent._children[grp_body.idx_in_parent - 1]
+		head_leaf.remove()
+		nb_removed += 1
+		if struct_grp.variable_name != "":
+			var var_leaf : TokenGrpLeaf = grp_body.parent._children[grp_body.idx_in_parent + 1]
+			var_leaf.remove()
+			# nb_removed += 1
+		grp_body.replace_with(struct_grp)
+		return nb_removed
+
+	var i : int = 0
+	while i < grp_body._children.size():
+		print(i)
+
+		# TODO remove this debug stub
+		var str : String = str(grp_body._children.size()) + " : "
+		for j : int in range(0, grp_body._children.size()):
+			str += str(grp_body._children[j].idx_in_parent) + ", "
+		print(str)
+		# TODO
+
+		var grp_node : TokenGrpNode = grp_body._children[i]
+		var nb_remove_before = _rec_identify_grps_in(grp_node)
+		i -= nb_remove_before
+		i += 1
+	
+	return 0
 
 func _rec_generate_token_grp() -> TokenGrpBody:
 	var body : TokenGrpBody = TokenGrpBody.new()

@@ -5,6 +5,7 @@ const GLSL_STD_FUNCNAME_COLOR = Color(0.9, 0.6, 0.2)
 const GLSL_CONTROL_FLOW_COLOR = Color(0.9, 0.2, 0.6)
 const GLSL_BASE_TYPES_COLOR = Color(0.2, 0.6, 0.9)
 const GLSL_QUALIFIERS_COLOR = Color(0.9, 0.3, 0.3)
+const GLSL_DEFINITION_COLOR = Color(0.9, 0.3, 0.3)
 const TEXT_COLOR = Color(0.9, 0.9, 0.9)
 const PREPROC_COLOR = Color(0.1, 0.5, 0.1)
 const SYMBOL_COLOR = Color(0.6, 0.8, 0.9)
@@ -242,6 +243,10 @@ func _build_color_map_from_words(words : Dictionary) -> Dictionary:
 		elif TL_GLSLSyntax.GLSL_BASE_TYPES.has(word["word"]):
 			color_map[word["start"]] = {"color": GLSL_BASE_TYPES_COLOR}
 		elif TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(word["word"]):
+			color_map[word["start"]] = {"color": GLSL_QUALIFIERS_COLOR}
+		elif TL_GLSLSyntax.GLSL_FUNC_QUALIFIERS.has(word["word"]):
+			color_map[word["start"]] = {"color": GLSL_QUALIFIERS_COLOR}
+		elif TL_GLSLSyntax.GLSL_DEFINITION.has(word["word"]):
 			color_map[word["start"]] = {"color": GLSL_QUALIFIERS_COLOR}
 		elif TL_GLSLSyntax.GLSL_STD_FUNCS.has(word["word"]):
 			color_map[word["start"]] = {"color": GLSL_STD_FUNCNAME_COLOR}

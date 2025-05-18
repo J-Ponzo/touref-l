@@ -245,7 +245,7 @@ func _parse_identifier_token() -> void:
 		unicode = ti.tick()
 
 	var type : ETokenType = ETokenType.Identifier
-	if TL_GLSLSyntax.GLSL_FUNC_QUALIFIERS.has(data) || TL_GLSLSyntax.GLSL_CONTROL_FLOW.has(data) || TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(data):
+	if TL_GLSLSyntax.GLSL_FUNC_QUALIFIERS.has(data) || TL_GLSLSyntax.GLSL_CONTROL_FLOW.has(data) || TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(data) || TL_GLSLSyntax.GLSL_DEFINITION.has(data):
 		type = ETokenType.Keyword
 	elif TL_GLSLSyntax.GLSL_BASE_TYPES.has(data) || TL_GLSLSyntax.GLSL_STD_FUNCS.has(data):
 		type = ETokenType.BuiltIn
