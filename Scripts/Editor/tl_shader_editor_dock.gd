@@ -182,7 +182,10 @@ func _on_edited_shader_tokenize_finished() -> void:
 	
 	var parser : TL_GLSLParser = TL_GLSLParser.new()
 	var node = parser.parse(%ShaderCodeEdit.syntax_highlighter._tokens_data.tokens)
+	# TODO remove this debug stub
+	print("----- FINAL -----")
 	print(TL_GLSLParser.debug_token_grp_to_str(node))
+	# TODO
 
 func set_current_shader(new_shader_key : String) -> bool:
 	if edited_shaders.has(current_shader_key):

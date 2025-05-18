@@ -5,6 +5,10 @@ class TokenGrpNode :
 	var parent : TokenGrpBody = null
 	var idx_in_parent : int = -1
 
+	func remove() -> void:
+		for i in range(idx_in_parent, parent._children.size()):
+			parent._children[i].idx_in_parent -= 1
+
 	func replace_with(new_grp_node : TokenGrpNode) -> bool:
 		if parent == null:
 			return false
@@ -34,8 +38,17 @@ class TokenGrpNode :
 
 		return true
 
+enum EBodyType {
+	Root,
+	Square,
+	Round,
+	Curly
+}
+
 class TokenGrpBody extends TokenGrpNode :
+	var type : EBodyType
 	var _children : Array[TokenGrpNode] = []
+
 	func get_first_leaf() -> TokenGrpLeaf:
 		if _children[0] is TokenGrpLeaf:
 			return _children[0]
@@ -55,6 +68,12 @@ class TokenGrpBody extends TokenGrpNode :
 		_children.append(child)
 		child.parent = self
 
+	func remove() -> void:
+		while _children.size() > 0:
+			_children[0].remove()
+		parent._children.remove_at(idx_in_parent)
+		super.remove()
+
 class TokenGrpLeaf extends TokenGrpNode :
 	var tokens : Array[TL_GLSLTokenizer.Token]
 	var prev_leaf : TokenGrpLeaf
@@ -66,20 +85,26 @@ class TokenGrpLeaf extends TokenGrpNode :
 		if next_leaf != null:
 			next_leaf.prev_leaf = prev_leaf
 		parent._children.remove_at(idx_in_parent)
-		for i in range(idx_in_parent, parent._children.size()):
-			parent._children[i].idx_in_parent -= 1
+		super.remove()
 
 	func _to_string() -> String:
-		var str : String = "|"
+		var parent_body_type : String = ""
+		if parent.type == EBodyType.Curly:
+			parent_body_type += "{}"
+		elif parent.type == EBodyType.Square:
+			parent_body_type += "[]"
+		elif parent.type == EBodyType.Round:
+			parent_body_type += "()"
+		var str : String = parent_body_type + "|"
 		for token in tokens:
 			str += TL_GLSLParser._inline_str(token.data) + '|'
 		return str
 
-static func split_toks_line(toks_line : Array[TL_GLSLTokenizer.Token], type : TL_GLSLTokenizer.ETokenType):
+static func split_toks_line(toks_line : Array[TL_GLSLTokenizer.Token], type : TL_GLSLTokenizer.ETokenType, data : String):
 	var result : Array[Array]
 	var i : int = 0
 	for tok : TL_GLSLTokenizer.Token in toks_line:
-		if tok.type == type:
+		if tok.type == type && tok.data == data:
 			i += 1
 		else :
 			if result.size() < i + 1:
@@ -93,13 +118,13 @@ class TokenStruct extends TokenGrpLeaf:
 	var variable_name : String
 
 	static func try_create_from(body : TokenGrpBody) -> TokenStruct:
+		if body.parent == null || body.idx_in_parent == 0 || body.parent.type != EBodyType.Root:
+			return null;
+
 		var result : TokenStruct = TokenStruct.new()
 
-		if body.parent == null || body.idx_in_parent == 0:
-			return null
-
 		var struct_head : TokenGrpLeaf
-		if not body.parent._children[body.idx_in_parent - 1] is TokenGrpLeaf :
+		if (not body.parent._children[body.idx_in_parent - 1] is TokenGrpLeaf) || body.parent._children[body.idx_in_parent - 1] is TokenStruct :	# for some reason get_class() returns RefCounted(). So we can't check the specific class instead
 			return null
 		else :
 			struct_head = body.parent._children[body.idx_in_parent - 1]
@@ -133,7 +158,7 @@ class TokenStruct extends TokenGrpLeaf:
 		var struct_variable : TokenGrpLeaf
 		if body.idx_in_parent + 1 < body.parent._children.size() && body.parent._children[body.idx_in_parent + 1] is TokenGrpLeaf:
 			struct_variable = body.parent._children[body.idx_in_parent + 1]
-			if struct_variable.tokens[0].type == TL_GLSLTokenizer.ETokenType.Identifier:
+			if struct_variable.tokens.size() == 1 && struct_variable.tokens[0].type == TL_GLSLTokenizer.ETokenType.Identifier:
 				result.variable_name = struct_variable.tokens[0].data
 
 		return result
@@ -185,6 +210,9 @@ class TokenFuncHead extends TokenGrpLeaf:
 		return str
 
 	static func try_create_from(leaf : TokenGrpLeaf) -> TokenFuncHead:
+		if leaf.parent.type != EBodyType.Root:
+			return null;
+
 		var result : TokenFuncHead = TokenFuncHead.new()
 
 		var first_type_idx : int = -1
@@ -204,17 +232,28 @@ class TokenFuncHead extends TokenGrpLeaf:
 		for i : int in range(0, first_type_idx):
 			result.qualifiers.append(leaf.tokens[i].data)
 
-		if leaf.tokens.size() <= first_type_idx + 2 or leaf.tokens[first_type_idx + 2].type != TL_GLSLTokenizer.ETokenType.Operator or leaf.tokens[first_type_idx + 2].data != '(':
+		if leaf.idx_in_parent + 1 >= leaf.parent._children.size():
 			return null
-		
-		var last_token : TL_GLSLTokenizer.Token = leaf.tokens[leaf.tokens.size() - 1]
-		if last_token.type != TL_GLSLTokenizer.ETokenType.Operator or last_token.data != ')':
+		var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 1]
+		if not next_sibling is TokenGrpBody:
 			return null
+		else:
+			var sibling_body : TokenGrpBody = next_sibling
+			if sibling_body.type != EBodyType.Round || sibling_body._children.size() > 1:
+				return null;
+			
+			if sibling_body._children.size() == 1:
+				var params_leaf : TokenGrpLeaf = sibling_body._children[0]
+				var split_toks = TL_GLSLParser.split_toks_line(params_leaf.tokens,  TL_GLSLTokenizer.ETokenType.Operator, ',')
+				for param_toks in split_toks:
+					var param : FuncParam = FuncParam.parse_param_toks_line(param_toks)
+					if param != null:
+						result.params.append(param)
 
 		var params_toks_line : Array[TL_GLSLTokenizer.Token] = []
 		for i in range(first_type_idx + 3, leaf.tokens.size() - 1):
 			params_toks_line.append(leaf.tokens[i])
-		var split_toks = TL_GLSLParser.split_toks_line(params_toks_line,  TL_GLSLTokenizer.ETokenType.Operator)
+		var split_toks = TL_GLSLParser.split_toks_line(params_toks_line,  TL_GLSLTokenizer.ETokenType.Operator, ',')
 		for param_toks in split_toks:
 			var param : FuncParam = FuncParam.parse_param_toks_line(param_toks)
 			if param != null:
@@ -264,16 +303,17 @@ var _tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
 func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	_tokens = tokens
 
-	var root : TokenGrpBody = _rec_generate_token_grp()
+	var root : TokenGrpBody = _rec_generate_token_grp(EBodyType.Root)
 	var leaf : TokenGrpLeaf = _rec_link_leaves(root, null)
 	var linked_leaves : Array[TokenGrpLeaf]
 	
 	# TODO remove this debug stub
-	# while leaf != null:
-	# 	linked_leaves.insert(0, leaf)
-	# 	leaf = leaf.prev_leaf
-	# for linked_leaf in linked_leaves:
-	# 	print(linked_leaf)
+	print("----- LEAVES -----")
+	while leaf != null:
+		linked_leaves.insert(0, leaf)
+		leaf = leaf.prev_leaf
+	for linked_leaf in linked_leaves:
+		print(linked_leaf)
 	# TODO
 
 	_rec_identify_grps_in(root)
@@ -303,6 +343,8 @@ func _identify_grp_leaf(grp_leaf : TokenGrpLeaf) -> int:
 	var identified : TokenGrpNode
 	identified = TokenFuncHead.try_create_from(grp_leaf)
 	if identified != null:
+		var params_body : TokenGrpBody = grp_leaf.parent._children[grp_leaf.idx_in_parent + 1]
+		params_body.remove()
 		grp_leaf.replace_with(identified)
 	return 0
 
@@ -339,21 +381,26 @@ func _identify_grp_body(grp_body : TokenGrpBody) -> int:
 	
 	return 0
 
-func _rec_generate_token_grp() -> TokenGrpBody:
+func _rec_generate_token_grp(type : EBodyType) -> TokenGrpBody:
 	var body : TokenGrpBody = TokenGrpBody.new()
+	body.type = type
 	while _tok_idx < _tokens.size():
 		if _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Operator:
 			if _tokens[_tok_idx].data == ';':
 				# _accumulate(_tokens[_tok_idx])
 				_fill_with_accumulated(body)
-			elif _tokens[_tok_idx].data == '{':
+			elif _tokens[_tok_idx].data == '{' || _tokens[_tok_idx].data == '[' || _tokens[_tok_idx].data == '(':
+				var child_type : EBodyType = EBodyType.Curly
+				if _tokens[_tok_idx].data == '[':
+					child_type = EBodyType.Square
+				elif _tokens[_tok_idx].data == '(':
+					child_type = EBodyType.Round
 				_fill_with_accumulated(body)
 				_tok_idx += 1
-				var token_grp_body = _rec_generate_token_grp()
+				var token_grp_body = _rec_generate_token_grp(child_type)
 				body.attach_child(token_grp_body)
-			elif _tokens[_tok_idx].data == '}':
+			elif (type == EBodyType.Curly && _tokens[_tok_idx].data == '}') || (type == EBodyType.Square && _tokens[_tok_idx].data == ']') || (type == EBodyType.Round && _tokens[_tok_idx].data == ')'):
 				break
-			else :
 				_accumulate(_tokens[_tok_idx])
 		elif _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Preprocessor:
 			_fill_with_accumulated(body)
