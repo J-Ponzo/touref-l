@@ -303,6 +303,12 @@ var _tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
 func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	_tokens = tokens
 
+	# TODO remove this debug stub
+	print("----- TOKENS -----")
+	for tok in _tokens:
+		print(tok.data)
+	# TODO
+
 	var root : TokenGrpBody = _rec_generate_token_grp(EBodyType.Root)
 	var leaf : TokenGrpLeaf = _rec_link_leaves(root, null)
 	var linked_leaves : Array[TokenGrpLeaf]
@@ -400,6 +406,7 @@ func _rec_generate_token_grp(type : EBodyType) -> TokenGrpBody:
 				var token_grp_body = _rec_generate_token_grp(child_type)
 				body.attach_child(token_grp_body)
 			elif (type == EBodyType.Curly && _tokens[_tok_idx].data == '}') || (type == EBodyType.Square && _tokens[_tok_idx].data == ']') || (type == EBodyType.Round && _tokens[_tok_idx].data == ')'):
+				# _tok_idx += 1
 				break
 				_accumulate(_tokens[_tok_idx])
 		elif _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Preprocessor:
@@ -420,6 +427,10 @@ func is_ignored_token_type(type : TL_GLSLTokenizer.ETokenType) -> bool:
 func _accumulate(token : TL_GLSLTokenizer.Token):
 	if not is_ignored_token_type(token.type):
 		_tokens_accumulated.append(token)
+	# TODO Remove debug stub
+	else:
+		print("ignored : " + token.data)
+	# TODO
 
 func _fill_with_accumulated(body : TokenGrpBody):
 	if _tokens_accumulated.size() > 0:
