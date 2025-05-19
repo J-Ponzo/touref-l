@@ -13,7 +13,8 @@ enum ETokenType {
 	Integer,
 	Whitespace,
 	Keyword,
-	Malformed
+	Malformed,
+	Other
 }
 
 class Token:
