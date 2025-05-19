@@ -148,13 +148,16 @@ class TokenStruct extends TokenGrpLeaf:
 				return null
 
 			var leaf_child : TokenGrpLeaf = child
+			if leaf_child.tokens.size() < 2:
+				return null
+
 			var member :StructMember = StructMember.new()
 			if not TL_GLSLParser.can_be_type_name(leaf_child.tokens[0]):
 				return null
 			else:
 				member.type = leaf_child.tokens[0].data
 
-			if  leaf_child.tokens[1].type != TL_GLSLTokenizer.ETokenType.Identifier:
+			if leaf_child.tokens[1].type != TL_GLSLTokenizer.ETokenType.Identifier:
 				return null
 			else:
 				member.name = leaf_child.tokens[1].data
@@ -319,31 +322,44 @@ func create_type_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) ->
 
 	return result
 
-func _identify_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLTokenizer.Token]:
+func _identify_type_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLTokenizer.Token]:
 	var result : Array[TL_GLSLTokenizer.Token]
 
 	var i : int = 0
-	while i < tokens.size() - 1:
+	while i < tokens.size():
+		var prev_token = null if i == 0 else tokens[i - 1]
 		var cur_token = tokens[i]
-		var next_token = tokens[i + 1]
+		var next_token = null if i == tokens.size() - 1 else tokens[i + 1]
 
-		if next_token.type == TL_GLSLTokenizer.ETokenType.Operator && next_token.data == '[':
+		if next_token != null && next_token.type == TL_GLSLTokenizer.ETokenType.Operator && next_token.data == '[':
 			var j : int = i + 1
 			var tokens_to_merge : Array[TL_GLSLTokenizer.Token]
 			tokens_to_merge.append(cur_token)
 			while tokens[j].type == TL_GLSLTokenizer.ETokenType.Operator && tokens[j].data == '[' && tokens[j + 1].type == TL_GLSLTokenizer.ETokenType.Integer && tokens[j + 2].type == TL_GLSLTokenizer.ETokenType.Operator && tokens[j + 2].data == ']':
 				tokens_to_merge.append(tokens[j])
-				tokens_to_merge.append(tokens[j])
-				tokens_to_merge.append(tokens[j])
+				tokens_to_merge.append(tokens[j + 1])
+				tokens_to_merge.append(tokens[j + 2])
 				j += 3
 			var super_tok = create_type_super_token(tokens_to_merge)
 			result.append(super_tok)
-			i += tokens_to_merge.size() + 1
+			i += tokens_to_merge.size()
+		elif prev_token != null && prev_token.type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(prev_token.type):
+			var super_tok = create_type_super_token([cur_token])
+			result.append(super_tok)
+			i += 1
 		elif cur_token.type == TL_GLSLTokenizer.ETokenType.BuiltIn:
 			var super_tok = create_type_super_token([cur_token])
 			result.append(super_tok)
 			i += 1
-		elif cur_token.type == TL_GLSLTokenizer.ETokenType.Identifier && next_token.type == TL_GLSLTokenizer.ETokenType.Identifier:
+		elif next_token != null && cur_token.type == TL_GLSLTokenizer.ETokenType.Identifier && next_token.type == TL_GLSLTokenizer.ETokenType.Identifier:
+			var super_tok = create_type_super_token([cur_token])
+			result.append(super_tok)
+			i += 1
+		elif result.size() > 2 && cur_token.type == TL_GLSLTokenizer.ETokenType.Identifier && result[result.size() - 1].type == TL_GLSLTokenizer.ETokenType.Operator && result[result.size() - 1].data == ',' && result[result.size() - 2] is TypeSuperToken:
+			var super_tok = create_type_super_token([cur_token])
+			result.append(super_tok)
+			i += 1
+		elif result.size() > 3 && cur_token.type == TL_GLSLTokenizer.ETokenType.Identifier && result[result.size() - 1].type == TL_GLSLTokenizer.ETokenType.Operator && result[result.size() - 1].data == '(' && result[result.size() - 2].type == TL_GLSLTokenizer.ETokenType.Identifier  && result[result.size() - 3] is TypeSuperToken:
 			var super_tok = create_type_super_token([cur_token])
 			result.append(super_tok)
 			i += 1
@@ -353,12 +369,23 @@ func _identify_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_
 
 	return result
 
+func _clean_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLTokenizer.Token]:
+	var result : Array[TL_GLSLTokenizer.Token]
+	for token in tokens:
+		if not is_ignored_token_type(token.type):
+			result.append(token)
+	return result
+
 func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	_tokens = tokens
-	var super_tokens = _identify_super_tokens(_tokens)
+	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
+	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_type_super_tokens(clean_tokens)
 	# TODO remove this debug stub
 	for token in super_tokens:
-		print(token.data)
+		var other_mark = ""
+		if token.type == TL_GLSLTokenizer.ETokenType.Other:
+			other_mark = "=> "
+		print(other_mark + token.data)
 	# TODO
 
 	# TODO remove this debug stub
