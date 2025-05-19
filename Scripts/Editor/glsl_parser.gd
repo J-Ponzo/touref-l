@@ -7,6 +7,9 @@ class SuperToken extends TL_GLSLTokenizer.Token:
 class TypeSuperToken extends SuperToken:
 	pass
 
+class QualifierSuperToken extends SuperToken:
+	pass
+
 class TokenGrpNode :
 	var parent : TokenGrpBody = null
 	var idx_in_parent : int = -1
@@ -302,20 +305,29 @@ var _tok_idx : int = 0
 
 var _tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
 
-func create_type_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> TypeSuperToken:
-	var result : TypeSuperToken = TypeSuperToken.new()
-	result.type = TL_GLSLTokenizer.ETokenType.Other
-	result.pos = tokens_to_merge[0].pos
-	result.line = tokens_to_merge[0].line
-	result.col = tokens_to_merge[0].col
+func fill_super_token(super_token : SuperToken, tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> SuperToken:
+	super_token.type = TL_GLSLTokenizer.ETokenType.Other
+	super_token.pos = tokens_to_merge[0].pos
+	super_token.line = tokens_to_merge[0].line
+	super_token.col = tokens_to_merge[0].col
 	var cummuled_data : String = ""
 	for tok in tokens_to_merge:
 		cummuled_data += tok.data
-	result.data = cummuled_data
+	super_token.data = cummuled_data
+	return super_token
 
+func create_type_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> TypeSuperToken:
+	var result : TypeSuperToken = TypeSuperToken.new()
+	fill_super_token(result, tokens_to_merge)
 	return result
 
-func _identify_type_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLTokenizer.Token]:
+func create_qualifiers_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> QualifierSuperToken:
+	var result : QualifierSuperToken = QualifierSuperToken.new()
+	fill_super_token(result, tokens_to_merge)
+	return result
+
+
+func _identify_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLTokenizer.Token]:
 	var result : Array[TL_GLSLTokenizer.Token]
 
 	var i : int = 0
@@ -356,6 +368,15 @@ func _identify_type_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Arra
 			var super_tok = create_type_super_token([cur_token])
 			result.append(super_tok)
 			i += 1
+		elif cur_token.type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(cur_token.data):
+			var j : int = i + 1
+			var tokens_to_merge : Array[TL_GLSLTokenizer.Token]
+			tokens_to_merge.append(cur_token)
+			while tokens.size() > j &&  tokens[j].type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(tokens[j].data):
+				tokens_to_merge.append(cur_token)
+			var super_tok = create_qualifiers_super_token(tokens_to_merge)
+			result.append(super_tok)
+			i += tokens_to_merge.size()
 		else:
 			result.append(cur_token)
 			i += 1
@@ -372,13 +393,15 @@ func _clean_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLToken
 func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	_tokens = tokens
 	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
-	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_type_super_tokens(clean_tokens)
+	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_super_tokens(clean_tokens)
 	# TODO remove this debug stub
-	# for token in super_tokens:
-	# 	var other_mark = ""
-	# 	if token.type == TL_GLSLTokenizer.ETokenType.Other:
-	# 		other_mark = "=> "
-	# 	print(other_mark + token.data)
+	for token in super_tokens:
+		var other_mark = ""
+		if token is TypeSuperToken:
+			other_mark = "<TYPE> => "
+		elif token is QualifierSuperToken:
+			other_mark = "<QUALIFS> => "
+		print(other_mark + token.data)
 	# TODO
 
 	# TODO remove this debug stub
