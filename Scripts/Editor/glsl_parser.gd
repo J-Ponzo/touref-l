@@ -152,7 +152,7 @@ class TokenStruct extends TokenGrpLeaf:
 				return null
 
 			var member :StructMember = StructMember.new()
-			if not TL_GLSLParser.can_be_type_name(leaf_child.tokens[0]):
+			if not leaf_child.tokens[0] is TypeSuperToken:
 				return null
 			else:
 				member.type = leaf_child.tokens[0].data
@@ -192,13 +192,6 @@ class StructMember :
 		var str : String = type + " " + name
 		return str;
 
-static func can_be_type_name(token : TL_GLSLTokenizer.Token) -> bool:
-	if token.type == TL_GLSLTokenizer.ETokenType.Identifier:
-		return true
-	elif token.type == TL_GLSLTokenizer.ETokenType.BuiltIn && TL_GLSLSyntax.GLSL_BASE_TYPES.has(token.data):
-		return true
-	return false
-
 class TokenFuncHead extends TokenGrpLeaf:
 	var qualifiers : Array[String]
 	var return_type : String
@@ -226,7 +219,7 @@ class TokenFuncHead extends TokenGrpLeaf:
 
 		var first_type_idx : int = -1
 		for i in range(0, leaf.tokens.size()):
-			if TL_GLSLParser.can_be_type_name(leaf.tokens[i]):
+			if leaf.tokens[i] is TypeSuperToken:
 				first_type_idx = i
 				result.return_type = leaf.tokens[first_type_idx].data
 				break
@@ -289,7 +282,7 @@ class FuncParam :
 		var param : FuncParam = FuncParam.new()
 		var type_idx : int = -1
 		for i in range(0, toks_line.size()):
-			if TL_GLSLParser.can_be_type_name(toks_line[i]):
+			if toks_line[i] is TypeSuperToken:
 				type_idx = i
 				param.type = toks_line[type_idx].data
 				break
@@ -381,11 +374,11 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
 	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_type_super_tokens(clean_tokens)
 	# TODO remove this debug stub
-	for token in super_tokens:
-		var other_mark = ""
-		if token.type == TL_GLSLTokenizer.ETokenType.Other:
-			other_mark = "=> "
-		print(other_mark + token.data)
+	# for token in super_tokens:
+	# 	var other_mark = ""
+	# 	if token.type == TL_GLSLTokenizer.ETokenType.Other:
+	# 		other_mark = "=> "
+	# 	print(other_mark + token.data)
 	# TODO
 
 	# TODO remove this debug stub
@@ -394,6 +387,7 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 	# 	print(tok.data)
 	# TODO
 
+	_tokens = super_tokens
 	var root : TokenGrpBody = _rec_generate_token_grp(EBodyType.Root)
 	var leaf : TokenGrpLeaf = _rec_link_leaves(root, null)
 	var linked_leaves : Array[TokenGrpLeaf]
