@@ -7,8 +7,8 @@ class SuperToken extends TL_GLSLTokenizer.Token:
 class TypeSuperToken extends SuperToken:
 	pass
 
-class QualifierSuperToken extends SuperToken:
-	pass
+# class QualifierSuperToken extends SuperToken:
+# 	pass
 
 class TokenGrpNode :
 	var parent : TokenGrpBody = null
@@ -196,7 +196,7 @@ class StructMember :
 		return str;
 
 class TokenVariableDecl extends TokenGrpLeaf:
-	var qualifiers : String
+	var qualifiers : Array[String]
 	var type : String
 	var name : String 
 	var r_value : Array[TL_GLSLTokenizer.Token]
@@ -210,7 +210,8 @@ class TokenVariableDecl extends TokenGrpLeaf:
 			str += "=|"
 			for tok in r_value:
 				str += tok.data + "|"
-		str += "|"
+		else:
+			str += "|"
 
 		return str
 
@@ -231,8 +232,10 @@ class TokenVariableDecl extends TokenGrpLeaf:
 		else:
 			result.name = leaf.tokens[first_type_idx + 1].data
 
-		if first_type_idx - 1 >= 0 && leaf.tokens[first_type_idx - 1] is QualifierSuperToken:
-			result.qualifiers = leaf.tokens[first_type_idx - 1].data
+		var qualifier_idx = first_type_idx - 1 
+		while qualifier_idx >= 0 && leaf.tokens[qualifier_idx].type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(leaf.tokens[qualifier_idx].data):
+			result.qualifiers.append(leaf.tokens[qualifier_idx].data)
+			qualifier_idx -= 1
 
 		var i = first_type_idx + 2
 		while i < leaf.tokens.size():
@@ -297,19 +300,27 @@ class TokenFuncHead extends TokenGrpLeaf:
 			if sibling_body._children.size() == 1:
 				var params_leaf : TokenGrpLeaf = sibling_body._children[0]
 				var split_toks = TL_GLSLParser.split_toks_line(params_leaf.tokens,  TL_GLSLTokenizer.ETokenType.Operator, ',')
+				# TODO : Remove debug stub
+				print("SPLIT_TOKS")
+				for param_toks in split_toks:
+					print("PARAM_TOKS")
+					for tok in param_toks:
+						print(tok.data)
+
+				# TODO
 				for param_toks in split_toks:
 					var param : FuncParam = FuncParam.parse_param_toks_line(param_toks)
 					if param != null:
 						result.params.append(param)
 
-		var params_toks_line : Array[TL_GLSLTokenizer.Token] = []
-		for i in range(first_type_idx + 3, leaf.tokens.size() - 1):
-			params_toks_line.append(leaf.tokens[i])
-		var split_toks = TL_GLSLParser.split_toks_line(params_toks_line,  TL_GLSLTokenizer.ETokenType.Operator, ',')
-		for param_toks in split_toks:
-			var param : FuncParam = FuncParam.parse_param_toks_line(param_toks)
-			if param != null:
-				result.params.append(param)
+		# var params_toks_line : Array[TL_GLSLTokenizer.Token] = []
+		# for i in range(first_type_idx + 3, leaf.tokens.size() - 1):
+		# 	params_toks_line.append(leaf.tokens[i])
+		# var split_toks = TL_GLSLParser.split_toks_line(params_toks_line,  TL_GLSLTokenizer.ETokenType.Operator, ',')
+		# for param_toks in split_toks:
+		# 	var param : FuncParam = FuncParam.parse_param_toks_line(param_toks)
+		# 	if param != null:
+		# 		result.params.append(param)
 
 		result.tokens.append_array(leaf.tokens)
 		return result
@@ -329,6 +340,11 @@ class FuncParam :
 
 	# static func parse_param_toks_line(toks_line :  Array[TL_GLSLTokenizer.Token]) -> FuncParam:
 	static func parse_param_toks_line(toks_line :  Array) -> FuncParam:
+		# TODO remove debug stub
+		print("TOKS_LINE")
+		for tok in toks_line:
+			print(tok.data)
+		# TODO
 		var param : FuncParam = FuncParam.new()
 		var type_idx : int = -1
 		for i in range(0, toks_line.size()):
@@ -368,10 +384,10 @@ func create_type_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) ->
 	fill_super_token(result, tokens_to_merge)
 	return result
 
-func create_qualifiers_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> QualifierSuperToken:
-	var result : QualifierSuperToken = QualifierSuperToken.new()
-	fill_super_token(result, tokens_to_merge)
-	return result
+# func create_qualifiers_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> QualifierSuperToken:
+# 	var result : QualifierSuperToken = QualifierSuperToken.new()
+# 	fill_super_token(result, tokens_to_merge)
+# 	return result
 
 
 func _identify_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLTokenizer.Token]:
@@ -415,15 +431,16 @@ func _identify_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_
 			var super_tok = create_type_super_token([cur_token])
 			result.append(super_tok)
 			i += 1
-		elif cur_token.type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(cur_token.data):
-			var j : int = i + 1
-			var tokens_to_merge : Array[TL_GLSLTokenizer.Token]
-			tokens_to_merge.append(cur_token)
-			while tokens.size() > j &&  tokens[j].type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(tokens[j].data):
-				tokens_to_merge.append(cur_token)
-			var super_tok = create_qualifiers_super_token(tokens_to_merge)
-			result.append(super_tok)
-			i += tokens_to_merge.size()
+		# elif cur_token.type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(cur_token.data):
+		# 	var j : int = i + 1
+		# 	var tokens_to_merge : Array[TL_GLSLTokenizer.Token]
+		# 	tokens_to_merge.append(cur_token)
+		# 	while j < tokens.size() &&  tokens[j].type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(tokens[j].data):
+		# 		tokens_to_merge.append(tokens[j])
+		# 		j += 1
+		# 	var super_tok = create_qualifiers_super_token(tokens_to_merge)
+		# 	result.append(super_tok)
+		# 	i += tokens_to_merge.size()
 		else:
 			result.append(cur_token)
 			i += 1
@@ -446,8 +463,8 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TokenGrpNode:
 		var other_mark = ""
 		if token is TypeSuperToken:
 			other_mark = "<TYPE> => "
-		elif token is QualifierSuperToken:
-			other_mark = "<QUALIFS> => "
+		# elif token is QualifierSuperToken:
+		# 	other_mark = "<QUALIFS> => "
 		print(other_mark + token.data)
 	# TODO
 
