@@ -144,9 +144,16 @@ func _rec_identify_blocks_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int
 
 func _identify_blocks_in_leaf(grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf) -> int:
 	var identified : TL_GLSLParser_Model.TokenGrpNode
-	identified = TL_GLSLParser_Model.TokenBaseControleFlow.try_create_from(grp_leaf)
+	identified = TL_GLSLParser_Model.TokenBaseControlFlow.try_create_from(grp_leaf)
 	if identified != null:
 		grp_leaf.replace_with(identified) 
+		return 0
+
+	identified = TL_GLSLParser_Model.TokenElse.try_create_from(grp_leaf)
+	if identified != null:
+		grp_leaf.replace_with(identified) 
+		return 0
+
 	return 0
 
 func _identify_blocks_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBody) -> int:

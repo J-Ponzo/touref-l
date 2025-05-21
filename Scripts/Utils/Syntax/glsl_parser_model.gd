@@ -343,7 +343,7 @@ class TokenFuncBody extends TokenGrpBody:
 		result._children = body._children
 		return result
 
-class TokenBaseControleFlow extends TokenGrpBody:
+class TokenBaseControlFlow extends TokenGrpBody:
 	var condition : Array[TL_GLSLTokenizer.Token]
 	var keyword : String
 
@@ -353,8 +353,8 @@ class TokenBaseControleFlow extends TokenGrpBody:
 			str += tok.data + "|"
 		return str
 	
-	static func try_create_from(leaf : TokenGrpLeaf) -> TokenBaseControleFlow:
-		var result : TokenBaseControleFlow = TokenBaseControleFlow.new()
+	static func try_create_from(leaf : TokenGrpLeaf) -> TokenBaseControlFlow:
+		var result : TokenBaseControlFlow = TokenBaseControlFlow.new()
 
 		if leaf.tokens.size() == 0:
 			return null
@@ -385,6 +385,36 @@ class TokenBaseControleFlow extends TokenGrpBody:
 			result._children = next_next_sibling._children
 		else :
 			result._children.append(next_next_sibling)
+
+		result.type = EBodyType.Curly
+		return result
+
+class TokenElse extends TokenGrpBody:
+	func _to_string() -> String:
+		var str : String = super._to_string() + "<else>"
+		return str
+	
+	static func try_create_from(leaf : TokenGrpLeaf) -> TokenElse:
+		var result : TokenElse = TokenElse.new()
+
+		if leaf.tokens.size() == 0:
+			return null
+
+		if leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword ||  leaf.tokens[0].data != "else":
+			return null
+
+		if leaf.idx_in_parent + 1 < leaf.parent._children.size():
+			var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 1]
+			if next_sibling is TokenGrpBody:
+				var sibling_body : TokenGrpBody = next_sibling
+				if sibling_body.type != EBodyType.Curly:
+					return null
+				result._children = next_sibling._children
+		else :
+			var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
+			for i in range(1, leaf.tokens.size()):
+				unique_instr_leaf.tokens.append(leaf.tokens[i])
+			result._children.append(unique_instr_leaf)
 
 		result.type = EBodyType.Curly
 		return result
