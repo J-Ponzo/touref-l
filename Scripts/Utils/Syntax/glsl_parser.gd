@@ -137,10 +137,19 @@ func _identify_vars_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBody) -> int:
 	return 0
 
 func _rec_identify_blocks_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int:
-	if not grp_node is TL_GLSLParser_Model.TokenGrpBody:
-		return 0
+	if grp_node is TL_GLSLParser_Model.TokenGrpLeaf:
+		return _identify_blocks_in_leaf(grp_node)
+	else :
+		return _identify_blocks_in_body(grp_node)
 
-	var grp_body : TL_GLSLParser_Model.TokenGrpBody = grp_node
+func _identify_blocks_in_leaf(grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf) -> int:
+	var identified : TL_GLSLParser_Model.TokenGrpNode
+	identified = TL_GLSLParser_Model.TokenBaseControleFlow.try_create_from(grp_leaf)
+	if identified != null:
+		grp_leaf.replace_with(identified) 
+	return 0
+
+func _identify_blocks_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBody) -> int:
 	var identified : TL_GLSLParser_Model.TokenGrpNode
 	identified = TL_GLSLParser_Model.TokenFuncBody.try_create_from(grp_body)
 	if identified != null:

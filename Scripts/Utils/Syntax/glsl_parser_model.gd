@@ -262,24 +262,6 @@ class TokenVariableDecl extends TokenGrpLeaf:
 		result.tokens.append_array(leaf.tokens)
 		return result
 
-class TokenFuncBody extends TokenGrpBody:
-	var func_head : TokenFuncHead
-
-	func _to_string() -> String:
-		var str : String = super._to_string() + "<FUNC_BODY>"
-		return str
-	
-	static func try_create_from(body : TokenGrpBody) -> TokenFuncBody:
-		var result : TokenFuncBody = TokenFuncBody.new()
-
-		if body.idx_in_parent - 1 < 0 || body.parent == null || not body.parent._children[body.idx_in_parent - 1] is TokenFuncHead:
-			return null
-		result.func_head = body.parent._children[body.idx_in_parent - 1]
-
-		result.type = EBodyType.Curly
-		result._children = body._children
-		return result
-
 class TokenFuncHead extends TokenGrpLeaf:
 	var qualifiers : Array[String]
 	var return_type : String
@@ -341,6 +323,70 @@ class TokenFuncHead extends TokenGrpLeaf:
 						result.params.append(param)
 
 		result.tokens.append_array(leaf.tokens)
+		return result
+
+class TokenFuncBody extends TokenGrpBody:
+	var func_head : TokenFuncHead
+
+	func _to_string() -> String:
+		var str : String = super._to_string() + "<FUNC_BODY>"
+		return str
+	
+	static func try_create_from(body : TokenGrpBody) -> TokenFuncBody:
+		var result : TokenFuncBody = TokenFuncBody.new()
+
+		if body.idx_in_parent - 1 < 0 || body.parent == null || not body.parent._children[body.idx_in_parent - 1] is TokenFuncHead:
+			return null
+		result.func_head = body.parent._children[body.idx_in_parent - 1]
+
+		result.type = EBodyType.Curly
+		result._children = body._children
+		return result
+
+class TokenBaseControleFlow extends TokenGrpBody:
+	var condition : Array[TL_GLSLTokenizer.Token]
+	var keyword : String
+
+	func _to_string() -> String:
+		var str : String = super._to_string() + "<" + keyword + ">|"
+		for tok in condition:
+			str += tok.data + "|"
+		return str
+	
+	static func try_create_from(leaf : TokenGrpLeaf) -> TokenBaseControleFlow:
+		var result : TokenBaseControleFlow = TokenBaseControleFlow.new()
+
+		if leaf.tokens.size() == 0:
+			return null
+
+		if leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword || not (leaf.tokens[0].data == "if" || leaf.tokens[0].data == "while" || leaf.tokens[0].data == "switch"):
+			return null
+		else:
+			result.keyword = leaf.tokens[0].data
+
+		if leaf.idx_in_parent + 2 >= leaf.parent._children.size():
+			return null
+
+		var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 1]
+		if not next_sibling is TokenGrpBody:
+			return null
+		else:
+			var sibling_body : TokenGrpBody = next_sibling
+			if sibling_body.type != EBodyType.Round || sibling_body._children.size() != 1 || not sibling_body._children[0] is TokenGrpLeaf:
+				return null;
+			var condition_leaf : TokenGrpLeaf =  sibling_body._children[0]
+			result.condition = condition_leaf.tokens
+
+		var next_next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 2]
+		if next_next_sibling is TokenGrpBody:
+			var sibling_body : TokenGrpBody = next_next_sibling
+			if sibling_body.type != EBodyType.Curly:
+				return null
+			result._children = next_next_sibling._children
+		else :
+			result._children.append(next_next_sibling)
+
+		result.type = EBodyType.Curly
 		return result
 
 class FuncParam :
