@@ -5,6 +5,31 @@ var _tok_idx : int = 0
 
 var _tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
 
+func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenGrpNode:
+	_tokens = tokens
+	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
+	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_super_tokens(clean_tokens)
+
+	_tokens = super_tokens
+	var root : TL_GLSLParser_Model.TokenGrpBody = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
+	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _rec_link_leaves(root, null)
+
+	# TODO remove this debug stub
+	print("----- LEAVES -----")
+	var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
+	var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = leaf
+	while linked_leaf != null:
+		linked_leaves.insert(0, linked_leaf)
+		linked_leaf = linked_leaf.prev_leaf
+	for l in linked_leaves:
+		print(l)
+	# TODO
+
+	_rec_identify_struct_and_func_in(root)
+	_rec_identify_vars_in(root)
+
+	return root
+
 func fill_super_token(super_token : TL_GLSLParser_Model.SuperToken, tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.SuperToken:
 	super_token.type = TL_GLSLTokenizer.ETokenType.Other
 	super_token.pos = tokens_to_merge[0].pos
@@ -84,21 +109,6 @@ func _clean_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLToken
 		if not is_ignored_token_type(token.type):
 			result.append(token)
 	return result
-
-func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenGrpNode:
-	_tokens = tokens
-	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
-	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_super_tokens(clean_tokens)
-
-	_tokens = super_tokens
-	var root : TL_GLSLParser_Model.TokenGrpBody = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
-	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _rec_link_leaves(root, null)
-	var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
-
-	_rec_identify_struct_and_func_in(root)
-	_rec_identify_vars_in(root)
-
-	return root
 
 func _rec_identify_vars_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int:
 	if grp_node is TL_GLSLParser_Model.TokenGrpLeaf:
