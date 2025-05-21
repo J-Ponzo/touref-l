@@ -32,8 +32,12 @@ class TokenGrpNode :
 			next_leaf = leaf.next_leaf
 		else :
 			var body : TokenGrpBody = self
-			prev_leaf = body.get_first_leaf().prev_leaf
-			next_leaf = body.get_last_leaf().next_leaf
+			var body_first_leaf = body.get_first_leaf()
+			var body_last_leaf = body.get_last_leaf()
+			if body_first_leaf != null:
+				prev_leaf = body_first_leaf.prev_leaf
+			if body_last_leaf != null:
+				next_leaf = body_last_leaf.next_leaf
 
 		if new_grp_node is TokenGrpLeaf:
 			var leaf : TokenGrpLeaf = new_grp_node
@@ -41,8 +45,12 @@ class TokenGrpNode :
 			leaf.next_leaf = next_leaf
 		else :
 			var body : TokenGrpBody = new_grp_node
-			body.get_first_leaf().prev_leaf = prev_leaf
-			body.get_last_leaf().next_leaf = next_leaf
+			var body_first_leaf = body.get_first_leaf()
+			var body_last_leaf = body.get_last_leaf()
+			if body_first_leaf != null:
+				body_first_leaf.prev_leaf = prev_leaf
+			if body_last_leaf != null:
+				body_last_leaf.next_leaf = next_leaf
 
 		return true
 
@@ -58,6 +66,9 @@ class TokenGrpBody extends TokenGrpNode :
 	var _children : Array[TokenGrpNode] = []
 
 	func get_first_leaf() -> TokenGrpLeaf:
+		if _children.size() == 0:
+			return null
+
 		if _children[0] is TokenGrpLeaf:
 			return _children[0]
 		else :
@@ -65,6 +76,9 @@ class TokenGrpBody extends TokenGrpNode :
 			return body.get_first_leaf()
 
 	func get_last_leaf() -> TokenGrpLeaf:
+		if _children.size() == 0:
+			return null
+
 		if _children[_children.size() - 1] is TokenGrpLeaf:
 			return _children[_children.size() - 1]
 		else :
@@ -82,6 +96,16 @@ class TokenGrpBody extends TokenGrpNode :
 		parent._children.remove_at(idx_in_parent)
 		super.remove()
 
+	func _to_string() -> String:
+		var str : String = "ROOT"
+		if type == EBodyType.Curly:
+			str = "{}"
+		elif type == EBodyType.Square:
+			str = "[]"
+		elif type == EBodyType.Round:
+			str = "()"
+		return str
+
 class TokenGrpLeaf extends TokenGrpNode :
 	var tokens : Array[TL_GLSLTokenizer.Token]
 	var prev_leaf : TokenGrpLeaf
@@ -95,33 +119,11 @@ class TokenGrpLeaf extends TokenGrpNode :
 		parent._children.remove_at(idx_in_parent)
 		super.remove()
 
-	func _parent_body_prefix() -> String:
-		var parent_body_prefix : String = ""
-		if parent.type == EBodyType.Curly:
-			parent_body_prefix += "{}"
-		elif parent.type == EBodyType.Square:
-			parent_body_prefix += "[]"
-		elif parent.type == EBodyType.Round:
-			parent_body_prefix += "()"
-		return parent_body_prefix
-
 	func _to_string() -> String:
-		var str : String = _parent_body_prefix() + "|"
+		var str : String = "|"
 		for token in tokens:
 			str += TL_GLSLParser_Model._inline_str(token.data) + '|'
 		return str
-
-static func split_toks_line(toks_line : Array[TL_GLSLTokenizer.Token], type : TL_GLSLTokenizer.ETokenType, data : String):
-	var result : Array[Array]
-	var i : int = 0
-	for tok : TL_GLSLTokenizer.Token in toks_line:
-		if tok.type == type && tok.data == data:
-			i += 1
-		else :
-			if result.size() < i + 1:
-				result.append([])
-			result[i].append(tok)
-	return result
 
 class TokenStruct extends TokenGrpLeaf:
 	var name : String
@@ -187,7 +189,7 @@ class TokenStruct extends TokenGrpLeaf:
 		return result
 
 	func _to_string() -> String:
-		var str : String = _parent_body_prefix() + "<STRUCT>|struct "
+		var str : String = "<STRUCT>|struct "
 		str += name + "{"
 		var members_str : String = ""
 		for member in members:
@@ -217,7 +219,7 @@ class TokenVariableDecl extends TokenGrpLeaf:
 	var r_value : Array[TL_GLSLTokenizer.Token]
 
 	func _to_string() -> String:
-		var str : String = _parent_body_prefix() + "<VAR_DECL>|"
+		var str : String = "<VAR_DECL>|"
 		for qualifier in qualifiers:
 			str += qualifier + " "
 		str += type + " " + name
@@ -260,6 +262,24 @@ class TokenVariableDecl extends TokenGrpLeaf:
 		result.tokens.append_array(leaf.tokens)
 		return result
 
+class TokenFuncBody extends TokenGrpBody:
+	var func_head : TokenFuncHead
+
+	func _to_string() -> String:
+		var str : String = super._to_string() + "<FUNC_BODY>"
+		return str
+	
+	static func try_create_from(body : TokenGrpBody) -> TokenFuncBody:
+		var result : TokenFuncBody = TokenFuncBody.new()
+
+		if body.idx_in_parent - 1 < 0 || body.parent == null || not body.parent._children[body.idx_in_parent - 1] is TokenFuncHead:
+			return null
+		result.func_head = body.parent._children[body.idx_in_parent - 1]
+
+		result.type = EBodyType.Curly
+		result._children = body._children
+		return result
+
 class TokenFuncHead extends TokenGrpLeaf:
 	var qualifiers : Array[String]
 	var return_type : String
@@ -267,7 +287,7 @@ class TokenFuncHead extends TokenGrpLeaf:
 	var params : Array[FuncParam] 
 
 	func _to_string() -> String:
-		var str : String = _parent_body_prefix() + "<FUNC_HEAD>|"
+		var str : String = "<FUNC_HEAD>|"
 		for qualifier in qualifiers:
 			str += qualifier + " "
 		str += return_type + " " + name + "("
@@ -355,6 +375,18 @@ class FuncParam :
 			param.name = toks_line[type_idx + 1].data
 
 		return param
+
+static func split_toks_line(toks_line : Array[TL_GLSLTokenizer.Token], type : TL_GLSLTokenizer.ETokenType, data : String):
+	var result : Array[Array]
+	var i : int = 0
+	for tok : TL_GLSLTokenizer.Token in toks_line:
+		if tok.type == type && tok.data == data:
+			i += 1
+		else :
+			if result.size() < i + 1:
+				result.append([])
+			result[i].append(tok)
+	return result
 
 static func _inline_str(str : String) -> String:
 	return str.replace('\n', '\\n')

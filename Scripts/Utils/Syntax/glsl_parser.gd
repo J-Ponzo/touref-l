@@ -27,6 +27,7 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenG
 
 	_rec_identify_struct_and_func_in(root)
 	_rec_identify_vars_in(root)
+	_rec_identify_blocks_in(root)
 
 	return root
 
@@ -133,6 +134,25 @@ func _identify_vars_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBody) -> int:
 		var nb_remove_before = _rec_identify_vars_in(grp_node)
 		i -= nb_remove_before
 		i += 1
+	return 0
+
+func _rec_identify_blocks_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int:
+	if not grp_node is TL_GLSLParser_Model.TokenGrpBody:
+		return 0
+
+	var grp_body : TL_GLSLParser_Model.TokenGrpBody = grp_node
+	var identified : TL_GLSLParser_Model.TokenGrpNode
+	identified = TL_GLSLParser_Model.TokenFuncBody.try_create_from(grp_body)
+	if identified != null:
+		grp_body.replace_with(identified)
+
+	var i : int = 0
+	while i < grp_body._children.size():
+		var child : TL_GLSLParser_Model.TokenGrpNode = grp_body._children[i]
+		var nb_remove_before = _rec_identify_blocks_in(child)
+		i -= nb_remove_before
+		i += 1
+	
 	return 0
 
 func _rec_identify_struct_and_func_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int:
@@ -252,6 +272,7 @@ static func _rec_debug_token_grp_to_str(token_grp_node : TL_GLSLParser_Model.Tok
 		str += indent + leaf.to_string() + "\n"
 	else :
 		var body : TL_GLSLParser_Model.TokenGrpBody = token_grp_node
+		str += indent + body.to_string() + "\n"
 		for child in body._children:
 			str += _rec_debug_token_grp_to_str(child , depth + 1)
 	
