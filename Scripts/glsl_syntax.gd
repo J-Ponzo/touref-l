@@ -119,7 +119,6 @@ const GLSL_TYPE_QUALIFIERS = [
 	"highp",
 	"mediump",
 	"lowp"
-
 ]
 
 const GLSL_DEFINITION = [

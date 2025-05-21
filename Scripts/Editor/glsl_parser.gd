@@ -155,15 +155,35 @@ class TokenStruct extends TokenGrpLeaf:
 				return null
 
 			var member :StructMember = StructMember.new()
-			if not leaf_child.tokens[0] is TypeSuperToken:
+			var first_type_idx : int = -1
+			for i in range(0, leaf_child.tokens.size()):
+				if leaf_child.tokens[i] is TypeSuperToken:
+					first_type_idx = i
+					member.type = leaf_child.tokens[first_type_idx].data
+					break
+			if first_type_idx == -1:
 				return null
-			else:
-				member.type = leaf_child.tokens[0].data
 
-			if leaf_child.tokens[1].type != TL_GLSLTokenizer.ETokenType.Identifier:
+			if first_type_idx + 1 >= leaf_child.tokens.size() || leaf_child.tokens[first_type_idx + 1].type != TL_GLSLTokenizer.ETokenType.Identifier:
 				return null
 			else:
-				member.name = leaf_child.tokens[1].data
+				member.name = leaf_child.tokens[first_type_idx + 1].data
+
+			var qualifier_idx = first_type_idx - 1 
+			while qualifier_idx >= 0 && leaf_child.tokens[qualifier_idx].type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(leaf_child.tokens[qualifier_idx].data):
+				member.qualifiers.append(leaf_child.tokens[qualifier_idx].data)
+				qualifier_idx -= 1
+
+			# var member :StructMember = StructMember.new()
+			# if not leaf_child.tokens[0] is TypeSuperToken:
+			# 	return null
+			# else:
+			# 	member.type = leaf_child.tokens[0].data
+
+			# if leaf_child.tokens[1].type != TL_GLSLTokenizer.ETokenType.Identifier:
+			# 	return null
+			# else:
+			# 	member.name = leaf_child.tokens[1].data
 			
 			result.members.append(member)
 
@@ -188,11 +208,15 @@ class TokenStruct extends TokenGrpLeaf:
 		return str
 
 class StructMember :
+	var qualifiers : Array[String]
 	var type : String
 	var name : String
 
 	func _to_string() -> String:
-		var str : String = type + " " + name
+		var str : String = ""
+		for qualifier in qualifiers:
+			str += qualifier + " "
+		str += type + " " + name
 		return str;
 
 class TokenVariableDecl extends TokenGrpLeaf:
