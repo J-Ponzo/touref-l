@@ -115,7 +115,11 @@ const GLSL_TYPE_QUALIFIERS = [
 	"patch", 
 	"smooth", 
 	"flat", 
-	"noperspective"
+	"noperspective",
+	"highp",
+	"mediump",
+	"lowp"
+
 ]
 
 const GLSL_DEFINITION = [

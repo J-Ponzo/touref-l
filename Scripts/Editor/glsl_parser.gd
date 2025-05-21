@@ -259,7 +259,7 @@ class TokenFuncHead extends TokenGrpLeaf:
 		var params_str : String = ""
 		for param in params:
 			params_str += param.to_string() + ", "
-		params_str += params_str.substr(0, params_str.length() - 2)
+		params_str = params_str.substr(0, params_str.length() - 2)
 		str += params_str + ")|"
 
 		return str
@@ -306,7 +306,6 @@ class TokenFuncHead extends TokenGrpLeaf:
 					print("PARAM_TOKS")
 					for tok in param_toks:
 						print(tok.data)
-
 				# TODO
 				for param_toks in split_toks:
 					var param : FuncParam = FuncParam.parse_param_toks_line(param_toks)
@@ -329,9 +328,13 @@ class FuncParam :
 	var qualifiers : Array[String]
 	var type : String
 	var name : String
+
 	func _to_string() -> String:
 		var str : String = ""
+		# TODO remove debug stub
+		print("qualif nb :" + str(qualifiers.size()))
 		for qualifier in qualifiers:
+			print(qualifier + " ")
 			str += qualifier + " "
 		str += type 
 		if name != "":
@@ -355,8 +358,12 @@ class FuncParam :
 		if type_idx == -1:
 			return null
 		
-		for i : int in range(0, type_idx - 1):
-			param.qualifiers.append(toks_line[i])
+		for i : int in range(0, type_idx):
+			# TODO remove debug stub
+			print("QUALIF")
+			print(toks_line[i].data + "END QUALIF")
+			# TODO
+			param.qualifiers.append(toks_line[i].data)
 
 		if toks_line.size() > type_idx + 1:
 			param.name = toks_line[type_idx + 1].data
