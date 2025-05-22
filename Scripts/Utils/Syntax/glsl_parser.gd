@@ -187,19 +187,14 @@ func _identify_func_in_leaf(grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf) -> int:
 	return 0
 
 func _identify_struct_and_func_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBody) -> int:
-	var nb_removed : int = 0
+	var nb_removed_before : int = 0
 	var identified : TL_GLSLParser_Model.TokenGrpNode
 	identified = TL_GLSLParser_Model.TokenStruct.try_create_from(grp_body)
 	if identified != null:
 		var struct_grp : TL_GLSLParser_Model.TokenStruct = identified
-		var head_leaf : TL_GLSLParser_Model.TokenGrpLeaf = grp_body.parent._children[grp_body.idx_in_parent - 1]
-		head_leaf.remove()
-		nb_removed += 1
-		if struct_grp.variable_name != "":
-			var var_leaf : TL_GLSLParser_Model.TokenGrpLeaf = grp_body.parent._children[grp_body.idx_in_parent + 1]
-			var_leaf.remove()
+		nb_removed_before = identified.remove_pendings()
 		grp_body.replace_with(struct_grp)
-		return nb_removed
+		return nb_removed_before
 
 	var i : int = 0
 	while i < grp_body._children.size():

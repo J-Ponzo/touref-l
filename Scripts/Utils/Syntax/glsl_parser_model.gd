@@ -12,8 +12,27 @@ class TypeSuperToken extends SuperToken:
 class TokenGrpNode :
 	var parent : TokenGrpBody = null
 	var idx_in_parent : int = -1
+	var pending_remove_before : Array[TokenGrpNode]
+	var pending_remove_after : Array[TokenGrpNode]
+
+	func remove_pendings() -> int:
+		var nb_removed_before : int = pending_remove_before.size()
+
+		while pending_remove_before.size() > 0:
+			pending_remove_before[0].remove()
+			pending_remove_before.remove_at(0)
+
+		while pending_remove_after.size() > 0:
+			pending_remove_after[0].remove()
+			pending_remove_after.remove_at(0)
+
+		return nb_removed_before
 
 	func remove() -> void:
+		# TODO remobe debug stub
+		print("Removing " + to_string())
+		# TODO
+
 		for i in range(idx_in_parent, parent._children.size()):
 			parent._children[i].idx_in_parent -= 1
 
@@ -148,6 +167,7 @@ class TokenStruct extends TokenGrpLeaf:
 		if struct_head.tokens[1].type != TL_GLSLTokenizer.ETokenType.Identifier:
 			return null
 		else:
+			result.pending_remove_before.append(struct_head)
 			result.name = struct_head.tokens[1].data
 		
 		for child in body._children:
@@ -184,6 +204,7 @@ class TokenStruct extends TokenGrpLeaf:
 		if body.idx_in_parent + 1 < body.parent._children.size() && body.parent._children[body.idx_in_parent + 1] is TokenGrpLeaf:
 			struct_variable = body.parent._children[body.idx_in_parent + 1]
 			if struct_variable.tokens.size() == 1 && struct_variable.tokens[0].type == TL_GLSLTokenizer.ETokenType.Identifier:
+				result.pending_remove_after.append(struct_variable)
 				result.variable_name = struct_variable.tokens[0].data
 
 		return result
@@ -325,6 +346,39 @@ class TokenFuncHead extends TokenGrpLeaf:
 		result.tokens.append_array(leaf.tokens)
 		return result
 
+class FuncParam :
+	var qualifiers : Array[String]
+	var type : String
+	var name : String
+
+	func _to_string() -> String:
+		var str : String = ""
+		for qualifier in qualifiers:
+			str += qualifier + " "
+		str += type 
+		if name != "":
+			str += " " + name
+		return str
+
+	static func parse_param_toks_line(toks_line :  Array) -> FuncParam:
+		var param : FuncParam = FuncParam.new()
+		var type_idx : int = -1
+		for i in range(0, toks_line.size()):
+			if toks_line[i] is TypeSuperToken:
+				type_idx = i
+				param.type = toks_line[type_idx].data
+				break
+		if type_idx == -1:
+			return null
+		
+		for i : int in range(0, type_idx):
+			param.qualifiers.append(toks_line[i].data)
+
+		if toks_line.size() > type_idx + 1:
+			param.name = toks_line[type_idx + 1].data
+
+		return param
+
 class TokenFuncBody extends TokenGrpBody:
 	var func_head : TokenFuncHead
 
@@ -418,39 +472,6 @@ class TokenElse extends TokenGrpBody:
 
 		result.type = EBodyType.Curly
 		return result
-
-class FuncParam :
-	var qualifiers : Array[String]
-	var type : String
-	var name : String
-
-	func _to_string() -> String:
-		var str : String = ""
-		for qualifier in qualifiers:
-			str += qualifier + " "
-		str += type 
-		if name != "":
-			str += " " + name
-		return str
-
-	static func parse_param_toks_line(toks_line :  Array) -> FuncParam:
-		var param : FuncParam = FuncParam.new()
-		var type_idx : int = -1
-		for i in range(0, toks_line.size()):
-			if toks_line[i] is TypeSuperToken:
-				type_idx = i
-				param.type = toks_line[type_idx].data
-				break
-		if type_idx == -1:
-			return null
-		
-		for i : int in range(0, type_idx):
-			param.qualifiers.append(toks_line[i].data)
-
-		if toks_line.size() > type_idx + 1:
-			param.name = toks_line[type_idx + 1].data
-
-		return param
 
 static func split_toks_line(toks_line : Array[TL_GLSLTokenizer.Token], type : TL_GLSLTokenizer.ETokenType, data : String):
 	var result : Array[Array]
