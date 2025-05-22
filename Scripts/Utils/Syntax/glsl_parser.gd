@@ -146,6 +146,7 @@ func _identify_blocks_in_leaf(grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf) -> in
 	var identified : TL_GLSLParser_Model.TokenGrpNode
 	identified = TL_GLSLParser_Model.TokenBaseControlFlow.try_create_from(grp_leaf)
 	if identified != null:
+		identified.remove_pendings()
 		grp_leaf.replace_with(identified) 
 		return 0
 

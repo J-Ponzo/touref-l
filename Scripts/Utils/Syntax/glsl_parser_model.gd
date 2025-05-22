@@ -429,6 +429,7 @@ class TokenBaseControlFlow extends TokenGrpBody:
 			if sibling_body.type != EBodyType.Round || sibling_body._children.size() != 1 || not sibling_body._children[0] is TokenGrpLeaf:
 				return null;
 			var condition_leaf : TokenGrpLeaf =  sibling_body._children[0]
+			result.pending_remove_after.append(sibling_body)
 			result.condition = condition_leaf.tokens
 
 		var next_next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 2]
@@ -436,9 +437,14 @@ class TokenBaseControlFlow extends TokenGrpBody:
 			var sibling_body : TokenGrpBody = next_next_sibling
 			if sibling_body.type != EBodyType.Curly:
 				return null
-			result._children = next_next_sibling._children
+			for child in next_next_sibling._children:
+				result.attach_child(child)
+			sibling_body._children.clear()
+			result.pending_remove_after.append(sibling_body)
 		else :
-			result._children.append(next_next_sibling)
+			next_next_sibling.remove()
+			result.attach_child(next_next_sibling)
+			
 
 		result.type = EBodyType.Curly
 		return result
@@ -463,12 +469,15 @@ class TokenElse extends TokenGrpBody:
 				var sibling_body : TokenGrpBody = next_sibling
 				if sibling_body.type != EBodyType.Curly:
 					return null
-				result._children = next_sibling._children
-		else :
+				for child in next_sibling._children:
+					result.attach_child(child)
+				sibling_body._children.clear()
+				result.pending_remove_after.append(sibling_body)
+		else:
 			var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
 			for i in range(1, leaf.tokens.size()):
 				unique_instr_leaf.tokens.append(leaf.tokens[i])
-			result._children.append(unique_instr_leaf)
+			result.attach_child(unique_instr_leaf)
 
 		result.type = EBodyType.Curly
 		return result
