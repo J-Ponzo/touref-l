@@ -482,6 +482,67 @@ class TokenElse extends TokenGrpBody:
 		result.type = EBodyType.Curly
 		return result
 
+class TokenDoWhile extends TokenGrpBody:
+	var condition : Array[TL_GLSLTokenizer.Token]
+
+	func _to_string() -> String:
+		var str : String = super._to_string() + "<do-while>|"
+		for tok in condition:
+			str += tok.data + "|"
+		return str
+	
+	static func try_create_from(leaf : TokenGrpLeaf) -> TokenDoWhile:
+		var result : TokenDoWhile = TokenDoWhile.new()
+
+		if leaf.tokens.size() == 0:
+			return null
+
+		if leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword ||  leaf.tokens[0].data != "do":
+			return null
+
+		var condition_offset : int = 2
+		if leaf.idx_in_parent + 1 >= leaf.parent._children.size():
+			return null
+		else:
+			var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 1]
+			if next_sibling is TokenGrpBody:
+				condition_offset += 1
+				var sibling_body : TokenGrpBody = next_sibling
+				if sibling_body.type != EBodyType.Curly:
+					return null
+				for child in next_sibling._children:
+					result.attach_child(child)
+				sibling_body._children.clear()
+				result.pending_remove_after.append(sibling_body)
+			else:
+				var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
+				for i in range(1, leaf.tokens.size()):
+					unique_instr_leaf.tokens.append(leaf.tokens[i])
+				result.attach_child(unique_instr_leaf)
+
+		if leaf.idx_in_parent + condition_offset >= leaf.parent._children.size():
+			return null
+		else:
+			var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + condition_offset - 1]
+			if not next_sibling is TokenGrpLeaf:
+				return null
+			else:
+				var next_sibling_leaf : TokenGrpLeaf = next_sibling
+				if next_sibling_leaf.tokens.size() != 1 || next_sibling_leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword ||  next_sibling_leaf.tokens[0].data != "while":
+					return null;
+				else:
+					result.pending_remove_after.append(next_sibling_leaf)
+
+			var next_next_sibling_body : TokenGrpBody = leaf.parent._children[leaf.idx_in_parent + condition_offset]
+			if next_next_sibling_body.type != EBodyType.Round || next_next_sibling_body._children.size() != 1 || not next_next_sibling_body._children[0] is TokenGrpLeaf:
+				return null;
+			var condition_leaf : TokenGrpLeaf =  next_next_sibling_body._children[0]
+			result.pending_remove_after.append(next_next_sibling_body)
+			result.condition = condition_leaf.tokens
+
+		result.type = EBodyType.Curly
+		return result
+
 static func split_toks_line(toks_line : Array[TL_GLSLTokenizer.Token], type : TL_GLSLTokenizer.ETokenType, data : String):
 	var result : Array[Array]
 	var i : int = 0

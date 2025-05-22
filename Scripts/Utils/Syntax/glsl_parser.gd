@@ -148,12 +148,18 @@ func _identify_blocks_in_leaf(grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf) -> in
 	if identified != null:
 		identified.remove_pendings()
 		grp_leaf.replace_with(identified) 
-		return 0
+		return 1
 
 	identified = TL_GLSLParser_Model.TokenElse.try_create_from(grp_leaf)
 	if identified != null:
 		grp_leaf.replace_with(identified) 
-		return 0
+		return 1
+
+	identified = TL_GLSLParser_Model.TokenDoWhile.try_create_from(grp_leaf)
+	if identified != null:
+		identified.remove_pendings()
+		grp_leaf.replace_with(identified)
+		return 1
 
 	return 0
 
