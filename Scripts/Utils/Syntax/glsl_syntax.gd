@@ -10,7 +10,10 @@ const GLSL_CONTROL_FLOW = [
 	"break", 
 	"continue",
 	"return", 
-	"discard"
+	"discard",
+	"switch",
+	"case",
+	"default"
 ]
 
 const GLSL_BASE_TYPES = [
