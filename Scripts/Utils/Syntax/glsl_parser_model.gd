@@ -449,6 +449,65 @@ class TokenBaseControlFlow extends TokenGrpBody:
 		result.type = EBodyType.Curly
 		return result
 
+class TokenFor extends TokenGrpBody:
+	var init_leaf : TokenGrpLeaf
+	var condition : Array[TL_GLSLTokenizer.Token]
+	var increment : Array[TL_GLSLTokenizer.Token]
+
+	func _to_string() -> String:
+		var str : String = super._to_string() + "<for>|"
+		str += init_leaf._to_string() + "|;|"
+		for tok in condition:
+			str += tok.data + "|"
+		str += ";|"
+		for tok in increment:
+			str += tok.data + "|"
+		str += ";|"
+		return str
+	
+	static func try_create_from(leaf : TokenGrpLeaf) -> TokenFor:
+		var result : TokenFor = TokenFor.new()
+
+		if leaf.tokens.size() == 0:
+			return null
+
+		if leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword || leaf.tokens[0].data != "for":
+			return null
+
+		if leaf.idx_in_parent + 2 >= leaf.parent._children.size():
+			return null
+
+		var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 1]
+		if not next_sibling is TokenGrpBody:
+			return null
+		else:
+			var sibling_body : TokenGrpBody = next_sibling
+			if sibling_body.type != EBodyType.Round || sibling_body._children.size() != 3 || not sibling_body._children[0] is TokenGrpLeaf || not sibling_body._children[1] is TokenGrpLeaf || not sibling_body._children[2] is TokenGrpLeaf:
+				return null;
+			result.pending_remove_after.append(sibling_body)
+			result.init_leaf =  sibling_body._children[0]
+			var condition_leaf : TokenGrpLeaf =  sibling_body._children[1]
+			result.condition = condition_leaf.tokens
+			var incr_leaf : TokenGrpLeaf =  sibling_body._children[2]
+			result.increment = incr_leaf.tokens
+
+		var next_next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 2]
+		if next_next_sibling is TokenGrpBody:
+			var sibling_body : TokenGrpBody = next_next_sibling
+			if sibling_body.type != EBodyType.Curly:
+				return null
+			for child in next_next_sibling._children:
+				result.attach_child(child)
+			sibling_body._children.clear()
+			result.pending_remove_after.append(sibling_body)
+		else :
+			next_next_sibling.remove()
+			result.attach_child(next_next_sibling)
+			
+
+		result.type = EBodyType.Curly
+		return result
+
 class TokenElse extends TokenGrpBody:
 	func _to_string() -> String:
 		var str : String = super._to_string() + "<else>"
