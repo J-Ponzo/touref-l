@@ -457,17 +457,17 @@ class TokenBaseControlFlow extends TokenGrpCtrlFlow:
 				result.attach_child(child)
 			sibling_body._children.clear()
 			result.pending_remove_after.append(sibling_body)
-		else :
-			next_next_sibling.remove()
-			result.attach_child(next_next_sibling)
-		# else:
-		# 	var sibling_leaf : TokenGrpLeaf = next_next_sibling
-		# 	if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
-		# 		var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
-		# 		ctrl_flow_tok.parent_ctrl_flow = result
-		# 	else:
-		# 		next_next_sibling.remove()
-		# 		result.attach_child(next_next_sibling)
+		# else :
+		# 	next_next_sibling.remove()
+		# 	result.attach_child(next_next_sibling)
+		else:
+			var sibling_leaf : TokenGrpLeaf = next_next_sibling
+			if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
+				var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
+				ctrl_flow_tok.parent_ctrl_flow = result
+			else:
+				next_next_sibling.remove()
+				result.attach_child(next_next_sibling)
 			
 
 		result.type = EBodyType.Curly
@@ -497,6 +497,9 @@ class TokenFor extends TokenGrpCtrlFlow:
 
 		if not leaf.tokens[0] is CtrlFlowHeadSuperToken || leaf.tokens[0].data != "for":
 			return null
+		else :
+			var ctrl_flow_super_tok:  CtrlFlowHeadSuperToken = leaf.tokens[0]
+			result.parent_ctrl_flow = ctrl_flow_super_tok.parent_ctrl_flow
 
 		if leaf.idx_in_parent + 2 >= leaf.parent._children.size():
 			return null
@@ -524,17 +527,17 @@ class TokenFor extends TokenGrpCtrlFlow:
 				result.attach_child(child)
 			sibling_body._children.clear()
 			result.pending_remove_after.append(sibling_body)
-		else :
-			next_next_sibling.remove()
-			result.attach_child(next_next_sibling)
-		# else:
-		# 	var sibling_leaf : TokenGrpLeaf = next_next_sibling
-		# 	if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
-		# 		var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
-		# 		ctrl_flow_tok.parent_ctrl_flow = result
-		# 	else:
-		# 		next_next_sibling.remove()
-		# 		result.attach_child(next_next_sibling)
+		# else :
+		# 	next_next_sibling.remove()
+		# 	result.attach_child(next_next_sibling)
+		else:
+			var sibling_leaf : TokenGrpLeaf = next_next_sibling
+			if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
+				var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
+				ctrl_flow_tok.parent_ctrl_flow = result
+			else:
+				next_next_sibling.remove()
+				result.attach_child(next_next_sibling)
 			
 		result.type = EBodyType.Curly
 		return result
@@ -552,6 +555,9 @@ class TokenElse extends TokenGrpCtrlFlow:
 
 		if not leaf.tokens[0] is CtrlFlowHeadSuperToken ||  leaf.tokens[0].data != "else":
 			return null
+		else :
+			var ctrl_flow_super_tok:  CtrlFlowHeadSuperToken = leaf.tokens[0]
+			result.parent_ctrl_flow = ctrl_flow_super_tok.parent_ctrl_flow
 
 		if leaf.idx_in_parent + 1 < leaf.parent._children.size():
 			var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 1]
@@ -563,6 +569,14 @@ class TokenElse extends TokenGrpCtrlFlow:
 					result.attach_child(child)
 				sibling_body._children.clear()
 				result.pending_remove_after.append(sibling_body)
+			else:
+				var sibling_leaf : TokenGrpLeaf = next_sibling
+				if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
+					var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
+					ctrl_flow_tok.parent_ctrl_flow = result
+				else:
+					next_sibling.remove()
+					result.attach_child(next_sibling)
 			# else:
 			# 	var sibling_leaf : TokenGrpLeaf = next_sibling
 			# 	if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
@@ -574,11 +588,11 @@ class TokenElse extends TokenGrpCtrlFlow:
 			# 			unique_instr_leaf.tokens.append(leaf.tokens[i])
 			# 		result.attach_child(unique_instr_leaf)
 
-		else:
-			var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
-			for i in range(1, leaf.tokens.size()):
-				unique_instr_leaf.tokens.append(leaf.tokens[i])
-			result.attach_child(unique_instr_leaf)
+		# else:
+		# 	var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
+		# 	for i in range(1, leaf.tokens.size()):
+		# 		unique_instr_leaf.tokens.append(leaf.tokens[i])
+		# 	result.attach_child(unique_instr_leaf)
 		
 		result.type = EBodyType.Curly
 		return result
@@ -600,6 +614,9 @@ class TokenDoWhile extends TokenGrpCtrlFlow:
 
 		if not leaf.tokens[0] is CtrlFlowHeadSuperToken ||  leaf.tokens[0].data != "do":
 			return null
+		else :
+			var ctrl_flow_super_tok:  CtrlFlowHeadSuperToken = leaf.tokens[0]
+			result.parent_ctrl_flow = ctrl_flow_super_tok.parent_ctrl_flow
 
 		var condition_offset : int = 2
 		if leaf.idx_in_parent + 1 >= leaf.parent._children.size():
@@ -610,17 +627,24 @@ class TokenDoWhile extends TokenGrpCtrlFlow:
 				condition_offset += 1
 				var sibling_body : TokenGrpBody = next_sibling
 				if sibling_body.type != EBodyType.Curly:
-					print("fail 3")
 					return null
 				for child in next_sibling._children:
 					result.attach_child(child)
 				sibling_body._children.clear()
 				result.pending_remove_after.append(sibling_body)
 			else:
-				var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
-				for i in range(1, leaf.tokens.size()):
-					unique_instr_leaf.tokens.append(leaf.tokens[i])
-				result.attach_child(unique_instr_leaf)
+				var sibling_leaf : TokenGrpLeaf = next_sibling
+				if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
+					var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
+					ctrl_flow_tok.parent_ctrl_flow = result
+				else:
+					next_sibling.remove()
+					result.attach_child(next_sibling)
+			# else:
+			# 	var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
+			# 	for i in range(1, leaf.tokens.size()):
+			# 		unique_instr_leaf.tokens.append(leaf.tokens[i])
+			# 	result.attach_child(unique_instr_leaf)
 
 		if leaf.idx_in_parent + condition_offset >= leaf.parent._children.size():
 			return null

@@ -163,25 +163,45 @@ func _identify_blocks_in_leaf(grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf) -> in
 	identified = TL_GLSLParser_Model.TokenBaseControlFlow.try_create_from(grp_leaf)
 	if identified != null:
 		identified.remove_pendings()
-		grp_leaf.replace_with(identified) 
-		return 1
+		if identified.parent_ctrl_flow != null:
+			identified.parent_ctrl_flow.attach_child(identified)
+			grp_leaf.remove()
+			return 2
+		else:
+			grp_leaf.replace_with(identified) 
+			return 1
 
 	identified = TL_GLSLParser_Model.TokenElse.try_create_from(grp_leaf)
 	if identified != null:
-		grp_leaf.replace_with(identified) 
-		return 1
+		if identified.parent_ctrl_flow != null:
+			identified.parent_ctrl_flow.attach_child(identified)
+			grp_leaf.remove()
+			return 2
+		else:
+			grp_leaf.replace_with(identified) 
+			return 1
 
 	identified = TL_GLSLParser_Model.TokenDoWhile.try_create_from(grp_leaf)
 	if identified != null:
 		identified.remove_pendings()
-		grp_leaf.replace_with(identified)
-		return 1
+		if identified.parent_ctrl_flow != null:
+			identified.parent_ctrl_flow.attach_child(identified)
+			grp_leaf.remove()
+			return 2
+		else:
+			grp_leaf.replace_with(identified) 
+			return 1
 
 	identified = TL_GLSLParser_Model.TokenFor.try_create_from(grp_leaf)
 	if identified != null:
 		identified.remove_pendings()
-		grp_leaf.replace_with(identified)
-		return 1
+		if identified.parent_ctrl_flow != null:
+			identified.parent_ctrl_flow.attach_child(identified)
+			grp_leaf.remove()
+			return 2
+		else:
+			grp_leaf.replace_with(identified) 
+			return 1
 
 	return 0
 
@@ -270,6 +290,10 @@ func _rec_generate_token_grp(type : TL_GLSLParser_Model.EBodyType) -> TL_GLSLPar
 			else:
 				_accumulate(_tokens[_tok_idx])
 		elif _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Preprocessor:
+			_fill_with_accumulated(body)
+			var token_grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf = _create_token_grp_leaf([_tokens[_tok_idx]])
+			body.attach_child(token_grp_leaf)
+		elif _tokens[_tok_idx] is TL_GLSLParser_Model.CtrlFlowHeadSuperToken:
 			_fill_with_accumulated(body)
 			var token_grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf = _create_token_grp_leaf([_tokens[_tok_idx]])
 			body.attach_child(token_grp_leaf)
