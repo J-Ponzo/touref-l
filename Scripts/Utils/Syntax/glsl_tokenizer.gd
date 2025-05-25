@@ -24,6 +24,10 @@ class Token:
 	var line : int
 	var col : int
 
+	func _to_string() -> String:
+		var str : String =  "|" + data + "|->(" + str(type)  + ")"
+		return str
+
 class TokensData:
 	var tokens : Array[Token] = []
 	var idx_by_line : Dictionary[int, Array] = {}	# 'values' are indicies of token at line 'key' from the 'tokens' array

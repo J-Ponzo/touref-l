@@ -1,10 +1,21 @@
 class_name TL_GLSLParser_Model
 
 class SuperToken extends TL_GLSLTokenizer.Token:
-	pass
+	func _dgb_prefix() -> String:
+		return "SuperTok"
+
+	func _to_string() -> String:
+		var str : String = "<" + _dgb_prefix() + ">" + super._to_string()
+		return str;
 
 class TypeSuperToken extends SuperToken:
-	pass
+	func _dgb_prefix() -> String:
+		return "Type-SuperTok"
+
+class CtrlFlowHeadSuperToken extends SuperToken:
+	var parent_ctrl_flow : TokenGrpCtrlFlow
+	func _dgb_prefix() -> String:
+		return "CtrlFlow-SuperTok"
 
 # class QualifierSuperToken extends SuperToken:
 # 	pass
@@ -397,7 +408,10 @@ class TokenFuncBody extends TokenGrpBody:
 		result._children = body._children
 		return result
 
-class TokenBaseControlFlow extends TokenGrpBody:
+class TokenGrpCtrlFlow extends TokenGrpBody:
+	var parent_ctrl_flow = TokenGrpCtrlFlow
+
+class TokenBaseControlFlow extends TokenGrpCtrlFlow:
 	var condition : Array[TL_GLSLTokenizer.Token]
 	var keyword : String
 
@@ -413,10 +427,12 @@ class TokenBaseControlFlow extends TokenGrpBody:
 		if leaf.tokens.size() == 0:
 			return null
 
-		if leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword || not (leaf.tokens[0].data == "if" || leaf.tokens[0].data == "while" || leaf.tokens[0].data == "switch"):
+		if not leaf.tokens[0] is CtrlFlowHeadSuperToken || not (leaf.tokens[0].data == "if" || leaf.tokens[0].data == "while" || leaf.tokens[0].data == "switch"):
 			return null
 		else:
 			result.keyword = leaf.tokens[0].data
+			var ctrl_flow_super_tok:  CtrlFlowHeadSuperToken = leaf.tokens[0]
+			result.parent_ctrl_flow = ctrl_flow_super_tok.parent_ctrl_flow
 
 		if leaf.idx_in_parent + 2 >= leaf.parent._children.size():
 			return null
@@ -444,12 +460,20 @@ class TokenBaseControlFlow extends TokenGrpBody:
 		else :
 			next_next_sibling.remove()
 			result.attach_child(next_next_sibling)
+		# else:
+		# 	var sibling_leaf : TokenGrpLeaf = next_next_sibling
+		# 	if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
+		# 		var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
+		# 		ctrl_flow_tok.parent_ctrl_flow = result
+		# 	else:
+		# 		next_next_sibling.remove()
+		# 		result.attach_child(next_next_sibling)
 			
 
 		result.type = EBodyType.Curly
 		return result
 
-class TokenFor extends TokenGrpBody:
+class TokenFor extends TokenGrpCtrlFlow:
 	var init_leaf : TokenGrpLeaf
 	var condition : Array[TL_GLSLTokenizer.Token]
 	var increment : Array[TL_GLSLTokenizer.Token]
@@ -471,7 +495,7 @@ class TokenFor extends TokenGrpBody:
 		if leaf.tokens.size() == 0:
 			return null
 
-		if leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword || leaf.tokens[0].data != "for":
+		if not leaf.tokens[0] is CtrlFlowHeadSuperToken || leaf.tokens[0].data != "for":
 			return null
 
 		if leaf.idx_in_parent + 2 >= leaf.parent._children.size():
@@ -503,12 +527,19 @@ class TokenFor extends TokenGrpBody:
 		else :
 			next_next_sibling.remove()
 			result.attach_child(next_next_sibling)
+		# else:
+		# 	var sibling_leaf : TokenGrpLeaf = next_next_sibling
+		# 	if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
+		# 		var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
+		# 		ctrl_flow_tok.parent_ctrl_flow = result
+		# 	else:
+		# 		next_next_sibling.remove()
+		# 		result.attach_child(next_next_sibling)
 			
-
 		result.type = EBodyType.Curly
 		return result
 
-class TokenElse extends TokenGrpBody:
+class TokenElse extends TokenGrpCtrlFlow:
 	func _to_string() -> String:
 		var str : String = super._to_string() + "<else>"
 		return str
@@ -519,7 +550,7 @@ class TokenElse extends TokenGrpBody:
 		if leaf.tokens.size() == 0:
 			return null
 
-		if leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword ||  leaf.tokens[0].data != "else":
+		if not leaf.tokens[0] is CtrlFlowHeadSuperToken ||  leaf.tokens[0].data != "else":
 			return null
 
 		if leaf.idx_in_parent + 1 < leaf.parent._children.size():
@@ -532,16 +563,27 @@ class TokenElse extends TokenGrpBody:
 					result.attach_child(child)
 				sibling_body._children.clear()
 				result.pending_remove_after.append(sibling_body)
+			# else:
+			# 	var sibling_leaf : TokenGrpLeaf = next_sibling
+			# 	if sibling_leaf.tokens.size() == 1 && sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken:
+			# 		var ctrl_flow_tok : CtrlFlowHeadSuperToken = sibling_leaf.tokens[0]
+			# 		ctrl_flow_tok.parent_ctrl_flow = result
+			# 	else:
+			# 		var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
+			# 		for i in range(1, leaf.tokens.size()):
+			# 			unique_instr_leaf.tokens.append(leaf.tokens[i])
+			# 		result.attach_child(unique_instr_leaf)
+
 		else:
 			var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
 			for i in range(1, leaf.tokens.size()):
 				unique_instr_leaf.tokens.append(leaf.tokens[i])
 			result.attach_child(unique_instr_leaf)
-
+		
 		result.type = EBodyType.Curly
 		return result
 
-class TokenDoWhile extends TokenGrpBody:
+class TokenDoWhile extends TokenGrpCtrlFlow:
 	var condition : Array[TL_GLSLTokenizer.Token]
 
 	func _to_string() -> String:
@@ -556,7 +598,7 @@ class TokenDoWhile extends TokenGrpBody:
 		if leaf.tokens.size() == 0:
 			return null
 
-		if leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword ||  leaf.tokens[0].data != "do":
+		if not leaf.tokens[0] is CtrlFlowHeadSuperToken ||  leaf.tokens[0].data != "do":
 			return null
 
 		var condition_offset : int = 2
@@ -568,6 +610,7 @@ class TokenDoWhile extends TokenGrpBody:
 				condition_offset += 1
 				var sibling_body : TokenGrpBody = next_sibling
 				if sibling_body.type != EBodyType.Curly:
+					print("fail 3")
 					return null
 				for child in next_sibling._children:
 					result.attach_child(child)
@@ -587,7 +630,7 @@ class TokenDoWhile extends TokenGrpBody:
 				return null
 			else:
 				var next_sibling_leaf : TokenGrpLeaf = next_sibling
-				if next_sibling_leaf.tokens.size() != 1 || next_sibling_leaf.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword ||  next_sibling_leaf.tokens[0].data != "while":
+				if next_sibling_leaf.tokens.size() != 1 || not next_sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken ||  next_sibling_leaf.tokens[0].data != "while":
 					return null;
 				else:
 					result.pending_remove_after.append(next_sibling_leaf)

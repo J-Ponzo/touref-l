@@ -10,6 +10,13 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenG
 	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
 	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_super_tokens(clean_tokens)
 
+	# TODO remove this debug stub
+	print("----- TOKENS -----")
+	for tok : TL_GLSLTokenizer.Token in super_tokens:
+		print(tok)
+	# TODO
+
+
 	_tokens = super_tokens
 	var root : TL_GLSLParser_Model.TokenGrpBody = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
 	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _rec_link_leaves(root, null)
@@ -44,6 +51,11 @@ func fill_super_token(super_token : TL_GLSLParser_Model.SuperToken, tokens_to_me
 
 func create_type_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TypeSuperToken:
 	var result : TL_GLSLParser_Model.TypeSuperToken = TL_GLSLParser_Model.TypeSuperToken.new()
+	fill_super_token(result, tokens_to_merge)
+	return result
+
+func create_ctrl_flow_head_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.CtrlFlowHeadSuperToken:
+	var result : TL_GLSLParser_Model.CtrlFlowHeadSuperToken = TL_GLSLParser_Model.CtrlFlowHeadSuperToken.new()
 	fill_super_token(result, tokens_to_merge)
 	return result
 
@@ -86,6 +98,10 @@ func _identify_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_
 			i += 1
 		elif result.size() > 3 && cur_token.type == TL_GLSLTokenizer.ETokenType.Identifier && result[result.size() - 1].type == TL_GLSLTokenizer.ETokenType.Operator && result[result.size() - 1].data == '(' && result[result.size() - 2].type == TL_GLSLTokenizer.ETokenType.Identifier  && result[result.size() - 3] is TL_GLSLParser_Model.TypeSuperToken:
 			var super_tok = create_type_super_token([cur_token])
+			result.append(super_tok)
+			i += 1
+		elif is_ctrl_flow_head_token(cur_token):
+			var super_tok = create_ctrl_flow_head_super_token([cur_token])
 			result.append(super_tok)
 			i += 1
 		# elif cur_token.type == TL_GLSLTokenizer.ETokenType.Keyword && TL_GLSLSyntax.GLSL_TYPE_QUALIFIERS.has(cur_token.data):
@@ -267,6 +283,11 @@ func _rec_generate_token_grp(type : TL_GLSLParser_Model.EBodyType) -> TL_GLSLPar
 
 func is_ignored_token_type(type : TL_GLSLTokenizer.ETokenType) -> bool:
 	return type == TL_GLSLTokenizer.ETokenType.BlockComment || type == TL_GLSLTokenizer.ETokenType.LineComment || type == TL_GLSLTokenizer.ETokenType.Whitespace || type == TL_GLSLTokenizer.ETokenType.EOF
+
+func is_ctrl_flow_head_token(token : TL_GLSLTokenizer.Token) -> bool:
+	if token.type != TL_GLSLTokenizer.ETokenType.Keyword:
+		return false
+	return token.data == "if" || token.data == "else" || token.data == "do" || token.data == "while" || token.data == "for" || token.data == "switch"
 
 func _accumulate(token : TL_GLSLTokenizer.Token):
 	if not is_ignored_token_type(token.type):
