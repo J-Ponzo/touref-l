@@ -16,7 +16,6 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenG
 		print(tok)
 	# TODO
 
-
 	_tokens = super_tokens
 	var root : TL_GLSLParser_Model.TokenGrpBody = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
 	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _rec_link_leaves(root, null)

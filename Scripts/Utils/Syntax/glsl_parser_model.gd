@@ -412,13 +412,16 @@ class TokenGrpCtrlFlow extends TokenGrpBody:
 	var parent_ctrl_flow = TokenGrpCtrlFlow
 
 class TokenBaseControlFlow extends TokenGrpCtrlFlow:
-	var condition : Array[TL_GLSLTokenizer.Token]
+	var condition : TokenGrpBody
 	var keyword : String
 
 	func _to_string() -> String:
-		var str : String = super._to_string() + "<" + keyword + ">|"
-		for tok in condition:
-			str += tok.data + "|"
+		var str : String = super._to_string() + "<" + keyword + ">("
+		for child in condition._children:
+			str += child._to_string()
+			if child is TokenGrpBody:
+				str += "..."
+		str += ")"
 		return str
 	
 	static func try_create_from(leaf : TokenGrpLeaf) -> TokenBaseControlFlow:
@@ -442,16 +445,27 @@ class TokenBaseControlFlow extends TokenGrpCtrlFlow:
 			return null
 		else:
 			var sibling_body : TokenGrpBody = next_sibling
-			if sibling_body.type != EBodyType.Round || sibling_body._children.size() != 1 || not sibling_body._children[0] is TokenGrpLeaf:
+			if sibling_body.type != EBodyType.Round:
 				return null;
-			var condition_leaf : TokenGrpLeaf =  sibling_body._children[0]
+			result.condition = TokenGrpBody.new()
+			result.condition.type = EBodyType.Round
+			for child in sibling_body._children:
+				result.condition.attach_child(child)
+			sibling_body._children.clear()
 			result.pending_remove_after.append(sibling_body)
-			result.condition = condition_leaf.tokens
+			# var sibling_body : TokenGrpBody = next_sibling
+			# if sibling_body.type != EBodyType.Round || sibling_body._children.size() != 1 || not sibling_body._children[0] is TokenGrpLeaf:
+			# 	print(4)
+			# 	return null;
+			# var condition_leaf : TokenGrpLeaf =  sibling_body._children[0]
+			# result.pending_remove_after.append(sibling_body)
+			# result.condition = condition_leaf.tokens
 
 		var next_next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 2]
 		if next_next_sibling is TokenGrpBody:
 			var sibling_body : TokenGrpBody = next_next_sibling
 			if sibling_body.type != EBodyType.Curly:
+				print(5)
 				return null
 			for child in next_next_sibling._children:
 				result.attach_child(child)
@@ -598,12 +612,15 @@ class TokenElse extends TokenGrpCtrlFlow:
 		return result
 
 class TokenDoWhile extends TokenGrpCtrlFlow:
-	var condition : Array[TL_GLSLTokenizer.Token]
+	var condition : TokenGrpBody
 
 	func _to_string() -> String:
-		var str : String = super._to_string() + "<do-while>|"
-		for tok in condition:
-			str += tok.data + "|"
+		var str : String = super._to_string() + "<do-while>("
+		for child in condition._children:
+			str += child._to_string()
+			if child is TokenGrpBody:
+				str += "..."
+		str += ")"
 		return str
 	
 	static func try_create_from(leaf : TokenGrpLeaf) -> TokenDoWhile:
@@ -636,12 +653,21 @@ class TokenDoWhile extends TokenGrpCtrlFlow:
 		# Search condition
 		if closing_while_leaf.idx_in_parent + 1 >= closing_while_leaf.parent._children.size():
 			return null
-		var closing_white_sibling_body : TokenGrpBody = closing_while_leaf.parent._children[closing_while_leaf.idx_in_parent + 1]
-		if closing_white_sibling_body.type != EBodyType.Round || closing_white_sibling_body._children.size() != 1 || not closing_white_sibling_body._children[0] is TokenGrpLeaf:
+		var closing_while_sibling_body : TokenGrpBody = closing_while_leaf.parent._children[closing_while_leaf.idx_in_parent + 1]
+		if closing_while_sibling_body.type != EBodyType.Round:
 			return null;
-		var condition_leaf : TokenGrpLeaf =  closing_white_sibling_body._children[0]
-		result.pending_remove_after.append(closing_white_sibling_body)
-		result.condition = condition_leaf.tokens
+		result.condition = TokenGrpBody.new()
+		result.condition.type = EBodyType.Round
+		for child in closing_while_sibling_body._children:
+			result.condition.attach_child(child)
+		closing_while_sibling_body._children.clear()
+		result.pending_remove_after.append(closing_while_sibling_body)
+		# var closing_white_sibling_body : TokenGrpBody = closing_while_leaf.parent._children[closing_while_leaf.idx_in_parent + 1]
+		# if closing_white_sibling_body.type != EBodyType.Round || closing_white_sibling_body._children.size() != 1 || not closing_white_sibling_body._children[0] is TokenGrpLeaf:
+		# 	return null;
+		# var condition_leaf : TokenGrpLeaf =  closing_white_sibling_body._children[0]
+		# result.pending_remove_after.append(closing_white_sibling_body)
+		# result.condition = condition_leaf.tokens
 
 		# Fill body
 		if leaf.idx_in_parent + 1 >= leaf.parent._children.size():
