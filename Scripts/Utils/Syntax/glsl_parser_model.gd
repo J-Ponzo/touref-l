@@ -609,22 +609,46 @@ class TokenDoWhile extends TokenGrpCtrlFlow:
 	static func try_create_from(leaf : TokenGrpLeaf) -> TokenDoWhile:
 		var result : TokenDoWhile = TokenDoWhile.new()
 
-		if leaf.tokens.size() == 0:
-			return null
-
 		if not leaf.tokens[0] is CtrlFlowHeadSuperToken ||  leaf.tokens[0].data != "do":
 			return null
 		else :
 			var ctrl_flow_super_tok:  CtrlFlowHeadSuperToken = leaf.tokens[0]
 			result.parent_ctrl_flow = ctrl_flow_super_tok.parent_ctrl_flow
 
-		var condition_offset : int = 2
+		# TODO Optimize => stop at function end
+		# Search closing while
+		var nb_while_to_find = 1
+		var cur_leaf : TokenGrpLeaf = leaf
+		var closing_while_leaf : TokenGrpLeaf
+		while (cur_leaf.next_leaf != null && nb_while_to_find > 0):
+			cur_leaf = cur_leaf.next_leaf
+			if cur_leaf.tokens[0] is CtrlFlowHeadSuperToken:
+				if cur_leaf.tokens[0].data == "do":
+					nb_while_to_find += 1
+				if cur_leaf.tokens[0].data == "while":
+					nb_while_to_find -= 1
+		if cur_leaf == null:
+			return null
+		else:
+			closing_while_leaf = cur_leaf
+			result.pending_remove_after.append(closing_while_leaf)
+		
+		# Search condition
+		if closing_while_leaf.idx_in_parent + 1 >= closing_while_leaf.parent._children.size():
+			return null
+		var closing_white_sibling_body : TokenGrpBody = closing_while_leaf.parent._children[closing_while_leaf.idx_in_parent + 1]
+		if closing_white_sibling_body.type != EBodyType.Round || closing_white_sibling_body._children.size() != 1 || not closing_white_sibling_body._children[0] is TokenGrpLeaf:
+			return null;
+		var condition_leaf : TokenGrpLeaf =  closing_white_sibling_body._children[0]
+		result.pending_remove_after.append(closing_white_sibling_body)
+		result.condition = condition_leaf.tokens
+
+		# Fill body
 		if leaf.idx_in_parent + 1 >= leaf.parent._children.size():
 			return null
 		else:
 			var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + 1]
 			if next_sibling is TokenGrpBody:
-				condition_offset += 1
 				var sibling_body : TokenGrpBody = next_sibling
 				if sibling_body.type != EBodyType.Curly:
 					return null
@@ -640,31 +664,6 @@ class TokenDoWhile extends TokenGrpCtrlFlow:
 				else:
 					next_sibling.remove()
 					result.attach_child(next_sibling)
-			# else:
-			# 	var unique_instr_leaf : TokenGrpLeaf = TokenGrpLeaf.new()
-			# 	for i in range(1, leaf.tokens.size()):
-			# 		unique_instr_leaf.tokens.append(leaf.tokens[i])
-			# 	result.attach_child(unique_instr_leaf)
-
-		if leaf.idx_in_parent + condition_offset >= leaf.parent._children.size():
-			return null
-		else:
-			var next_sibling : TokenGrpNode = leaf.parent._children[leaf.idx_in_parent + condition_offset - 1]
-			if not next_sibling is TokenGrpLeaf:
-				return null
-			else:
-				var next_sibling_leaf : TokenGrpLeaf = next_sibling
-				if next_sibling_leaf.tokens.size() != 1 || not next_sibling_leaf.tokens[0] is CtrlFlowHeadSuperToken ||  next_sibling_leaf.tokens[0].data != "while":
-					return null;
-				else:
-					result.pending_remove_after.append(next_sibling_leaf)
-
-			var next_next_sibling_body : TokenGrpBody = leaf.parent._children[leaf.idx_in_parent + condition_offset]
-			if next_next_sibling_body.type != EBodyType.Round || next_next_sibling_body._children.size() != 1 || not next_next_sibling_body._children[0] is TokenGrpLeaf:
-				return null;
-			var condition_leaf : TokenGrpLeaf =  next_next_sibling_body._children[0]
-			result.pending_remove_after.append(next_next_sibling_body)
-			result.condition = condition_leaf.tokens
 
 		result.type = EBodyType.Curly
 		return result
