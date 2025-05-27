@@ -61,7 +61,9 @@ class EditedShader:
 		ast_update_thread = Thread.new()
 		ast_update_thread.start(_asyn_ast_update)
 
+	# TODO remove profiling
 	func _asyn_ast_update() -> void:
+		var start : int = Time.get_ticks_msec()
 		while not want_cancel_ast_update:
 			if parser.batch_tokenize(tokenize_batch_size):
 				break
@@ -69,6 +71,9 @@ class EditedShader:
 			syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
 			syntax_highlighter._setup(content, parser.tokens_data)
 			call_deferred("_emit_tokenize_finished")
+
+		var end : int = Time.get_ticks_msec()
+		print("_asyn_ast_update : %d (%s)" % [(end - start), "CANCELED" if want_cancel_ast_update else "FINISHED"])
 	
 	func _emit_tokenize_finished() -> void:
 		tokenize_finished.emit()
