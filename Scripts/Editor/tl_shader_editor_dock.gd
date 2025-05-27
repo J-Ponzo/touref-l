@@ -12,7 +12,7 @@ const WARN_SHADER_ALREADY_LOADED = "Touref-L: The shader %s is already loaded"
 const MSG_CONFIRM_RELOAD_EDITED = "Touref-L: The shader %s has been modified by another program.\nThose changes conflicts with your local version. Do you want to reload it anyway ?"
 
 class EditedShader:
-	# TODO find something more reliable for persistant debug reatures
+	# TODO find something more reliable for persistant debug features
 	var _is_debug = false
 
 	var shader : TL_GLSLShader
@@ -182,10 +182,6 @@ func _on_edited_shader_tokenize_finished() -> void:
 	
 	var parser : TL_GLSLParser = TL_GLSLParser.new()
 	var node = parser.parse(%ShaderCodeEdit.syntax_highlighter._tokens_data.tokens)
-	# TODO remove this debug stub
-	print("----- FINAL -----")
-	print(TL_GLSLParser.debug_token_grp_to_str(node))
-	# TODO
 
 func set_current_shader(new_shader_key : String) -> bool:
 	if edited_shaders.has(current_shader_key):

@@ -1,5 +1,8 @@
 class_name TL_GLSLParser
 
+# TODO find something more reliable for persistant debug features
+var _is_debug = false
+
 var _tokens : Array[TL_GLSLTokenizer.Token]
 var _tok_idx : int = 0
 
@@ -10,30 +13,32 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenG
 	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
 	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_super_tokens(clean_tokens)
 
-	# TODO remove this debug stub
-	print("----- TOKENS -----")
-	for tok : TL_GLSLTokenizer.Token in super_tokens:
-		print(tok)
-	# TODO
+	if _is_debug:
+		print("----- TOKENS -----")
+		for tok : TL_GLSLTokenizer.Token in super_tokens:
+			print(tok)
 
 	_tokens = super_tokens
 	var root : TL_GLSLParser_Model.TokenGrpBody = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
 	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _rec_link_leaves(root, null)
 
-	# TODO remove this debug stub
-	print("----- LEAVES -----")
-	var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
-	var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = leaf
-	while linked_leaf != null:
-		linked_leaves.insert(0, linked_leaf)
-		linked_leaf = linked_leaf.prev_leaf
-	for l in linked_leaves:
-		print(l)
-	# TODO
+	if _is_debug:
+		print("----- LEAVES -----")
+		var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
+		var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = leaf
+		while linked_leaf != null:
+			linked_leaves.insert(0, linked_leaf)
+			linked_leaf = linked_leaf.prev_leaf
+		for l in linked_leaves:
+			print(l)
 
 	_rec_identify_struct_and_func_in(root)
 	_rec_identify_vars_in(root)
 	_rec_identify_blocks_in(root)
+
+	if _is_debug:
+		print("----- FINAL -----")
+		print(TL_GLSLParser.debug_token_grp_to_str(root))
 
 	return root
 

@@ -40,10 +40,6 @@ class TokenGrpNode :
 		return nb_removed_before
 
 	func remove() -> void:
-		# TODO remobe debug stub
-		print("Removing " + to_string())
-		# TODO
-
 		for i in range(idx_in_parent, parent._children.size()):
 			parent._children[i].idx_in_parent -= 1
 
