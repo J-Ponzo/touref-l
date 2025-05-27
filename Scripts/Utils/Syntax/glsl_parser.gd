@@ -8,10 +8,19 @@ var _tok_idx : int = 0
 
 var _tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
 
+# TODO remove profiling
 func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenGrpNode:
+	var total_start : int = Time.get_ticks_msec()
+
 	_tokens = tokens
+	var start : int = Time.get_ticks_msec()
 	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
+	var end : int = Time.get_ticks_msec()
+	print("_clean_tokens : %d" % (end - start))
+	start = Time.get_ticks_msec()
 	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_super_tokens(clean_tokens)
+	end = Time.get_ticks_msec()
+	print("_identify_super_tokens : %d" % (end - start))
 
 	if _is_debug:
 		print("----- TOKENS -----")
@@ -19,8 +28,14 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenG
 			print(tok)
 
 	_tokens = super_tokens
+	start = Time.get_ticks_msec()
 	var root : TL_GLSLParser_Model.TokenGrpBody = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
+	end = Time.get_ticks_msec()
+	print("_rec_generate_token_grp : %d" % (end - start))
+	start = Time.get_ticks_msec()
 	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _rec_link_leaves(root, null)
+	end = Time.get_ticks_msec()
+	print("_rec_link_leaves : %d" % (end - start))
 
 	if _is_debug:
 		print("----- LEAVES -----")
@@ -32,13 +47,25 @@ func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenG
 		for l in linked_leaves:
 			print(l)
 
+	start = Time.get_ticks_msec()
 	_rec_identify_struct_and_func_in(root)
+	end = Time.get_ticks_msec()
+	print("_rec_identify_struct_and_func_in : %d" % (end - start))
+	start = Time.get_ticks_msec()
 	_rec_identify_vars_in(root)
+	end = Time.get_ticks_msec()
+	print("_rec_identify_vars_in : %d" % (end - start))
+	start = Time.get_ticks_msec()
 	_rec_identify_blocks_in(root)
+	end = Time.get_ticks_msec()
+	print("_rec_identify_blocks_in : %d" % (end - start))
 
 	if _is_debug:
 		print("----- FINAL -----")
 		print(TL_GLSLParser.debug_token_grp_to_str(root))
+
+	var total_end : int = Time.get_ticks_msec()
+	print("TOTAL PARSE TIME : %d" % (total_end - total_start))
 
 	return root
 
