@@ -622,7 +622,7 @@ class TokenDoWhile extends TokenGrpCtrlFlow:
 	static func try_create_from(leaf : TokenGrpLeaf) -> TokenDoWhile:
 		var result : TokenDoWhile = TokenDoWhile.new()
 
-		if not leaf.tokens[0] is CtrlFlowHeadSuperToken ||  leaf.tokens[0].data != "do":
+		if leaf.tokens.size() == 0 || not leaf.tokens[0] is CtrlFlowHeadSuperToken ||  leaf.tokens[0].data != "do":
 			return null
 		else :
 			var ctrl_flow_super_tok:  CtrlFlowHeadSuperToken = leaf.tokens[0]
