@@ -3,71 +3,82 @@ class_name TL_GLSLParser
 # TODO find something more reliable for persistant debug features
 var _is_debug = false
 
-var _tokens : Array[TL_GLSLTokenizer.Token]
-var _tok_idx : int = 0
+class ASTData:
+	var tokens : Array[TL_GLSLTokenizer.Token]
+	var root : TL_GLSLParser_Model.TokenGrpBody
 
+var ast_data : ASTData
+
+var _tok_idx : int = 0
 var _tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
 
+func reset(tokens : Array[TL_GLSLTokenizer.Token]) -> void:
+	ast_data = ASTData.new()
+	ast_data.tokens = tokens
+
+	_tok_idx = 0
+	_tokens_accumulated.clear()
+
 # TODO remove profiling
-func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenGrpNode:
-	var total_start : int = Time.get_ticks_msec()
+# func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenGrpNode:
+# 	var total_start : int = Time.get_ticks_msec()
 
-	_tokens = tokens
-	var start : int = Time.get_ticks_msec()
-	var clean_tokens : Array[TL_GLSLTokenizer.Token] = _clean_tokens(_tokens)
-	var end : int = Time.get_ticks_msec()
-	print("_clean_tokens : %d" % (end - start))
-	start = Time.get_ticks_msec()
-	var super_tokens : Array[TL_GLSLTokenizer.Token] = _identify_super_tokens(clean_tokens)
-	end = Time.get_ticks_msec()
-	print("_identify_super_tokens : %d" % (end - start))
+# 	reset(tokens)
 
-	if _is_debug:
-		print("----- TOKENS -----")
-		for tok : TL_GLSLTokenizer.Token in super_tokens:
-			print(tok)
+# 	var start : int = Time.get_ticks_msec()
+# 	clean_tokens()
+# 	var end : int = Time.get_ticks_msec()
+# 	print("clean_tokens : %d" % (end - start))
+# 	start = Time.get_ticks_msec()
+# 	identify_super_tokens()
+# 	end = Time.get_ticks_msec()
+# 	print("identify_super_tokens : %d" % (end - start))
 
-	_tokens = super_tokens
-	start = Time.get_ticks_msec()
-	var root : TL_GLSLParser_Model.TokenGrpBody = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
-	end = Time.get_ticks_msec()
-	print("_rec_generate_token_grp : %d" % (end - start))
-	start = Time.get_ticks_msec()
-	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _rec_link_leaves(root, null)
-	end = Time.get_ticks_msec()
-	print("_rec_link_leaves : %d" % (end - start))
+# 	if _is_debug:
+# 		print("----- TOKENS -----")
+# 		for tok : TL_GLSLTokenizer.Token in ast_data.tokens:
+# 			print(tok)
 
-	if _is_debug:
-		print("----- LEAVES -----")
-		var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
-		var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = leaf
-		while linked_leaf != null:
-			linked_leaves.insert(0, linked_leaf)
-			linked_leaf = linked_leaf.prev_leaf
-		for l in linked_leaves:
-			print(l)
+# 	start = Time.get_ticks_msec()
+# 	generate_token_grp()
+# 	end = Time.get_ticks_msec()
+# 	print("_rec_generate_token_grp : %d" % (end - start))
+# 	start = Time.get_ticks_msec()
+# 	var last_leaf : TL_GLSLParser_Model.TokenGrpLeaf = link_leaves()
+# 	end = Time.get_ticks_msec()
+# 	print("_rec_link_leaves : %d" % (end - start))
 
-	start = Time.get_ticks_msec()
-	_rec_identify_struct_and_func_in(root)
-	end = Time.get_ticks_msec()
-	print("_rec_identify_struct_and_func_in : %d" % (end - start))
-	start = Time.get_ticks_msec()
-	_rec_identify_vars_in(root)
-	end = Time.get_ticks_msec()
-	print("_rec_identify_vars_in : %d" % (end - start))
-	start = Time.get_ticks_msec()
-	_rec_identify_blocks_in(root)
-	end = Time.get_ticks_msec()
-	print("_rec_identify_blocks_in : %d" % (end - start))
+# 	if _is_debug:
+# 		print("----- LEAVES -----")
+# 		var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
+# 		var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = last_leaf
+# 		while linked_leaf != null:
+# 			linked_leaves.insert(0, linked_leaf)
+# 			linked_leaf = linked_leaf.prev_leaf
+# 		for l in linked_leaves:
+# 			print(l)
 
-	if _is_debug:
-		print("----- FINAL -----")
-		print(TL_GLSLParser.debug_token_grp_to_str(root))
+# 	start = Time.get_ticks_msec()
+# 	identify_struct_and_func_in()
+# 	end = Time.get_ticks_msec()
+# 	print("_rec_identify_struct_and_func_in : %d" % (end - start))
+# 	start = Time.get_ticks_msec()
+# 	identify_vars_in()
+# 	end = Time.get_ticks_msec()
+# 	print("_rec_identify_vars_in : %d" % (end - start))
+# 	start = Time.get_ticks_msec()
+# 	identify_blocks_in()
+# 	end = Time.get_ticks_msec()
+# 	print("_rec_identify_blocks_in : %d" % (end - start))
 
-	var total_end : int = Time.get_ticks_msec()
-	print("TOTAL PARSE TIME : %d" % (total_end - total_start))
+# 	if _is_debug:
+# 		print("----- FINAL -----")
+# 		print(TL_GLSLParser.debug_token_grp_to_str(ast_data.root))
 
-	return root
+# 	var total_end : int = Time.get_ticks_msec()
+# 	print("TOTAL PARSE TIME : %d" % (total_end - total_start))
+
+# 	return ast_data.root
 
 func fill_super_token(super_token : TL_GLSLParser_Model.SuperToken, tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.SuperToken:
 	super_token.type = TL_GLSLTokenizer.ETokenType.Other
@@ -90,23 +101,23 @@ func create_ctrl_flow_head_super_token(tokens_to_merge : Array[TL_GLSLTokenizer.
 	fill_super_token(result, tokens_to_merge)
 	return result
 
-func _identify_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLTokenizer.Token]:
+func identify_super_tokens() -> void:
 	var result : Array[TL_GLSLTokenizer.Token]
 
 	var i : int = 0
-	while i < tokens.size():
-		var prev_token = null if i == 0 else tokens[i - 1]
-		var cur_token = tokens[i]
-		var next_token = null if i == tokens.size() - 1 else tokens[i + 1]
+	while i < ast_data.tokens.size():
+		var prev_token = null if i == 0 else ast_data.tokens[i - 1]
+		var cur_token = ast_data.tokens[i]
+		var next_token = null if i == ast_data.tokens.size() - 1 else ast_data.tokens[i + 1]
 
 		if next_token != null && next_token.type == TL_GLSLTokenizer.ETokenType.Operator && next_token.data == '[':
 			var j : int = i + 1
 			var tokens_to_merge : Array[TL_GLSLTokenizer.Token]
 			tokens_to_merge.append(cur_token)
-			while tokens[j].type == TL_GLSLTokenizer.ETokenType.Operator && tokens[j].data == '[' && tokens[j + 1].type == TL_GLSLTokenizer.ETokenType.Integer && tokens[j + 2].type == TL_GLSLTokenizer.ETokenType.Operator && tokens[j + 2].data == ']':
-				tokens_to_merge.append(tokens[j])
-				tokens_to_merge.append(tokens[j + 1])
-				tokens_to_merge.append(tokens[j + 2])
+			while ast_data.tokens[j].type == TL_GLSLTokenizer.ETokenType.Operator && ast_data.tokens[j].data == '[' && ast_data.tokens[j + 1].type == TL_GLSLTokenizer.ETokenType.Integer && ast_data.tokens[j + 2].type == TL_GLSLTokenizer.ETokenType.Operator && ast_data.tokens[j + 2].data == ']':
+				tokens_to_merge.append(ast_data.tokens[j])
+				tokens_to_merge.append(ast_data.tokens[j + 1])
+				tokens_to_merge.append(ast_data.tokens[j + 2])
 				j += 3
 			var super_tok = create_type_super_token(tokens_to_merge)
 			result.append(super_tok)
@@ -149,14 +160,17 @@ func _identify_super_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_
 			result.append(cur_token)
 			i += 1
 
-	return result
+	ast_data.tokens = result
 
-func _clean_tokens(tokens : Array[TL_GLSLTokenizer.Token]) -> Array[TL_GLSLTokenizer.Token]:
+func clean_tokens() -> void:
 	var result : Array[TL_GLSLTokenizer.Token]
-	for token in tokens:
+	for token in ast_data.tokens:
 		if not is_ignored_token_type(token.type):
 			result.append(token)
-	return result
+	ast_data.tokens = result
+
+func identify_vars_in() -> void:
+	_rec_identify_vars_in(ast_data.root)
 
 func _rec_identify_vars_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int:
 	if grp_node is TL_GLSLParser_Model.TokenGrpLeaf:
@@ -182,6 +196,9 @@ func _identify_vars_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBody) -> int:
 		i -= nb_remove_before
 		i += 1
 	return 0
+
+func identify_blocks_in() -> void:
+	_rec_identify_blocks_in(ast_data.root)
 
 func _rec_identify_blocks_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int:
 	if grp_node is TL_GLSLParser_Model.TokenGrpLeaf:
@@ -251,6 +268,9 @@ func _identify_blocks_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBody) -> in
 	
 	return 0
 
+func identify_struct_and_func_in() -> void:
+	_rec_identify_struct_and_func_in(ast_data.root)
+
 func _rec_identify_struct_and_func_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int:
 	if grp_node is TL_GLSLParser_Model.TokenGrpLeaf:
 		return _identify_func_in_leaf(grp_node)
@@ -285,6 +305,9 @@ func _identify_struct_and_func_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBo
 	
 	return 0
 
+func link_leaves() -> TL_GLSLParser_Model.TokenGrpLeaf:
+	return _rec_link_leaves(ast_data.root, null);
+
 func _rec_link_leaves(grp_node : TL_GLSLParser_Model.TokenGrpNode, last_leaf : TL_GLSLParser_Model.TokenGrpLeaf) -> TL_GLSLParser_Model.TokenGrpLeaf:
 	if grp_node is TL_GLSLParser_Model.TokenGrpLeaf:
 		var leaf : TL_GLSLParser_Model.TokenGrpLeaf = grp_node
@@ -298,38 +321,41 @@ func _rec_link_leaves(grp_node : TL_GLSLParser_Model.TokenGrpNode, last_leaf : T
 			last_leaf = _rec_link_leaves(node_grp, last_leaf)
 	return last_leaf
 
+func generate_token_grp() -> void:
+	ast_data.root = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
+
 func _rec_generate_token_grp(type : TL_GLSLParser_Model.EBodyType) -> TL_GLSLParser_Model.TokenGrpBody:
 	var body : TL_GLSLParser_Model.TokenGrpBody = TL_GLSLParser_Model.TokenGrpBody.new()
 	body.type = type
-	while _tok_idx < _tokens.size():
-		if _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Operator:
-			if _tokens[_tok_idx].data == ';':
+	while _tok_idx < ast_data.tokens.size():
+		if ast_data.tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Operator:
+			if ast_data.tokens[_tok_idx].data == ';':
 				# _accumulate(_tokens[_tok_idx])
 				_fill_with_accumulated(body)
-			elif _tokens[_tok_idx].data == '{' || _tokens[_tok_idx].data == '[' || _tokens[_tok_idx].data == '(':
+			elif ast_data.tokens[_tok_idx].data == '{' || ast_data.tokens[_tok_idx].data == '[' || ast_data.tokens[_tok_idx].data == '(':
 				var child_type : TL_GLSLParser_Model.EBodyType = TL_GLSLParser_Model.EBodyType.Curly
-				if _tokens[_tok_idx].data == '[':
+				if ast_data.tokens[_tok_idx].data == '[':
 					child_type = TL_GLSLParser_Model.EBodyType.Square
-				elif _tokens[_tok_idx].data == '(':
+				elif ast_data.tokens[_tok_idx].data == '(':
 					child_type = TL_GLSLParser_Model.EBodyType.Round
 				_fill_with_accumulated(body)
 				_tok_idx += 1
 				var token_grp_body = _rec_generate_token_grp(child_type)
 				body.attach_child(token_grp_body)
-			elif (type == TL_GLSLParser_Model.EBodyType.Curly && _tokens[_tok_idx].data == '}') || (type == TL_GLSLParser_Model.EBodyType.Square && _tokens[_tok_idx].data == ']') || (type == TL_GLSLParser_Model.EBodyType.Round && _tokens[_tok_idx].data == ')'):
+			elif (type == TL_GLSLParser_Model.EBodyType.Curly && ast_data.tokens[_tok_idx].data == '}') || (type == TL_GLSLParser_Model.EBodyType.Square && ast_data.tokens[_tok_idx].data == ']') || (type == TL_GLSLParser_Model.EBodyType.Round && ast_data.tokens[_tok_idx].data == ')'):
 				break
 			else:
-				_accumulate(_tokens[_tok_idx])
-		elif _tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Preprocessor:
+				_accumulate(ast_data.tokens[_tok_idx])
+		elif ast_data.tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Preprocessor:
 			_fill_with_accumulated(body)
-			var token_grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf = _create_token_grp_leaf([_tokens[_tok_idx]])
+			var token_grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf = _create_token_grp_leaf([ast_data.tokens[_tok_idx]])
 			body.attach_child(token_grp_leaf)
-		elif _tokens[_tok_idx] is TL_GLSLParser_Model.CtrlFlowHeadSuperToken:
+		elif ast_data.tokens[_tok_idx] is TL_GLSLParser_Model.CtrlFlowHeadSuperToken:
 			_fill_with_accumulated(body)
-			var token_grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf = _create_token_grp_leaf([_tokens[_tok_idx]])
+			var token_grp_leaf : TL_GLSLParser_Model.TokenGrpLeaf = _create_token_grp_leaf([ast_data.tokens[_tok_idx]])
 			body.attach_child(token_grp_leaf)
 		else :
-			_accumulate(_tokens[_tok_idx])
+			_accumulate(ast_data.tokens[_tok_idx])
 		_tok_idx += 1
 
 	_fill_with_accumulated(body)

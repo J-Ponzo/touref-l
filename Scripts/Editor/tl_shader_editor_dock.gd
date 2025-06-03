@@ -11,6 +11,11 @@ const ERR_UNKOWN_SHADER = "Touref-L: Cannot set %s as current edited shader (not
 const WARN_SHADER_ALREADY_LOADED = "Touref-L: The shader %s is already loaded"
 const MSG_CONFIRM_RELOAD_EDITED = "Touref-L: The shader %s has been modified by another program.\nThose changes conflicts with your local version. Do you want to reload it anyway ?"
 
+enum EParingState {
+	TokensReady,
+	ASTReady
+}
+
 class EditedShader:
 	# TODO find something more reliable for persistant debug features
 	var _is_debug = false
@@ -28,7 +33,7 @@ class EditedShader:
 		sha_256 = content.sha256_buffer()
 		is_dirty = false
 		syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
-		syntax_highlighter._setup(content, null)
+		syntax_highlighter._setup(content, null, null)
 		ast_update()
 	
 	func save_to_shader_resource():
@@ -48,8 +53,9 @@ class EditedShader:
 	var tokenizer : TL_GLSLTokenizer= TL_GLSLTokenizer.new() 
 	var tokenize_batch_size : int = 4096
 
-	signal tokenize_finished()
+	signal parsing_state_changed(new_state : EParingState)
 
+	# TODO remove profiling
 	func ast_update() -> void:
 		if want_cancel_ast_update:
 			return
@@ -58,7 +64,10 @@ class EditedShader:
 			want_cancel_ast_update = true
 
 		if ast_update_thread.is_started():
+			var start : int = Time.get_ticks_msec()
 			ast_update_thread.wait_to_finish()
+			var end : int = Time.get_ticks_msec()
+			print("ast_update : %d (WAIT)" % (end - start))
 
 		tokenizer.reset(content)
 
@@ -67,20 +76,64 @@ class EditedShader:
 
 	# TODO remove profiling
 	func _asyn_ast_update() -> void:
-		var start : int = Time.get_ticks_msec()
+		var total_start : int = Time.get_ticks_msec()
 		while not want_cancel_ast_update:
 			if tokenizer.batch_tokenize(tokenize_batch_size):
 				break
 		if not want_cancel_ast_update:
 			syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
-			syntax_highlighter._setup(content, tokenizer.tokens_data)
-			call_deferred("_emit_tokenize_finished")
+			syntax_highlighter._setup(content, tokenizer.tokens_data, null)
+			call_deferred("_emit_parsing_state_changed", EParingState.TokensReady)
 
-		var end : int = Time.get_ticks_msec()
-		print("_asyn_ast_update : %d (%s)" % [(end - start), "CANCELED" if want_cancel_ast_update else "FINISHED"])
+		var parser : TL_GLSLParser = TL_GLSLParser.new() 
+		parser.reset(tokenizer.tokens_data.tokens)
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.clean_tokens();
+			var end : int = Time.get_ticks_msec()
+			print("clean_tokens : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.identify_super_tokens();
+			var end : int = Time.get_ticks_msec()
+			print("identify_super_tokens : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.generate_token_grp();
+			var end : int = Time.get_ticks_msec()
+			print("generate_token_grp : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.identify_struct_and_func_in();
+			var end : int = Time.get_ticks_msec()
+			print("identify_struct_and_func_in : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.identify_vars_in();
+			var end : int = Time.get_ticks_msec()
+			print("identify_vars_in : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.identify_blocks_in();
+			var end : int = Time.get_ticks_msec()
+			print("identify_blocks_in : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
+			syntax_highlighter._setup(content, tokenizer.tokens_data, parser.ast_data)
+			call_deferred("_emit_parsing_state_changed", EParingState.ASTReady)
+
+		var total_end : int = Time.get_ticks_msec()
+		print("_asyn_ast_update : %d (%s)" % [(total_end - total_start), "CANCELED" if want_cancel_ast_update else "FINISHED"])
 	
-	func _emit_tokenize_finished() -> void:
-		tokenize_finished.emit()
+	func _emit_parsing_state_changed(new_state) -> void:
+		parsing_state_changed.emit(new_state)
 
 	func _notification(what):
 		if what == NOTIFICATION_PREDELETE and ast_update_thread.is_started():
@@ -189,17 +242,14 @@ func _load_shader(path : String) -> void:
 	
 	set_current_shader(path)
 
-func _on_edited_shader_tokenize_finished() -> void:
+func _on_edited_shader_parsing_state_changed(new_state : EParingState) -> void:
 	%ShaderCodeEdit.syntax_highlighter = edited_shaders[current_shader_key].syntax_highlighter
 	if _is_debug:
 		print(%ShaderCodeEdit.syntax_highlighter._tokens_data.debug_tokens_to_str())
-	
-	var parser : TL_GLSLParser = TL_GLSLParser.new()
-	var node = parser.parse(%ShaderCodeEdit.syntax_highlighter._tokens_data.tokens)
 
 func set_current_shader(new_shader_key : String) -> bool:
 	if edited_shaders.has(current_shader_key):
-		edited_shaders[current_shader_key].disconnect("tokenize_finished", _on_edited_shader_tokenize_finished)
+		edited_shaders[current_shader_key].disconnect("parsing_state_changed", _on_edited_shader_parsing_state_changed)
 
 	current_shader_key = new_shader_key
 	
@@ -219,7 +269,7 @@ func set_current_shader(new_shader_key : String) -> bool:
 		return false
 	
 	var new_edited_shader = edited_shaders[current_shader_key]
-	new_edited_shader.connect("tokenize_finished", _on_edited_shader_tokenize_finished)
+	new_edited_shader.connect("parsing_state_changed", _on_edited_shader_parsing_state_changed)
 	if not %ShaderFilesList.is_selected(new_edited_shader.idx):
 		%ShaderFilesList.select(new_edited_shader.idx)
 	%FileNameLabel.text = current_shader_key
