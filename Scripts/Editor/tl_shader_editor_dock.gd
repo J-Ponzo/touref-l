@@ -43,33 +43,37 @@ class EditedShader:
 	func update_dirty_flag():
 		is_dirty = content.sha256_buffer() != sha_256
 
-	var ast_update_thread : Thread
+	var ast_update_thread : Thread = Thread.new()
 	var want_cancel_ast_update = false
-	var parser : TL_GLSLTokenizer= TL_GLSLTokenizer.new() 
+	var tokenizer : TL_GLSLTokenizer= TL_GLSLTokenizer.new() 
 	var tokenize_batch_size : int = 4096
 
 	signal tokenize_finished()
 
 	func ast_update() -> void:
-		if ast_update_thread != null and ast_update_thread.is_alive():
+		if want_cancel_ast_update:
+			return
+
+		if ast_update_thread.is_alive():
 			want_cancel_ast_update = true
+
+		if ast_update_thread.is_started():
 			ast_update_thread.wait_to_finish()
 
-		parser.reset(content)
+		tokenizer.reset(content)
 
 		want_cancel_ast_update = false
-		ast_update_thread = Thread.new()
 		ast_update_thread.start(_asyn_ast_update)
 
 	# TODO remove profiling
 	func _asyn_ast_update() -> void:
 		var start : int = Time.get_ticks_msec()
 		while not want_cancel_ast_update:
-			if parser.batch_tokenize(tokenize_batch_size):
+			if tokenizer.batch_tokenize(tokenize_batch_size):
 				break
 		if not want_cancel_ast_update:
 			syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
-			syntax_highlighter._setup(content, parser.tokens_data)
+			syntax_highlighter._setup(content, tokenizer.tokens_data)
 			call_deferred("_emit_tokenize_finished")
 
 		var end : int = Time.get_ticks_msec()
@@ -77,6 +81,11 @@ class EditedShader:
 	
 	func _emit_tokenize_finished() -> void:
 		tokenize_finished.emit()
+
+	func _notification(what):
+		if what == NOTIFICATION_PREDELETE and ast_update_thread.is_started():
+			ast_update_thread.wait_to_finish();
+			
 
 # TODO find something more reliable for persistant debug reatures
 var _is_debug = false
