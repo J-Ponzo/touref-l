@@ -11,7 +11,8 @@ const PREPROC_COLOR = Color(0.1, 0.5, 0.1)
 const SYMBOL_COLOR = Color(0.6, 0.8, 0.9)
 const COMMENT_COLOR = Color(0.6, 0.6, 0.6)
 const NUMERIC_COLOR = Color(0.7, 0.9, 0.7)
-const CUSTOM_FUNCNAME_COLOR = Color(0.2, 0.6, 0.9)
+const CUSTOM_FUNCNAME_COLOR = Color(0.9, 0.6, 0.2)
+const CUSTOM_TYPENAME_COLOR = Color(0.2, 0.6, 0.9)
 
 class LineBreakEvent:
 	var origin_line : int
@@ -173,7 +174,20 @@ func _get_color_from_token(token : TL_GLSLTokenizer.Token) -> Color:
 	elif token.type == TL_GLSLTokenizer.ETokenType.Float or token.type == TL_GLSLTokenizer.ETokenType.Integer:
 		return NUMERIC_COLOR
 	elif token.type == TL_GLSLTokenizer.ETokenType.Identifier:
-		return TEXT_COLOR
+		var bound_leaf : TL_GLSLParser_Model.TokenGrpLeaf = token.get_bound_leaf()
+		if bound_leaf != null:
+			if bound_leaf.ctx.functions.has(token.data):
+				return CUSTOM_FUNCNAME_COLOR;
+			elif bound_leaf.ctx.types.has(token.data):
+				return CUSTOM_TYPENAME_COLOR;
+			# elif bound_leaf is TL_GLSLParser_Model.TokenFuncHead:
+			# 	return CUSTOM_FUNCNAME_COLOR
+			# elif bound_leaf is TL_GLSLParser_Model.TokenStruct:
+			# 	return CUSTOM_TYPENAME_COLOR
+			else:
+				return TEXT_COLOR
+		else:
+			return TEXT_COLOR
 	elif token.type == TL_GLSLTokenizer.ETokenType.BuiltIn:
 		return GLSL_STD_FUNCNAME_COLOR if TL_GLSLSyntax.GLSL_STD_FUNCS.has(token.data) else GLSL_BASE_TYPES_COLOR
 	elif token.type == TL_GLSLTokenizer.ETokenType.Keyword:

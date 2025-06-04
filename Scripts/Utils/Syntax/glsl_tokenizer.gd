@@ -18,6 +18,9 @@ enum ETokenType {
 }
 
 class Token:
+	var _bound_leaf : TL_GLSLParser_Model.TokenGrpLeaf
+	var parent_super_token : TL_GLSLParser_Model.SuperToken
+
 	var type : ETokenType
 	var data : String
 	var pos : int
@@ -27,6 +30,13 @@ class Token:
 	func _to_string() -> String:
 		var str : String =  "|" + data + "|->(" + str(type)  + ")"
 		return str
+
+	func get_bound_leaf() -> TL_GLSLParser_Model.TokenGrpLeaf:
+		if _bound_leaf == null:
+			if parent_super_token == null:
+				return null
+			_bound_leaf = parent_super_token.get_bound_leaf()
+		return _bound_leaf
 
 class TokensData:
 	var tokens : Array[Token] = []

@@ -1,5 +1,33 @@
 class_name TL_GLSLParser_Model
 
+class AscendingCtx:
+	var leaf : TokenGrpLeaf
+	var parent : AscendingCtx
+	var children : Array[AscendingCtx]
+	var types : Array[String]
+	var functions : Array[String]
+	var variables : Array[String]
+
+	func cascade() -> void:
+		for child in children:
+			child.types.append_array(types)
+			child.functions.append_array(functions)
+			child.variables.append_array(variables)
+			child.cascade()
+
+	func _to_string() -> String:
+		var str : String = ""
+		str += "types : "
+		for type in types:
+			str += type + ", "
+		str += "\nfunctions : "
+		for function in functions:
+			str += function + ", "
+		str += "\nvariables : "
+		for variable in variables:
+			str += variable + ", "
+		return str
+
 class SuperToken extends TL_GLSLTokenizer.Token:
 	func _dgb_prefix() -> String:
 		return "SuperTok"
@@ -25,6 +53,19 @@ class TokenGrpNode :
 	var idx_in_parent : int = -1
 	var pending_remove_before : Array[TokenGrpNode]
 	var pending_remove_after : Array[TokenGrpNode]
+
+	func find_ascending_leaf() -> TokenGrpLeaf:
+		if parent == null:
+			return null
+		
+		var pervious_sibbling_idx : int = idx_in_parent - 1
+		while pervious_sibbling_idx > -1:
+			var previous_sibbling : TokenGrpNode = parent._children[pervious_sibbling_idx]
+			if previous_sibbling is TokenGrpLeaf:
+				return previous_sibbling
+			pervious_sibbling_idx = pervious_sibbling_idx - 1
+		
+		return parent.find_ascending_leaf()
 
 	func remove_pendings() -> int:
 		var nb_removed_before : int = pending_remove_before.size()
@@ -132,10 +173,33 @@ class TokenGrpBody extends TokenGrpNode :
 			str = "()"
 		return str
 
+class TokenGrpRoot extends TokenGrpBody :
+	var first_leaf : TokenGrpLeaf
+
+
 class TokenGrpLeaf extends TokenGrpNode :
 	var tokens : Array[TL_GLSLTokenizer.Token]
 	var prev_leaf : TokenGrpLeaf
 	var next_leaf : TokenGrpLeaf
+	var ctx : AscendingCtx = AscendingCtx.new()
+
+	func init_local_ctx() -> void:
+		ctx.leaf = self
+		var ascending_leaf : TokenGrpLeaf = find_ascending_leaf()
+		if ascending_leaf == null:
+			if parent is TokenGrpRoot:
+				var root : TokenGrpRoot = parent
+				root.first_leaf = self
+			else:
+				# TODO Remove or turn it into actual WARNING
+				print(str(self) + " has no ascending leaf but if parent is not the root")
+			return
+		ctx.parent = ascending_leaf.ctx
+		ascending_leaf.ctx.children.append(ctx)
+
+	func bind_to_tokens() -> void:
+		for tok in tokens:
+			tok._bound_leaf = self
 
 	func remove() -> void:
 		if prev_leaf != null:
@@ -156,6 +220,10 @@ class TokenStruct extends TokenGrpLeaf:
 	var members : Array[StructMember]
 	var variable_name : String
 
+	func init_local_ctx() -> void:
+		super.init_local_ctx()
+		ctx.types.append(name)
+
 	static func try_create_from(body : TokenGrpBody) -> TokenStruct:
 		if body.parent == null || body.idx_in_parent == 0 || body.parent.type != EBodyType.Root:
 			return null;
@@ -167,6 +235,7 @@ class TokenStruct extends TokenGrpLeaf:
 			return null
 		else :
 			struct_head = body.parent._children[body.idx_in_parent - 1]
+			result.tokens.append_array(struct_head.tokens)
 
 		if struct_head.tokens[0].type != TL_GLSLTokenizer.ETokenType.Keyword || struct_head.tokens[0].data != "struct":
 			return null
@@ -182,6 +251,8 @@ class TokenStruct extends TokenGrpLeaf:
 				return null
 
 			var leaf_child : TokenGrpLeaf = child
+			# TODO FInd why uncommenting the next line breaks struct name highlight color 
+			# result.tokens.append_array(leaf_child.tokens)
 			if leaf_child.tokens.size() < 2:
 				return null
 
@@ -228,6 +299,7 @@ class TokenStruct extends TokenGrpLeaf:
 			str += " " + variable_name
 		return str
 
+# TODO replace all strings by their tokens here and in FuncParam and all other secondary DataTypes. Refacto should be needed to take avantage of the additional available info (links to bound leaves etc...)
 class StructMember :
 	var qualifiers : Array[String]
 	var type : String
@@ -308,6 +380,10 @@ class TokenFuncHead extends TokenGrpLeaf:
 		str += params_str + ")|"
 
 		return str
+
+	func init_local_ctx() -> void:
+		super.init_local_ctx()
+		ctx.functions.append(name)
 
 	static func try_create_from(leaf : TokenGrpLeaf) -> TokenFuncHead:
 		if leaf.parent.type != EBodyType.Root:

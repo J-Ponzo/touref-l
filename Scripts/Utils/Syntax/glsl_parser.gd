@@ -5,12 +5,13 @@ var _is_debug = false
 
 class ASTData:
 	var tokens : Array[TL_GLSLTokenizer.Token]
-	var root : TL_GLSLParser_Model.TokenGrpBody
+	var root : TL_GLSLParser_Model.TokenGrpRoot
 
 var ast_data : ASTData
 
 var _tok_idx : int = 0
 var _tokens_accumulated : Array[TL_GLSLTokenizer.Token] = []
+var _last_leaf : TL_GLSLParser_Model.TokenGrpLeaf
 
 func reset(tokens : Array[TL_GLSLTokenizer.Token]) -> void:
 	ast_data = ASTData.new()
@@ -18,67 +19,7 @@ func reset(tokens : Array[TL_GLSLTokenizer.Token]) -> void:
 
 	_tok_idx = 0
 	_tokens_accumulated.clear()
-
-# TODO remove profiling
-# func parse(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.TokenGrpNode:
-# 	var total_start : int = Time.get_ticks_msec()
-
-# 	reset(tokens)
-
-# 	var start : int = Time.get_ticks_msec()
-# 	clean_tokens()
-# 	var end : int = Time.get_ticks_msec()
-# 	print("clean_tokens : %d" % (end - start))
-# 	start = Time.get_ticks_msec()
-# 	identify_super_tokens()
-# 	end = Time.get_ticks_msec()
-# 	print("identify_super_tokens : %d" % (end - start))
-
-# 	if _is_debug:
-# 		print("----- TOKENS -----")
-# 		for tok : TL_GLSLTokenizer.Token in ast_data.tokens:
-# 			print(tok)
-
-# 	start = Time.get_ticks_msec()
-# 	generate_token_grp()
-# 	end = Time.get_ticks_msec()
-# 	print("_rec_generate_token_grp : %d" % (end - start))
-# 	start = Time.get_ticks_msec()
-# 	var last_leaf : TL_GLSLParser_Model.TokenGrpLeaf = link_leaves()
-# 	end = Time.get_ticks_msec()
-# 	print("_rec_link_leaves : %d" % (end - start))
-
-# 	if _is_debug:
-# 		print("----- LEAVES -----")
-# 		var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
-# 		var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = last_leaf
-# 		while linked_leaf != null:
-# 			linked_leaves.insert(0, linked_leaf)
-# 			linked_leaf = linked_leaf.prev_leaf
-# 		for l in linked_leaves:
-# 			print(l)
-
-# 	start = Time.get_ticks_msec()
-# 	identify_struct_and_func_in()
-# 	end = Time.get_ticks_msec()
-# 	print("_rec_identify_struct_and_func_in : %d" % (end - start))
-# 	start = Time.get_ticks_msec()
-# 	identify_vars_in()
-# 	end = Time.get_ticks_msec()
-# 	print("_rec_identify_vars_in : %d" % (end - start))
-# 	start = Time.get_ticks_msec()
-# 	identify_blocks_in()
-# 	end = Time.get_ticks_msec()
-# 	print("_rec_identify_blocks_in : %d" % (end - start))
-
-# 	if _is_debug:
-# 		print("----- FINAL -----")
-# 		print(TL_GLSLParser.debug_token_grp_to_str(ast_data.root))
-
-# 	var total_end : int = Time.get_ticks_msec()
-# 	print("TOTAL PARSE TIME : %d" % (total_end - total_start))
-
-# 	return ast_data.root
+	_last_leaf = null
 
 func fill_super_token(super_token : TL_GLSLParser_Model.SuperToken, tokens_to_merge : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLParser_Model.SuperToken:
 	super_token.type = TL_GLSLTokenizer.ETokenType.Other
@@ -87,6 +28,7 @@ func fill_super_token(super_token : TL_GLSLParser_Model.SuperToken, tokens_to_me
 	super_token.col = tokens_to_merge[0].col
 	var cummuled_data : String = ""
 	for tok in tokens_to_merge:
+		tok.parent_super_token = super_token
 		cummuled_data += tok.data
 	super_token.data = cummuled_data
 	return super_token
@@ -162,6 +104,11 @@ func identify_super_tokens() -> void:
 
 	ast_data.tokens = result
 
+	if _is_debug:
+		print("----- TOKENS -----")
+		for tok : TL_GLSLTokenizer.Token in ast_data.tokens:
+			print(tok)
+
 func clean_tokens() -> void:
 	var result : Array[TL_GLSLTokenizer.Token]
 	for token in ast_data.tokens:
@@ -199,6 +146,10 @@ func _identify_vars_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBody) -> int:
 
 func identify_blocks_in() -> void:
 	_rec_identify_blocks_in(ast_data.root)
+
+	if _is_debug:
+		print("----- FINAL IDENTIFICATION -----")
+		print(TL_GLSLParser.debug_token_grp_to_str(ast_data.root))
 
 func _rec_identify_blocks_in(grp_node : TL_GLSLParser_Model.TokenGrpNode) -> int:
 	if grp_node is TL_GLSLParser_Model.TokenGrpLeaf:
@@ -305,8 +256,13 @@ func _identify_struct_and_func_in_body(grp_body : TL_GLSLParser_Model.TokenGrpBo
 	
 	return 0
 
-func link_leaves() -> TL_GLSLParser_Model.TokenGrpLeaf:
-	return _rec_link_leaves(ast_data.root, null);
+func link_leaves() -> void:
+	_last_leaf = _rec_link_leaves(ast_data.root, null);
+	if _is_debug:
+		print("----- LEAVES -----")
+		print(debug_linked_leaves_str(_last_leaf))
+
+
 
 func _rec_link_leaves(grp_node : TL_GLSLParser_Model.TokenGrpNode, last_leaf : TL_GLSLParser_Model.TokenGrpLeaf) -> TL_GLSLParser_Model.TokenGrpLeaf:
 	if grp_node is TL_GLSLParser_Model.TokenGrpLeaf:
@@ -325,7 +281,12 @@ func generate_token_grp() -> void:
 	ast_data.root = _rec_generate_token_grp(TL_GLSLParser_Model.EBodyType.Root)
 
 func _rec_generate_token_grp(type : TL_GLSLParser_Model.EBodyType) -> TL_GLSLParser_Model.TokenGrpBody:
-	var body : TL_GLSLParser_Model.TokenGrpBody = TL_GLSLParser_Model.TokenGrpBody.new()
+	var body : TL_GLSLParser_Model.TokenGrpBody
+	if type == TL_GLSLParser_Model.EBodyType.Root :
+		body = TL_GLSLParser_Model.TokenGrpRoot.new()
+	else:
+		body = TL_GLSLParser_Model.TokenGrpBody.new()
+
 	body.type = type
 	while _tok_idx < ast_data.tokens.size():
 		if ast_data.tokens[_tok_idx].type == TL_GLSLTokenizer.ETokenType.Operator:
@@ -385,6 +346,37 @@ func _create_token_grp_leaf(tokens : Array[TL_GLSLTokenizer.Token]) -> TL_GLSLPa
 	token_grp_leaf.tokens.append_array(tokens)
 	return token_grp_leaf
 
+func bind_tokens() -> void:
+	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _last_leaf
+	while leaf != null:
+		leaf.bind_to_tokens()
+		leaf = leaf.prev_leaf
+
+func init_local_ctxs() -> void:
+	var leaf : TL_GLSLParser_Model.TokenGrpLeaf = _last_leaf
+	while leaf != null:
+		leaf.init_local_ctx()
+		leaf = leaf.prev_leaf
+
+	# TODO remove this debug stub
+	# print(ast_data.root.first_leaf)
+	# var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
+	# var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = _last_leaf
+	# while linked_leaf != null:
+	# 	linked_leaves.insert(0, linked_leaf)
+	# 	linked_leaf = linked_leaf.prev_leaf
+	# for l in linked_leaves:
+	# 	print(str(l) + " nb ctx children = " +  str(l.ctx.children.size()))
+	# 	if l.ctx.parent != null:
+	# 		print("\tparent " + str(l.ctx.parent.leaf))
+	# 	for child in l.ctx.children:
+	# 		print("\tchild " + str(child.leaf))
+	#TODO
+
+func cascade_ctxs() -> void:
+	ast_data.root.first_leaf.ctx.cascade()
+
+
 static func debug_token_grp_to_str(token_grp_node : TL_GLSLParser_Model.TokenGrpNode) -> String:
 	return _rec_debug_token_grp_to_str(token_grp_node, 0)
 
@@ -402,4 +394,17 @@ static func _rec_debug_token_grp_to_str(token_grp_node : TL_GLSLParser_Model.Tok
 		for child in body._children:
 			str += _rec_debug_token_grp_to_str(child , depth + 1)
 	
+	return str
+
+static func debug_linked_leaves_str(last_leave : TL_GLSLParser_Model.TokenGrpLeaf) -> String:
+	var str = ""
+		
+	var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
+	var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = last_leave
+	while linked_leaf != null:
+		linked_leaves.insert(0, linked_leaf)
+		linked_leaf = linked_leaf.prev_leaf
+	for l in linked_leaves:
+		str += str(l) + '\n'
+
 	return str

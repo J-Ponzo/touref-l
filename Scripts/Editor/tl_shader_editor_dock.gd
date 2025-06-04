@@ -108,6 +108,12 @@ class EditedShader:
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
+			parser.link_leaves();
+			var end : int = Time.get_ticks_msec()
+			print("link_leaves : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
 			parser.identify_struct_and_func_in();
 			var end : int = Time.get_ticks_msec()
 			print("identify_struct_and_func_in : %d" % (end - start))
@@ -123,6 +129,41 @@ class EditedShader:
 			parser.identify_blocks_in();
 			var end : int = Time.get_ticks_msec()
 			print("identify_blocks_in : %d" % (end - start))
+
+		# TODO find why there is infinite loop on some glsl files (+ bound leave have wrong type) if we do not re-link leaves after identify_blocks_in()
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.link_leaves();
+			var end : int = Time.get_ticks_msec()
+			print("link_leaves : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.bind_tokens();
+			var end : int = Time.get_ticks_msec()
+			print("bind_tokens : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.init_local_ctxs();
+			var end : int = Time.get_ticks_msec()
+			print("init_local_ctxs : %d" % (end - start))
+
+		if not want_cancel_ast_update:
+			var start : int = Time.get_ticks_msec()
+			parser.cascade_ctxs();
+			var end : int = Time.get_ticks_msec()
+			print("cascade_ctxs : %d" % (end - start))
+
+		# TODO Remove dbg
+		# var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
+		# var linked_leaf : TL_GLSLParser_Model.TokenGrpLeaf = parser._last_leaf
+		# while linked_leaf != null:
+		# 	linked_leaves.insert(0, linked_leaf)
+		# 	linked_leaf = linked_leaf.prev_leaf
+		# for l in linked_leaves:
+		# 	print(str(l) + " => " + str(l.ctx))
+		# TODO
 
 		if not want_cancel_ast_update:
 			syntax_highlighter = TL_GLSLSyntaxHighlighter.new() 
