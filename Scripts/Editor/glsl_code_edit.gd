@@ -137,26 +137,22 @@ func get_token_under_caret() -> TL_GLSLTokenizer.Token:
 
 	if _glsl_syntax_highlighter._tokens_data.idx_by_line.has(line):
 		indices = _glsl_syntax_highlighter._tokens_data.idx_by_line[line]
+		var tok_under_caret : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[indices.size() - 1]]
+		for i in range(0, indices.size() - 1):
+			var tok_inf : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[i]]
+			var tok_sup : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[i + 1]]
+			if col >= tok_inf.col  and col <= tok_sup.col:
+				return tok_inf
+		return _glsl_syntax_highlighter._tokens_data.tokens[indices[indices.size() - 1]]
 
-	if indices.size() == 0:
-		var prev_line = line - 1
-		while prev_line > -1 and indices.size() == 0:
-			indices = _glsl_syntax_highlighter._tokens_data.idx_by_line[prev_line]
-			prev_line = prev_line - 1
-		if indices.size() > 0:
+	line = line - 1
+	while line > -1:
+		if _glsl_syntax_highlighter._tokens_data.idx_by_line.has(line):
+			indices = _glsl_syntax_highlighter._tokens_data.idx_by_line[line]
 			return _glsl_syntax_highlighter._tokens_data.tokens[indices[indices.size() - 1]]
-		else: 
-			return null
+		line = line - 1
 
-	var tok_under_caret : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[indices.size() - 1]]
-	for i in range(0, indices.size() - 1):
-		var tok_inf : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[i]]
-		var tok_sup : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[i + 1]]
-		if col >= tok_inf.col  and col <= tok_sup.col:
-			tok_under_caret = tok_inf
-			break
-
-	return tok_under_caret
+	return null
 
 func add_dynamic_code_completion_options() -> void:
 	var ctx_token : TL_GLSLTokenizer.Token = get_token_under_caret()
