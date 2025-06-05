@@ -332,6 +332,10 @@ class TokenVariableDecl extends TokenGrpLeaf:
 
 		return str
 
+	func init_local_ctx() -> void:
+		super.init_local_ctx()
+		ctx.variables.append(name)
+
 	static func try_create_from(leaf : TokenGrpLeaf) -> TokenVariableDecl:
 		var result : TokenVariableDecl = TokenVariableDecl.new()
 

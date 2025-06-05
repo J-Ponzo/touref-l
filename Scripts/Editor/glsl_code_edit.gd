@@ -2,11 +2,11 @@
 extends CodeEdit
 class_name TL_GLSLCodeEdit
 
-var tokenizer : TL_GLSLTokenizer = TL_GLSLTokenizer.new()
 @export var completion_on_typing : bool = true
 @export var completion_delay : float = 0.3
 
 var nb_completion_delay_running = 0
+var _glsl_syntax_highlighter : TL_GLSLSyntaxHighlighter
 
 # TODO find something more reliable for persistant debug reatures
 var _is_debug = false
@@ -16,6 +16,10 @@ func _ready():
 	connect("text_changed", _on_text_changed)
 	connect("code_completion_requested", _on_code_completion_requested)
 	connect("text_set", _on_text_set)
+
+func set_glsl_syntax_highlighter(glsl_syntax_highlighter : TL_GLSLSyntaxHighlighter):
+	self.syntax_highlighter = glsl_syntax_highlighter
+	self._glsl_syntax_highlighter = glsl_syntax_highlighter
 
 func _confirm_code_completion(replace: bool) -> void:
 	var completion_base_size = find_completion_base().length()
@@ -44,6 +48,7 @@ func find_completion_base() -> String:
 	return text.substr(start, col - start)
 
 func _on_code_completion_requested():
+	add_dynamic_code_completion_options()
 	add_static_code_completion_options()
 	update_code_completion_options(true)
 
@@ -113,18 +118,9 @@ func start_completion_delay(delay : float) -> void:
 func _on_completion_delay_over() -> void:
 	nb_completion_delay_running -= 1
 	if nb_completion_delay_running == 0 :
-		
+		add_dynamic_code_completion_options()
 		add_static_code_completion_options()
 		update_code_completion_options(true)
-
-		# print("start parsing")
-		# var start_time = Time.get_ticks_usec()
-		# tokenizer.tokenize_all(text)
-		# var tokens = tokenizer.tokens
-		# var end_time = Time.get_ticks_usec()
-		# var elapsed = end_time - start_time
-		# print("parsing over : %sms" % (elapsed / 1000.0))
-		# print(tokenizer.debug_tokens_to_str(tokens))
 
 func find_unicode_before_caret() -> int:
 	var caret_col : int = get_caret_column()
@@ -133,6 +129,53 @@ func find_unicode_before_caret() -> int:
 		
 	var current_line = get_line(get_caret_line())
 	return current_line.unicode_at(caret_col - 1)
+
+func get_token_under_caret() -> TL_GLSLTokenizer.Token:
+	var line : int = get_caret_line()
+	var col : int = get_caret_column()
+	var indices : Array
+
+	if _glsl_syntax_highlighter._tokens_data.idx_by_line.has(line):
+		indices = _glsl_syntax_highlighter._tokens_data.idx_by_line[line]
+
+	if indices.size() == 0:
+		var prev_line = line - 1
+		while prev_line > -1 and indices.size() == 0:
+			indices = _glsl_syntax_highlighter._tokens_data.idx_by_line[prev_line]
+			prev_line = prev_line - 1
+		if indices.size() > 0:
+			return _glsl_syntax_highlighter._tokens_data.tokens[indices[indices.size() - 1]]
+		else: 
+			return null
+
+	var tok_under_caret : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[indices.size() - 1]]
+	for i in range(0, indices.size() - 1):
+		var tok_inf : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[i]]
+		var tok_sup : TL_GLSLTokenizer.Token = _glsl_syntax_highlighter._tokens_data.tokens[indices[i + 1]]
+		if col >= tok_inf.col  and col <= tok_sup.col:
+			tok_under_caret = tok_inf
+			break
+
+	return tok_under_caret
+
+func add_dynamic_code_completion_options() -> void:
+	var ctx_token : TL_GLSLTokenizer.Token = get_token_under_caret()
+	# TODO remove dbg
+	print(ctx_token)
+	# TODO
+
+	var ctx_leaf = ctx_token._bound_leaf
+	if ctx_leaf == null:
+		return
+
+	for word in ctx_leaf.ctx.types:
+		add_code_completion_option(CodeEdit.KIND_PLAIN_TEXT, word, word)
+
+	for word in ctx_leaf.ctx.functions:
+		add_code_completion_option(CodeEdit.KIND_PLAIN_TEXT, word, word)
+	
+	for word in ctx_leaf.ctx.variables:
+		add_code_completion_option(CodeEdit.KIND_PLAIN_TEXT, word, word)
 
 func add_static_code_completion_options() -> void:
 	for word in TL_GLSLSyntax.GLSL_BASE_TYPES:

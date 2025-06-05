@@ -284,7 +284,8 @@ func _load_shader(path : String) -> void:
 	set_current_shader(path)
 
 func _on_edited_shader_parsing_state_changed(new_state : EParingState) -> void:
-	%ShaderCodeEdit.syntax_highlighter = edited_shaders[current_shader_key].syntax_highlighter
+	var glsl_code_edit : TL_GLSLCodeEdit = %ShaderCodeEdit
+	glsl_code_edit.set_glsl_syntax_highlighter(edited_shaders[current_shader_key].syntax_highlighter)
 	if _is_debug:
 		print(%ShaderCodeEdit.syntax_highlighter._tokens_data.debug_tokens_to_str())
 
@@ -323,7 +324,8 @@ func set_current_shader(new_shader_key : String) -> bool:
 	
 	_set_shader_dirty(current_shader_key, new_edited_shader.is_dirty)
 
-	%ShaderCodeEdit.syntax_highlighter = new_edited_shader.syntax_highlighter
+	var glsl_code_edit : TL_GLSLCodeEdit = %ShaderCodeEdit
+	glsl_code_edit.set_glsl_syntax_highlighter(new_edited_shader.syntax_highlighter)
 
 	return true
 
