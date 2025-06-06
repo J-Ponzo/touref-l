@@ -428,6 +428,7 @@ class TokenFuncHead extends TokenGrpLeaf:
 				for param_toks in split_toks:
 					var param : FuncParam = FuncParam.parse_param_toks_line(param_toks)
 					if param != null:
+						result.tokens.append_array(params_leaf.tokens)
 						result.params.append(param)
 
 		result.tokens.append_array(leaf.tokens)
