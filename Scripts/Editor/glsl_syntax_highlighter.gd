@@ -41,9 +41,6 @@ var _original_text_lines : PackedStringArray
 var _tokens_data : TL_GLSLTokenizer.TokensData
 var _ast_data : TL_GLSLParser.ASTData
 
-# TODO remove this debug things
-var differential_color_map = {0 : {"color" : Color.MAGENTA}}
-
 func _setup(original_text : String, _tokens_data : TL_GLSLTokenizer.TokensData, _ast_data : TL_GLSLParser.ASTData) -> void:
 	self._original_text
 	self._tokens_data = _tokens_data

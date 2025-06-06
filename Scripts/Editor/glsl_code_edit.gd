@@ -156,9 +156,6 @@ func get_token_under_caret() -> TL_GLSLTokenizer.Token:
 
 func add_dynamic_code_completion_options() -> void:
 	var ctx_token : TL_GLSLTokenizer.Token = get_token_under_caret()
-	# TODO remove dbg
-	print(ctx_token)
-	# TODO
 
 	var ctx_leaf = ctx_token._bound_leaf
 	if ctx_leaf == null:

@@ -19,6 +19,7 @@ enum EParingState {
 class EditedShader:
 	# TODO find something more reliable for persistant debug features
 	var _is_debug = false
+	var _is_profiling = false
 
 	var shader : TL_GLSLShader
 	var idx : int
@@ -55,7 +56,6 @@ class EditedShader:
 
 	signal parsing_state_changed(new_state : EParingState)
 
-	# TODO remove profiling
 	func ast_update() -> void:
 		if want_cancel_ast_update:
 			return
@@ -67,14 +67,14 @@ class EditedShader:
 			var start : int = Time.get_ticks_msec()
 			ast_update_thread.wait_to_finish()
 			var end : int = Time.get_ticks_msec()
-			print("ast_update : %d (WAIT)" % (end - start))
+			if _is_profiling:
+				print("ast_update : %d (WAIT)" % (end - start))
 
 		tokenizer.reset(content)
 
 		want_cancel_ast_update = false
 		ast_update_thread.start(_asyn_ast_update)
 
-	# TODO remove profiling
 	func _asyn_ast_update() -> void:
 		var total_start : int = Time.get_ticks_msec()
 		while not want_cancel_ast_update:
@@ -92,68 +92,79 @@ class EditedShader:
 			var start : int = Time.get_ticks_msec()
 			parser.clean_tokens();
 			var end : int = Time.get_ticks_msec()
-			print("clean_tokens : %d" % (end - start))
+			if _is_profiling:
+				print("clean_tokens : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.identify_super_tokens();
 			var end : int = Time.get_ticks_msec()
-			print("identify_super_tokens : %d" % (end - start))
+			if _is_profiling:
+				print("identify_super_tokens : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.generate_token_grp();
 			var end : int = Time.get_ticks_msec()
-			print("generate_token_grp : %d" % (end - start))
+			if _is_profiling:
+				print("generate_token_grp : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.link_leaves();
 			var end : int = Time.get_ticks_msec()
-			print("link_leaves : %d" % (end - start))
+			if _is_profiling:
+				print("link_leaves : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.identify_struct_and_func_in();
 			var end : int = Time.get_ticks_msec()
-			print("identify_struct_and_func_in : %d" % (end - start))
+			if _is_profiling:
+				print("identify_struct_and_func_in : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.identify_vars_in();
 			var end : int = Time.get_ticks_msec()
-			print("identify_vars_in : %d" % (end - start))
+			if _is_profiling:
+				print("identify_vars_in : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.identify_blocks_in();
 			var end : int = Time.get_ticks_msec()
-			print("identify_blocks_in : %d" % (end - start))
+			if _is_profiling:
+				print("identify_blocks_in : %d" % (end - start))
 
 		# TODO find why there is infinite loop on some glsl files (+ bound leave have wrong type) if we do not re-link leaves after identify_blocks_in()
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.link_leaves();
 			var end : int = Time.get_ticks_msec()
-			print("link_leaves : %d" % (end - start))
+			if _is_profiling:
+				print("link_leaves : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.bind_tokens();
 			var end : int = Time.get_ticks_msec()
-			print("bind_tokens : %d" % (end - start))
+			if _is_profiling:
+				print("bind_tokens : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.init_local_ctxs();
 			var end : int = Time.get_ticks_msec()
-			print("init_local_ctxs : %d" % (end - start))
+			if _is_profiling:
+				print("init_local_ctxs : %d" % (end - start))
 
 		if not want_cancel_ast_update:
 			var start : int = Time.get_ticks_msec()
 			parser.cascade_ctxs();
 			var end : int = Time.get_ticks_msec()
-			print("cascade_ctxs : %d" % (end - start))
+			if _is_profiling:
+				print("cascade_ctxs : %d" % (end - start))
 
 		# TODO Remove dbg
 		# var linked_leaves : Array[TL_GLSLParser_Model.TokenGrpLeaf]
@@ -171,7 +182,8 @@ class EditedShader:
 			call_deferred("_emit_parsing_state_changed", EParingState.ASTReady)
 
 		var total_end : int = Time.get_ticks_msec()
-		print("_asyn_ast_update : %d (%s)" % [(total_end - total_start), "CANCELED" if want_cancel_ast_update else "FINISHED"])
+		if _is_profiling:
+			print("_asyn_ast_update : %d (%s)" % [(total_end - total_start), "CANCELED" if want_cancel_ast_update else "FINISHED"])
 	
 	func _emit_parsing_state_changed(new_state) -> void:
 		parsing_state_changed.emit(new_state)
