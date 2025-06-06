@@ -220,9 +220,16 @@ class TokenStruct extends TokenGrpLeaf:
 	var members : Array[StructMember]
 	var variable_name : String
 
+	var members_tokens : Array[TL_GLSLTokenizer.Token]
+
 	func init_local_ctx() -> void:
 		super.init_local_ctx()
 		ctx.types.append(name)
+
+	func bind_to_tokens() -> void:
+		super.bind_to_tokens()
+		for member_tok in members_tokens:
+			member_tok._bound_leaf = self
 
 	static func try_create_from(body : TokenGrpBody) -> TokenStruct:
 		if body.parent == null || body.idx_in_parent == 0 || body.parent.type != EBodyType.Root:
@@ -253,6 +260,7 @@ class TokenStruct extends TokenGrpLeaf:
 			var leaf_child : TokenGrpLeaf = child
 			# TODO FInd why uncommenting the next line breaks struct name highlight color 
 			# result.tokens.append_array(leaf_child.tokens)
+			result.members_tokens.append_array(leaf_child.tokens)
 			if leaf_child.tokens.size() < 2:
 				return null
 
