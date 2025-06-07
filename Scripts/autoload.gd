@@ -2,6 +2,8 @@ extends Node
 class_name autoload
 
 const  ERR_RENDERER_WRONG_PARENT = "TourefL : Cannot instantiate the renderer from class %s. It must inherit from _TL_Renderer."
+const ERR_SCNPROXY_WRONG_PARENT = "TourefL : Cannot instantiate the scene proxy from class %s. It must inherit from _TL_SceneProxy."
+const ERR_RENDERPASS_WRONG_PARENT = "TourefL : Cannot instantiate the render pass from class %s. It must inherit from _TL_RenderPass."
 const  ERR_RENDERER_IDX_UNDEFINED = "TourefL: Cannot switch the active renderer to %d. No renderers are registered at this index. Check your renderers_registry.tres file."
 
 const NATIVE_RENDERER_IDX = -1
@@ -28,17 +30,30 @@ func _enter_tree() -> void:
 				var scene_proxy : _TL_SceneProxy = scn_proxy_inst
 				var renderer : _TL_Renderer = renderer_inst
 				renderer.scene_proxy = scene_proxy
-				
-				var path : String = renderer_def.vertex_shader.resource_path
-				var raw_source : String = renderer_def.vertex_shader.source_code
-				var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source)
-				renderer.vertex_shader_src = preprocessed_source
-				
-				path = renderer_def.fragment_shader.resource_path
-				raw_source = renderer_def.fragment_shader.source_code
-				preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
-				renderer.fragment_shader_src = preprocessed_source
+
+				for render_pass_def : TL_RenderPassDef in renderer_def.renderer_pass_defs:
+					var render_pass_inst = render_pass_def.pass_script.new()
+					if render_pass_inst is _TL_RenderPass:
+						var render_pass : _TL_RenderPass = render_pass_inst
+
+						var path : String = render_pass_def.vertex_shader.resource_path
+						var raw_source : String = render_pass_def.vertex_shader.source_code
+						var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source)
+						render_pass.vertex_shader_src = preprocessed_source
+						
+						path = render_pass_def.fragment_shader.resource_path
+						raw_source = render_pass_def.fragment_shader.source_code
+						preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
+						render_pass.fragment_shader_src = preprocessed_source
+
+						render_pass.renderer = renderer
+						renderer.render_passes.append(render_pass)
+					else:
+						push_error(ERR_RENDERPASS_WRONG_PARENT % render_pass_def.pass_script)
+
 				renderers.append(renderer)
+			else :
+				push_error(ERR_SCNPROXY_WRONG_PARENT % renderer_def.scene_proxy_script)
 		else :
 			push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)
 	
