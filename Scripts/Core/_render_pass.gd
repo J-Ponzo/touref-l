@@ -9,14 +9,19 @@ var vertex_shader_src : String
 var fragment_shader_src : String
 var renderer : _TL_Renderer
 
-var drawpass_shader_program : RID
-var drawpass_vertex_format : int
+var shader_program : RID
+var vertex_format : int
 var pipeline : RID
 var framebuffer : RID
 
+var depth_attachment : RID
+var color_attachments : Array[RID]
+
 func _setup() -> void:
-	drawpass_shader_program = compile_shader(vertex_shader_src, fragment_shader_src)
-	drawpass_vertex_format = define_vertex_format()
+	shader_program = compile_shader(vertex_shader_src, fragment_shader_src)
+	vertex_format = define_vertex_format()
+	depth_attachment = define_depth_attachment()
+	color_attachments = define_color_attachments()
 	framebuffer = create_framebuffer()
 	pipeline = create_pipeline()
 	
@@ -48,24 +53,35 @@ func compile_shader(vertex_src : String, fragment_src : String) -> RID:
 
 func create_framebuffer() -> RID:
 	var all_attachments : Array[RID]
-	all_attachments.append(define_depth_attachment())
-	all_attachments.append_array(define_color_attachments())
+	if depth_attachment != RID():
+		all_attachments.append(depth_attachment)
+	all_attachments.append_array(color_attachments)
 	return renderer.rd.framebuffer_create(all_attachments)
 
 func create_pipeline() -> RID :
+	var has_depth_attachment : bool = depth_attachment != RID()
+
 	var framebuffer_format = renderer.rd.framebuffer_get_format(framebuffer)
 	var rasterizationState = RDPipelineRasterizationState.new()
 	rasterizationState.cull_mode = RenderingDevice.POLYGON_CULL_DISABLED
 	var multisampleState = RDPipelineMultisampleState.new()
+
 	var depthStencilState = RDPipelineDepthStencilState.new()
-	depthStencilState.enable_depth_test = true
-	depthStencilState.enable_depth_write = true
-	depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_LESS
+	if has_depth_attachment:
+		depthStencilState.enable_depth_test = true
+		depthStencilState.enable_depth_write = true
+		depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_LESS
+	else:
+		depthStencilState.enable_depth_test = false
+		depthStencilState.enable_depth_write = false
+		depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_ALWAYS
+	
 	var colorBlendState = RDPipelineColorBlendState.new()
+	
 	for i in range(define_color_attachments().size()):
 		colorBlendState.attachments.append(RDPipelineColorBlendStateAttachment.new())
 
-	return renderer.rd.render_pipeline_create(drawpass_shader_program, framebuffer_format, drawpass_vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
+	return renderer.rd.render_pipeline_create(shader_program, framebuffer_format, vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
 
 # Utils
 func _proj_to_bytes(proj: Projection) -> PackedByteArray:

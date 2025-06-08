@@ -26,7 +26,8 @@ func create_color_attach() -> RID:
 	tf.usage_bits = RenderingDevice.TEXTURE_USAGE_COLOR_ATTACHMENT_BIT | RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT
 	tf.width = ProjectSettings.get_setting("display/window/size/viewport_width")
 	tf.height = ProjectSettings.get_setting("display/window/size/viewport_height")
-	tf.format = RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM
+	# tf.format = RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM
+	tf.format = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT
 	var view = RDTextureView.new();
 	return rd.texture_create(tf, view)
 	
