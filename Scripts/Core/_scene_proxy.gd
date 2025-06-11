@@ -1,13 +1,34 @@
 class_name _TL_SceneProxy
 
 class MeshProxy:
+	var rd = RenderingServer.get_rendering_device()
+
 	var model_matrix : Projection
-	var index_data : PackedInt32Array
-	var position_data : PackedVector3Array
-	var normal_data : PackedVector3Array
-	var tangent_data : PackedFloat32Array
-	var uv_data : PackedVector2Array
+
+	var index_count : int
+	var index_buffer : RID
+
+	var vertex_count : int
+	var position_buffer : RID
+	var normal_buffer : RID
+	var tangent_buffer : RID
+	var uv_buffer : RID
+
 	var material_proxy : MaterialProxy
+
+	func _notification(what):
+		if what == NOTIFICATION_PREDELETE:
+			if index_buffer != RID():
+				rd.free_rid(index_buffer)
+			if position_buffer != RID():
+				rd.free_rid(position_buffer)
+			if normal_buffer != RID():
+				rd.free_rid(normal_buffer)
+			if tangent_buffer != RID():
+				rd.free_rid(tangent_buffer)
+			if uv_buffer != RID():
+				rd.free_rid(uv_buffer)
+
 
 class MaterialProxy:
 	var albedo_tex : RID
