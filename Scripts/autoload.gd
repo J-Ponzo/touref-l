@@ -112,8 +112,8 @@ func _put_native_renderer_offline() -> void:
 func _put_custom_renderer_offline(renderer_idx : int) -> void:
 	texture_rect.texture = null
 	active_renderer_idx = INVALID_RENDERER_IDX
-	renderers[renderer_idx].scene_proxy._cleanup()
 	renderers[renderer_idx]._cleanup()
+	renderers[renderer_idx].scene_proxy._cleanup()
 
 func _put_renderer_online(renderer_idx : int) -> void:
 	if renderer_idx == NATIVE_RENDERER_IDX:
@@ -127,8 +127,8 @@ func _put_native_renderer_online() -> void:
 	native_sub_viewport_container.visible = true
 
 func _put_custom_renderer_online(renderer_idx : int) -> void:
-	renderers[renderer_idx]._setup()
 	renderers[renderer_idx].scene_proxy._setup(scene)
+	renderers[renderer_idx]._setup()
 	
 	var render_target_from_rd : Texture2DRD = Texture2DRD.new()
 	render_target_from_rd.texture_rd_rid = renderers[renderer_idx].get_render_target()
@@ -140,6 +140,7 @@ func _process(delta: float) -> void:
 	else:
 		if active_renderer_idx != INVALID_RENDERER_IDX and active_renderer_idx != NATIVE_RENDERER_IDX:
 			if scene != null:
+				renderers[active_renderer_idx].scene_proxy._update()
 				renderers[active_renderer_idx]._render()
 			
 func _unhandled_input(event):
