@@ -26,7 +26,8 @@ func _setup() -> void:
 	pipeline = create_pipeline()
 	
 func _cleanup() -> void:
-	pass
+	renderer.rd.free_rid(framebuffer)
+	renderer.rd.free_rid(pipeline)
 
 func _render() -> void:
 	pass
