@@ -90,47 +90,19 @@ class _LocalizedLight extends _LightProxy:
 	var attenuation : float
 
 class OmniLightProxy extends _LocalizedLight:
-	func init_data() -> void:
-		var omni : OmniLight3D = node
-		color = omni.light_color
-		intensity = omni.light_energy
-		location = omni.global_position
-		range = omni.omni_range
-		attenuation = omni.omni_attenuation
+	pass
 
 class DirectionalLightProxy extends  _LightProxy:	
 	var direction : Vector3
-
-	func init_data() -> void:
-		var directional : DirectionalLight3D = node
-		color = directional.light_color
-		intensity = directional.light_energy
-		direction = -directional.global_basis.z
 
 class SpotLightProxy extends  _LocalizedLight:	
 	var direction : Vector3
 	var angle : float
 	var angle_attenuation : float
 
-	func init_data() -> void:
-		var spot : SpotLight3D = node
-		color = spot.light_color
-		intensity = spot.light_energy
-		location = spot.global_position
-		direction = -spot.global_basis.z
-		angle = deg_to_rad(spot.spot_angle)
-		angle_attenuation = spot.spot_angle_attenuation
-		range = spot.spot_range
-		attenuation = spot.spot_attenuation
-
 class CameraProxy extends ProxyObject:
 	var view_matrix : Projection
 	var projection_matrix : Projection
-
-	func init_data() -> void:
-		var cam : Camera3D = node
-		view_matrix = Projection(cam.get_camera_transform().affine_inverse())
-		projection_matrix = cam.get_camera_projection().flipped_y()
 
 func _setup(scene_root : Node) -> void:
 	pass
