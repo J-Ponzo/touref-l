@@ -1,8 +1,11 @@
 class_name _TL_SceneProxy
 
 class ProxyData:
-	func update_data() -> void:
+	func init_data() -> void:
 		pass
+
+	func update_data() -> void:
+		init_data()
 
 	func free_rids() -> void:
 		pass
@@ -10,12 +13,11 @@ class ProxyData:
 class ProxyObject extends ProxyData:
 	var node : Node
 	
-
 class MeshProxy extends ProxyObject:
 	var model_matrix : Projection
 	var surface_proxies : Array[SurfaceProxy]
 
-	func update_data() -> void:
+	func init_data() -> void:
 		var mesh : MeshInstance3D = node
 		
 		model_matrix = Projection(mesh.global_transform)
@@ -25,11 +27,17 @@ class MeshProxy extends ProxyObject:
 			surface_proxy.slot = i
 			surface_proxy.mesh_proxy = self
 			surface_proxies.append(surface_proxy)
-			surface_proxy.update_data()
+			surface_proxy.init_data()
 
 	func free_rids() -> void:
 		for surface_proxy in surface_proxies:
 			surface_proxy.free_rids()
+
+	func update_data() -> void:
+		var mesh : MeshInstance3D = node
+		model_matrix = Projection(mesh.global_transform)
+		for surface_proxy in surface_proxies:
+			surface_proxy.update_data()
 
 class SurfaceProxy extends ProxyData:
 	var rd = RenderingServer.get_rendering_device()
@@ -48,7 +56,7 @@ class SurfaceProxy extends ProxyData:
 
 	var material_proxy : MaterialProxy
 
-	func update_data() -> void:
+	func init_data() -> void:
 		var mesh : MeshInstance3D = mesh_proxy.node
 
 		var arrays = mesh.mesh.surface_get_arrays(slot)
@@ -71,6 +79,9 @@ class SurfaceProxy extends ProxyData:
 		uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 		material_proxy = mat_proxy_from_mat(mesh.get_active_material(slot))
+
+	func update_data() -> void:
+		pass
 
 	func mat_proxy_from_mat(material : BaseMaterial3D) -> MaterialProxy:
 		var mat_proxy : MaterialProxy = MaterialProxy.new()
@@ -121,7 +132,7 @@ class _LocalizedLight extends _LightProxy:
 	var attenuation : float
 
 class OmniLightProxy extends _LocalizedLight:
-	func update_data() -> void:
+	func init_data() -> void:
 		var omni : OmniLight3D = node
 		color = omni.light_color
 		intensity = omni.light_energy
@@ -132,7 +143,7 @@ class OmniLightProxy extends _LocalizedLight:
 class DirectionalLightProxy extends  _LightProxy:	
 	var direction : Vector3
 
-	func update_data() -> void:
+	func init_data() -> void:
 		var directional : DirectionalLight3D = node
 		color = directional.light_color
 		intensity = directional.light_energy
@@ -143,7 +154,7 @@ class SpotLightProxy extends  _LocalizedLight:
 	var angle : float
 	var angle_attenuation : float
 
-	func update_data() -> void:
+	func init_data() -> void:
 		var spot : SpotLight3D = node
 		color = spot.light_color
 		intensity = spot.light_energy
@@ -158,7 +169,7 @@ class CameraProxy extends ProxyObject:
 	var view_matrix : Projection
 	var projection_matrix : Projection
 
-	func update_data() -> void:
+	func init_data() -> void:
 		var cam : Camera3D = node
 		view_matrix = Projection(cam.get_camera_transform().affine_inverse())
 		projection_matrix = cam.get_camera_projection().flipped_y()
