@@ -1,11 +1,23 @@
 class_name _TL_SceneProxy
 
-class ProxyData:
-	func init_data() -> void:
+class ProxyDataProcessor:
+	var proxy_data : ProxyData
+
+	func process():
 		pass
+	
+
+class ProxyData:
+	var initializer : ProxyDataProcessor = ProxyDataProcessor.new()
+	var updater : ProxyDataProcessor = ProxyDataProcessor.new()
+
+	func init_data() -> void:
+		initializer.proxy_data = self
+		updater.proxy_data = self
+		initializer.process()
 
 	func update_data() -> void:
-		init_data()
+		updater.process()
 
 	func free_rids() -> void:
 		pass
@@ -17,27 +29,9 @@ class MeshProxy extends ProxyObject:
 	var model_matrix : Projection
 	var surface_proxies : Array[SurfaceProxy]
 
-	func init_data() -> void:
-		var mesh : MeshInstance3D = node
-		
-		model_matrix = Projection(mesh.global_transform)
-		surface_proxies.clear()
-		for i in range(0, mesh.mesh.get_surface_count()):
-			var surface_proxy : SurfaceProxy = SurfaceProxy.new()
-			surface_proxy.slot = i
-			surface_proxy.mesh_proxy = self
-			surface_proxies.append(surface_proxy)
-			surface_proxy.init_data()
-
 	func free_rids() -> void:
 		for surface_proxy in surface_proxies:
 			surface_proxy.free_rids()
-
-	func update_data() -> void:
-		var mesh : MeshInstance3D = node
-		model_matrix = Projection(mesh.global_transform)
-		for surface_proxy in surface_proxies:
-			surface_proxy.update_data()
 
 class SurfaceProxy extends ProxyData:
 	var rd = RenderingServer.get_rendering_device()
@@ -55,42 +49,6 @@ class SurfaceProxy extends ProxyData:
 	var uv_buffer : RID
 
 	var material_proxy : MaterialProxy
-
-	func init_data() -> void:
-		var mesh : MeshInstance3D = mesh_proxy.node
-
-		var arrays = mesh.mesh.surface_get_arrays(slot)
-		
-		index_count = arrays[Mesh.ARRAY_INDEX].size()
-		var byte_array = arrays[Mesh.ARRAY_INDEX].to_byte_array()
-		index_buffer = rd.index_buffer_create(arrays[Mesh.ARRAY_INDEX].size(), RenderingDevice.INDEX_BUFFER_FORMAT_UINT32, byte_array)
-
-		vertex_count = arrays[Mesh.ARRAY_VERTEX].size()
-		byte_array = arrays[Mesh.ARRAY_VERTEX].to_byte_array()
-		position_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		byte_array = arrays[Mesh.ARRAY_NORMAL].to_byte_array()
-		normal_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		byte_array = arrays[Mesh.ARRAY_TANGENT].to_byte_array()
-		tangent_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
-		uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		material_proxy = mat_proxy_from_mat(mesh.get_active_material(slot))
-
-	func update_data() -> void:
-		pass
-
-	func mat_proxy_from_mat(material : BaseMaterial3D) -> MaterialProxy:
-		var mat_proxy : MaterialProxy = MaterialProxy.new()
-
-		mat_proxy.albedo_tex = RenderingServer.texture_get_rd_texture(material.albedo_texture)
-		mat_proxy.normal_tex = RenderingServer.texture_get_rd_texture(material.normal_texture)
-		mat_proxy.orm_tex =  RenderingServer.texture_get_rd_texture(material.orm_texture)
-
-		return mat_proxy
 
 	func free_rids() -> void:
 		if index_buffer != RID():
