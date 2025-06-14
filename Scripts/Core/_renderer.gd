@@ -1,5 +1,6 @@
 class_name _TL_Renderer
 
+var model : _TL_Model
 var scene_proxy : _TL_SceneProxy
 var render_passes : Array[_TL_RenderPass]
 

@@ -1,10 +1,11 @@
 extends Node
 class_name autoload
 
-const  ERR_RENDERER_WRONG_PARENT = "TourefL : Cannot instantiate the renderer from class %s. It must inherit from _TL_Renderer."
+const ERR_MODEL_WRONG_PARENT = "TourefL : Cannot instantiate the renderer from class %s. It must inherit from _TL_Model."
+const ERR_RENDERER_WRONG_PARENT = "TourefL : Cannot instantiate the renderer from class %s. It must inherit from _TL_Renderer."
 const ERR_SCNPROXY_WRONG_PARENT = "TourefL : Cannot instantiate the scene proxy from class %s. It must inherit from _TL_SceneProxy."
 const ERR_RENDERPASS_WRONG_PARENT = "TourefL : Cannot instantiate the render pass from class %s. It must inherit from _TL_RenderPass."
-const  ERR_RENDERER_IDX_UNDEFINED = "TourefL: Cannot switch the active renderer to %d. No renderers are registered at this index. Check your renderers_registry.tres file."
+const ERR_RENDERER_IDX_UNDEFINED = "TourefL: Cannot switch the active renderer to %d. No renderers are registered at this index. Check your renderers_registry.tres file."
 
 const NATIVE_RENDERER_IDX = -1
 const INVALID_RENDERER_IDX = -2
@@ -23,39 +24,44 @@ var native_sub_viewport : SubViewport
 
 func _enter_tree() -> void:
 	for renderer_def : TL_RendererDef in registry.rederer_defs:
-		var renderer_inst = renderer_def.renderer_script.new()
-		if renderer_inst is _TL_Renderer:
-			var scn_proxy_inst = renderer_def.scene_proxy_script.new()
-			if scn_proxy_inst is _TL_SceneProxy:
-				var scene_proxy : _TL_SceneProxy = scn_proxy_inst
-				var renderer : _TL_Renderer = renderer_inst
-				renderer.scene_proxy = scene_proxy
+		var model_inst = renderer_def.model_scrit.new()
+		if model_inst is _TL_Model:
+			var renderer_inst = renderer_def.renderer_script.new()
+			if renderer_inst is _TL_Renderer:
+				var scn_proxy_inst = renderer_def.scene_proxy_script.new()
+				if scn_proxy_inst is _TL_SceneProxy:
+					var scene_proxy : _TL_SceneProxy = scn_proxy_inst
+					var renderer : _TL_Renderer = renderer_inst
+					renderer.scene_proxy = scene_proxy
+					renderer.model = model_inst
+					scene_proxy.model = model_inst
+					for render_pass_def : TL_RenderPassDef in renderer_def.renderer_pass_defs:
+						var render_pass_inst = render_pass_def.pass_script.new()
+						if render_pass_inst is _TL_RenderPass:
+							var render_pass : _TL_RenderPass = render_pass_inst
 
-				for render_pass_def : TL_RenderPassDef in renderer_def.renderer_pass_defs:
-					var render_pass_inst = render_pass_def.pass_script.new()
-					if render_pass_inst is _TL_RenderPass:
-						var render_pass : _TL_RenderPass = render_pass_inst
+							var path : String = render_pass_def.vertex_shader.resource_path
+							var raw_source : String = render_pass_def.vertex_shader.source_code
+							var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source)
+							render_pass.vertex_shader_src = preprocessed_source
+							
+							path = render_pass_def.fragment_shader.resource_path
+							raw_source = render_pass_def.fragment_shader.source_code
+							preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
+							render_pass.fragment_shader_src = preprocessed_source
 
-						var path : String = render_pass_def.vertex_shader.resource_path
-						var raw_source : String = render_pass_def.vertex_shader.source_code
-						var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source)
-						render_pass.vertex_shader_src = preprocessed_source
-						
-						path = render_pass_def.fragment_shader.resource_path
-						raw_source = render_pass_def.fragment_shader.source_code
-						preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
-						render_pass.fragment_shader_src = preprocessed_source
+							render_pass.renderer = renderer
+							renderer.render_passes.append(render_pass)
+						else:
+							push_error(ERR_RENDERPASS_WRONG_PARENT % render_pass_def.pass_script)
 
-						render_pass.renderer = renderer
-						renderer.render_passes.append(render_pass)
-					else:
-						push_error(ERR_RENDERPASS_WRONG_PARENT % render_pass_def.pass_script)
-
-				renderers.append(renderer)
+					renderers.append(renderer)
+				else :
+					push_error(ERR_SCNPROXY_WRONG_PARENT % renderer_def.scene_proxy_script)
 			else :
-				push_error(ERR_SCNPROXY_WRONG_PARENT % renderer_def.scene_proxy_script)
+				push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)
 		else :
-			push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)
+			push_error(ERR_MODEL_WRONG_PARENT % renderer_def.model_scrit)
 	
 	native_sub_viewport_container = SubViewportContainer.new()
 	native_sub_viewport_container.stretch = true;
