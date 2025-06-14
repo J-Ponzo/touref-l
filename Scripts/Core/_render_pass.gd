@@ -85,15 +85,6 @@ func create_pipeline() -> RID :
 	return renderer.rd.render_pipeline_create(shader_program, framebuffer_format, vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
 
 # Utils
-func _proj_to_bytes(proj: Projection) -> PackedByteArray:
-	var floats = PackedFloat32Array([
-		proj.x.x, proj.x.y, proj.x.z, proj.x.w,
-		proj.y.x, proj.y.y, proj.y.z, proj.y.w,
-		proj.z.x, proj.z.y, proj.z.z, proj.z.w,
-		proj.w.x, proj.w.y, proj.w.z, proj.w.w
-	])
-	return floats.to_byte_array()
-
 func create_texture_sampler_uniform(texture_rid : RID, binding : int) -> RDUniform:
 	var sampler_state := RDSamplerState.new()
 	sampler_state.mag_filter = RenderingDevice.SAMPLER_FILTER_LINEAR

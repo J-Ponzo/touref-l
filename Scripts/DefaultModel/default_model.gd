@@ -3,8 +3,10 @@ class_name TL_DefaultModel
 static var rd = RenderingServer.get_rendering_device()
 
 class CameraData:
-	var view_matrix : Projection
-	var projection_matrix : Projection
+	var view_matrix_bytes : PackedByteArray
+	var projection_matrix_bytes : PackedByteArray
+
+	var matrices_uniform_buffer : RID
 
 class OmniLightData:
 	var color : Color
@@ -29,7 +31,7 @@ class DirectionalLightData:
 	var direction : Vector3
 
 class MeshData:
-	var model_matrix : Projection
+	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
 
 class SurfaceData :
@@ -95,7 +97,7 @@ static func free_material(material_data : MaterialData):
 
 static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data = MeshData.new()
-	mesh_data.model_matrix = Projection(mesh.global_transform)
+	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 	for i in range(0, mesh.mesh.get_surface_count()):
 		var arrays = mesh.mesh.surface_get_arrays(i)
 		var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
@@ -185,9 +187,17 @@ static func free_directional_light(directional_light_data : DirectionalLightData
 
 static func create_from_camera(cam : Camera3D) -> CameraData:
 	var cam_data = CameraData.new()
-	cam_data.view_matrix = Projection(cam.get_camera_transform().affine_inverse())
-	cam_data.projection_matrix = cam.get_camera_projection().flipped_y()
+	cam_data.view_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cam.get_camera_transform().affine_inverse()))
+	cam_data.projection_matrix_bytes = TL_RendererUtils.proj_to_bytes(cam.get_camera_projection().flipped_y())
+
+	var bytes = cam_data.view_matrix_bytes
+	bytes.append_array(cam_data.projection_matrix_bytes)
+	
+	cam_data.matrices_uniform_buffer = rd.uniform_buffer_create(bytes.size(), bytes)
+
 	return cam_data;
 
 static func free_camera(camera_data : CameraData):
-	pass
+	if camera_data.matrices_uniform_buffer != RID():
+		rd.free_rid(camera_data.matrices_uniform_buffer)
+		camera_data.matrices_uniform_buffer = RID()
