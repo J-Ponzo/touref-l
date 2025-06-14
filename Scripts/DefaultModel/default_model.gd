@@ -1,4 +1,3 @@
-extends _TL_Model
 class_name TL_DefaultModel
 
 static var rd = RenderingServer.get_rendering_device()
