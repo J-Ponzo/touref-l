@@ -125,14 +125,26 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	return mesh_data
 
 static func free_mesh(mesh_data : MeshData):
-	pass
+	for surface_data in mesh_data.surfaces_data:
+		free_surface(surface_data)
 
 static func free_surface(surface_data : SurfaceData):
-	rd.free_rid(surface_data.index_buffer)
-	rd.free_rid(surface_data.position_buffer)
-	rd.free_rid(surface_data.normal_buffer)
-	rd.free_rid(surface_data.tangent_buffer)
-	rd.free_rid(surface_data.uv_buffer)
+	if surface_data.index_buffer != RID():
+		rd.free_rid(surface_data.index_buffer)
+		surface_data.index_buffer = RID()
+	if surface_data.position_buffer != RID():
+		rd.free_rid(surface_data.position_buffer)
+		surface_data.position_buffer = RID()
+	if surface_data.normal_buffer != RID():
+		rd.free_rid(surface_data.normal_buffer)
+		surface_data.normal_buffer = RID()
+	if surface_data.tangent_buffer != RID():
+		rd.free_rid(surface_data.tangent_buffer)
+		surface_data.tangent_buffer = RID()
+	if surface_data.uv_buffer != RID():
+		rd.free_rid(surface_data.uv_buffer)
+		surface_data.uv_buffer = RID()
+	free_material(surface_data.material_data)
 
 static func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 	var omni_data = OmniLightData.new()
