@@ -49,53 +49,10 @@ func _find_all_in_tree(root : Node, selector : Callable) -> Array[Variant]:
 	
 	return all_selected
 
-class ProxyDataProcessor:
-	var proxy_data : ProxyData
+func _on_pre_render() -> void:
+	pass
 
-	func process():
-		pass
-	
-
-class ProxyData:
-	var data
-	var initializer : ProxyDataProcessor = ProxyDataProcessor.new()
-	var updater : ProxyDataProcessor = ProxyDataProcessor.new()
-
-	func init_data() -> void:
-		initializer.proxy_data = self
-		updater.proxy_data = self
-		initializer.process()
-
-	func update_data() -> void:
-		updater.process()
-
-	func free_rids() -> void:
-		pass
-
-class ProxyObject extends ProxyData:
-	var node : Node
-
-class MeshProxy extends ProxyObject:
-	func _init() -> void:
-		data = TL_DefaultModel.MeshData.new()
-
-class OmniLightProxy extends ProxyObject:
-	func _init() -> void:
-		data = TL_DefaultModel.OmniLightData.new()
-
-class DirectionalLightProxy extends  ProxyObject:	
-	func _init() -> void:
-		data = TL_DefaultModel.DirectionalLightData.new()
-
-class SpotLightProxy extends  ProxyObject:
-	func _init() -> void:
-		data = TL_DefaultModel.SpotLightData.new()
-
-class CameraProxy extends ProxyObject:
-	func _init() -> void:
-		data = TL_DefaultModel.CameraData.new()
-
-func _update() -> void:
+func _on_post_render() -> void:
 	pass
 
 func get_current_camera() -> TL_DefaultModel.CameraData:
@@ -104,7 +61,6 @@ func get_current_camera() -> TL_DefaultModel.CameraData:
 func get_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
 	return []
 
-# TODO use data not proxy
 func get_omni_lights() -> Array[TL_DefaultModel.OmniLightData]:
 	return []
 
