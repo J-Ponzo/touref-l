@@ -83,20 +83,3 @@ func create_pipeline() -> RID :
 		colorBlendState.attachments.append(RDPipelineColorBlendStateAttachment.new())
 
 	return renderer.rd.render_pipeline_create(shader_program, framebuffer_format, vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
-
-# Utils
-func create_texture_sampler_uniform(texture_rid : RID, binding : int) -> RDUniform:
-	var sampler_state := RDSamplerState.new()
-	sampler_state.mag_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
-	sampler_state.min_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
-	sampler_state.repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT
-	sampler_state.repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT
-	var sampler_rid := renderer.rd.sampler_create(sampler_state)
-
-	var uniform := RDUniform.new()
-	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
-	uniform.binding = binding
-	uniform.add_id(sampler_rid)
-	uniform.add_id(texture_rid)
-
-	return uniform

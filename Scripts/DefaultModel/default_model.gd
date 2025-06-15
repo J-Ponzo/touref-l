@@ -1,5 +1,9 @@
 class_name TL_DefaultModel
 
+const LOG_WARNS = false
+const WARN_NOT_SUPPORTED_MATERIAL = "TourefL : Unable to generate proxy data from %s material. It may have unsupported features."
+const WARN_SURAFACE_SKIPPED = "TourefL : The material data for %dth surface of the mesh %s could not be generated. This surface will be skipped."
+
 static var rd = RenderingServer.get_rendering_device()
 
 class CameraData:
@@ -50,8 +54,11 @@ class SurfaceData :
 
 class MaterialData:
 	var albedo_tex : RID
+	var albedo_sampler : RID
 	var normal_tex : RID
+	var normal_sampler : RID
 	var orm_tex : RID
+	var orm_sampler : RID
 
 static func create_from(obj : Object):
 	if obj is BaseMaterial3D:
@@ -87,13 +94,35 @@ static func create_from_material(material : BaseMaterial3D) -> MaterialData:
 	var material_data : TL_DefaultModel.MaterialData = TL_DefaultModel.MaterialData.new()
 
 	material_data.albedo_tex = RenderingServer.texture_get_rd_texture(material.albedo_texture)
+	if material_data.albedo_tex == RID():
+		if LOG_WARNS:
+			push_warning(WARN_NOT_SUPPORTED_MATERIAL % material.resource_name)
+		return null
+
 	material_data.normal_tex = RenderingServer.texture_get_rd_texture(material.normal_texture)
+	if material_data.normal_tex == RID():
+		if LOG_WARNS:
+			push_warning(WARN_NOT_SUPPORTED_MATERIAL % material.resource_name)
+		return null
+
 	material_data.orm_tex =  RenderingServer.texture_get_rd_texture(material.orm_texture)
+
+	material_data.albedo_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
+	material_data.normal_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
+	material_data.orm_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
 
 	return material_data
 
 static func free_material(material_data : MaterialData):
-	pass
+	if material_data.albedo_sampler != RID():
+		rd.free_rid(material_data.albedo_sampler)
+		material_data.albedo_sampler = RID() 
+	if material_data.normal_sampler != RID():
+		rd.free_rid(material_data.normal_sampler)
+		material_data.normal_sampler = RID() 
+	if material_data.orm_sampler != RID():
+		rd.free_rid(material_data.orm_sampler)
+		material_data.orm_sampler = RID() 
 
 static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data = MeshData.new()
@@ -121,8 +150,10 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		surface_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 		surface_data.material_data = create_from_material(mesh.get_active_material(i))
-
-		mesh_data.surfaces_data.append(surface_data)
+		if surface_data.material_data != null:
+			mesh_data.surfaces_data.append(surface_data)
+		elif LOG_WARNS :
+			push_warning(WARN_SURAFACE_SKIPPED % [i, mesh.name])
 
 	return mesh_data
 
