@@ -6,6 +6,43 @@ const WARN_SURAFACE_SKIPPED = "TourefL : The material data for %dth surface of t
 
 static var rd = RenderingServer.get_rendering_device()
 
+static var _static_mesh_vertex_format : int = -1
+static func get_or_create_static_mesh_vertex_format() -> int:
+	if _static_mesh_vertex_format == -1:
+		var sizeof_float = 4
+		var position_nb_floats = 3
+		var normal_nb_floats = 3
+		var tangent_nb_floats = 4
+		var uv_nb_floats = 2
+		
+		var positionAttr = RDVertexAttribute.new()
+		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
+		positionAttr.stride = position_nb_floats * sizeof_float
+		positionAttr.offset = 0
+		positionAttr.location = 0
+		
+		var normalAttr = RDVertexAttribute.new()
+		normalAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
+		normalAttr.stride = normal_nb_floats * sizeof_float
+		normalAttr.offset = 0
+		normalAttr.location = 1
+
+		var tangentAttr = RDVertexAttribute.new()
+		tangentAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT ;
+		tangentAttr.stride = tangent_nb_floats * sizeof_float
+		tangentAttr.offset = 0
+		tangentAttr.location = 2
+		
+		var uvAttr = RDVertexAttribute.new()
+		uvAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
+		uvAttr.stride = uv_nb_floats * sizeof_float
+		uvAttr.offset = 0
+		uvAttr.location = 3
+
+		_static_mesh_vertex_format = rd.vertex_format_create([positionAttr, normalAttr, tangentAttr, uvAttr])
+
+	return _static_mesh_vertex_format
+
 class CameraData:
 	var view_matrix_bytes : PackedByteArray
 	var projection_matrix_bytes : PackedByteArray
@@ -43,22 +80,24 @@ class SurfaceData :
 
 	var index_count : int
 	var index_buffer : RID
+	var index_array : RID
 
 	var vertex_count : int
 	var position_buffer : RID
 	var normal_buffer : RID
 	var tangent_buffer : RID
 	var uv_buffer : RID
+	var vertex_array : RID
 
 	var material_data : MaterialData
 
 class MaterialData:
-	var albedo_tex : RID
-	var albedo_sampler : RID
+	var albedo_tex : RID 
+	var albedo_sampler : RID 
 	var normal_tex : RID
 	var normal_sampler : RID
 	var orm_tex : RID
-	var orm_sampler : RID
+	var orm_sampler : RID 
 
 static func create_from(obj : Object):
 	if obj is BaseMaterial3D:
@@ -128,13 +167,22 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data = MeshData.new()
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 	for i in range(0, mesh.mesh.get_surface_count()):
-		var arrays = mesh.mesh.surface_get_arrays(i)
 		var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
-		surface_data.mesh_data = mesh_data
 		
+		surface_data.material_data = create_from_material(mesh.get_active_material(i))
+		if surface_data.material_data != null:
+			mesh_data.surfaces_data.append(surface_data)
+		elif LOG_WARNS :
+			push_warning(WARN_SURAFACE_SKIPPED % [i, mesh.name])
+
+		surface_data.mesh_data = mesh_data
+
+		var arrays = mesh.mesh.surface_get_arrays(i)
 		surface_data.index_count = arrays[Mesh.ARRAY_INDEX].size()
 		var byte_array = arrays[Mesh.ARRAY_INDEX].to_byte_array()
 		surface_data.index_buffer = rd.index_buffer_create(arrays[Mesh.ARRAY_INDEX].size(), RenderingDevice.INDEX_BUFFER_FORMAT_UINT32, byte_array)
+		
+		surface_data.index_array = rd.index_array_create(surface_data.index_buffer, 0, surface_data.index_count)
 
 		surface_data.vertex_count = arrays[Mesh.ARRAY_VERTEX].size()
 		byte_array = arrays[Mesh.ARRAY_VERTEX].to_byte_array()
@@ -149,11 +197,8 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
 		surface_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
-		surface_data.material_data = create_from_material(mesh.get_active_material(i))
-		if surface_data.material_data != null:
-			mesh_data.surfaces_data.append(surface_data)
-		elif LOG_WARNS :
-			push_warning(WARN_SURAFACE_SKIPPED % [i, mesh.name])
+		var vertex_format = get_or_create_static_mesh_vertex_format()
+		surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
 
 	return mesh_data
 
@@ -162,6 +207,13 @@ static func free_mesh(mesh_data : MeshData):
 		free_surface(surface_data)
 
 static func free_surface(surface_data : SurfaceData):
+	if surface_data.index_array != RID():
+		rd.free_rid(surface_data.index_array)
+		surface_data.index_array = RID()
+	if surface_data.vertex_array != RID():
+		rd.free_rid(surface_data.vertex_array)
+		surface_data.vertex_array = RID()
+	
 	if surface_data.index_buffer != RID():
 		rd.free_rid(surface_data.index_buffer)
 		surface_data.index_buffer = RID()
