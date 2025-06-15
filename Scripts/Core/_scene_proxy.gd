@@ -57,7 +57,10 @@ func _on_post_render() -> void:
 func get_current_camera() -> TL_DefaultModel.CameraData:
 	return null
 	
-func get_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
+func get_static_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
+	return []
+
+func get_skeletal_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
 	return []
 
 func get_omni_lights() -> Array[TL_DefaultModel.OmniLightData]:

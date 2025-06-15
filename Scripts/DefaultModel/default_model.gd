@@ -43,6 +43,58 @@ static func get_or_create_static_mesh_vertex_format() -> int:
 
 	return _static_mesh_vertex_format
 
+static var _skeletal_mesh_vertex_format : int = -1
+static func get_or_create_skeletal_mesh_vertex_format() -> int:
+	if _static_mesh_vertex_format == -1:
+		var sizeof_float = 4
+		var sizeof_int = 4
+		var position_nb_floats = 3
+		var normal_nb_floats = 3
+		var tangent_nb_floats = 4
+		var uv_nb_floats = 2
+		var bones_nb_ints = 4
+		var weights_nb_floats = 4
+		
+		var positionAttr = RDVertexAttribute.new()
+		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
+		positionAttr.stride = position_nb_floats * sizeof_float
+		positionAttr.offset = 0
+		positionAttr.location = 0
+		
+		var normalAttr = RDVertexAttribute.new()
+		normalAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
+		normalAttr.stride = normal_nb_floats * sizeof_float
+		normalAttr.offset = 0
+		normalAttr.location = 1
+
+		var tangentAttr = RDVertexAttribute.new()
+		tangentAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT ;
+		tangentAttr.stride = tangent_nb_floats * sizeof_float
+		tangentAttr.offset = 0
+		tangentAttr.location = 2
+		
+		var uvAttr = RDVertexAttribute.new()
+		uvAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
+		uvAttr.stride = uv_nb_floats * sizeof_float
+		uvAttr.offset = 0
+		uvAttr.location = 3
+
+		var bonesAttr = RDVertexAttribute.new()
+		bonesAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SINT;
+		bonesAttr.stride = bones_nb_ints * sizeof_int
+		bonesAttr.offset = 0
+		bonesAttr.location = 4
+
+		var weightsAttr = RDVertexAttribute.new()
+		weightsAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT;
+		weightsAttr.stride = weights_nb_floats * sizeof_float
+		weightsAttr.offset = 0
+		weightsAttr.location = 5
+
+		_skeletal_mesh_vertex_format = rd.vertex_format_create([positionAttr, normalAttr, tangentAttr, uvAttr, bonesAttr, weightsAttr])
+
+	return _skeletal_mesh_vertex_format
+
 class CameraData:
 	var view_matrix_bytes : PackedByteArray
 	var projection_matrix_bytes : PackedByteArray
@@ -76,6 +128,7 @@ class DirectionalLightData extends LightData:
 	var direction : Vector3
 
 class MeshData:
+	var is_skeletal : bool
 	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
 
@@ -91,6 +144,8 @@ class SurfaceData :
 	var normal_buffer : RID
 	var tangent_buffer : RID
 	var uv_buffer : RID
+	var bones_buffer : RID
+	var weights_buffer : RID
 	var vertex_array : RID
 
 	var material_data : MaterialData
@@ -169,6 +224,11 @@ static func free_material(material_data : MaterialData):
 
 static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data = MeshData.new()
+
+	var skin : Skin = mesh.skin
+	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
+	mesh_data.is_skeletal = skeleton != null && skin != null
+
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 	for i in range(0, mesh.mesh.get_surface_count()):
 		var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
@@ -201,8 +261,20 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
 		surface_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
-		var vertex_format = get_or_create_static_mesh_vertex_format()
-		surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
+		if mesh_data.is_skeletal:
+			byte_array = arrays[Mesh.ARRAY_BONES].to_byte_array()
+			surface_data.bones_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+			byte_array = arrays[Mesh.ARRAY_WEIGHTS].to_byte_array()
+			surface_data.weights_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+		var vertex_format = -1
+		if mesh_data.is_skeletal:
+			vertex_format = get_or_create_skeletal_mesh_vertex_format()
+			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer, surface_data.bones_buffer, surface_data.weights_buffer])
+		else:
+			vertex_format = get_or_create_static_mesh_vertex_format()
+			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
 
 	return mesh_data
 
@@ -233,6 +305,14 @@ static func free_surface(surface_data : SurfaceData):
 	if surface_data.uv_buffer != RID():
 		rd.free_rid(surface_data.uv_buffer)
 		surface_data.uv_buffer = RID()
+
+	if surface_data.bones_buffer != RID():
+		rd.free_rid(surface_data.bones_buffer)
+		surface_data.bones_buffer = RID()
+	if surface_data.weights_buffer != RID():
+		rd.free_rid(surface_data.weights_buffer)
+		surface_data.weights_buffer = RID()
+
 	free_material(surface_data.material_data)
 
 static func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
