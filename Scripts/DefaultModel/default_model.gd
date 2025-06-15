@@ -49,14 +49,18 @@ class CameraData:
 
 	var matrices_uniform_buffer : RID
 
-class OmniLightData:
+class LightData:
+	var light_buffer_float : PackedFloat32Array
+	var light_buffer_bytes : PackedByteArray
+
+class OmniLightData extends LightData:
 	var color : Color
 	var intensity : float
 	var location : Vector3
 	var range : float
 	var attenuation : float
 	
-class SpotLightData:
+class SpotLightData extends LightData:
 	var color : Color
 	var intensity : float
 	var location : Vector3
@@ -66,7 +70,7 @@ class SpotLightData:
 	var angle : float
 	var angle_attenuation : float
 	
-class DirectionalLightData:
+class DirectionalLightData extends LightData:
 	var color : Color
 	var intensity : float
 	var direction : Vector3
@@ -238,6 +242,22 @@ static func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 	omni_data.location = omni.global_position
 	omni_data.range = omni.omni_range
 	omni_data.attenuation = omni.omni_attenuation
+
+	omni_data.light_buffer_float.append(omni_data.location.x)
+	omni_data.light_buffer_float.append(omni_data.location.y)
+	omni_data.light_buffer_float.append(omni_data.location.z)
+	omni_data.light_buffer_float.append(omni_data.intensity)
+	omni_data.light_buffer_float.append(omni_data.color.r)
+	omni_data.light_buffer_float.append(omni_data.color.g)
+	omni_data.light_buffer_float.append(omni_data.color.b)
+	omni_data.light_buffer_float.append(omni_data.range)
+	omni_data.light_buffer_float.append(0.0)
+	omni_data.light_buffer_float.append(0.0)
+	omni_data.light_buffer_float.append(0.0)
+	omni_data.light_buffer_float.append(omni_data.attenuation)
+
+	omni_data.light_buffer_bytes = omni_data.light_buffer_float.to_byte_array()
+
 	return omni_data
 
 static func free_omni_light(omni_light_data : OmniLightData):
@@ -253,6 +273,26 @@ static func create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
 	spot_data.angle_attenuation = spot.spot_angle_attenuation
 	spot_data.range = spot.spot_range
 	spot_data.attenuation = spot.spot_attenuation
+
+	spot_data.light_buffer_float.append(spot_data.location.x)
+	spot_data.light_buffer_float.append(spot_data.location.y)
+	spot_data.light_buffer_float.append(spot_data.location.z)
+	spot_data.light_buffer_float.append(spot_data.angle)
+	spot_data.light_buffer_float.append(spot_data.direction.x)
+	spot_data.light_buffer_float.append(spot_data.direction.y)
+	spot_data.light_buffer_float.append(spot_data.direction.z)
+	spot_data.light_buffer_float.append(spot_data.intensity)
+	spot_data.light_buffer_float.append(spot_data.color.r)
+	spot_data.light_buffer_float.append(spot_data.color.g)
+	spot_data.light_buffer_float.append(spot_data.color.b)
+	spot_data.light_buffer_float.append(spot_data.angle_attenuation)
+	spot_data.light_buffer_float.append(0.0)
+	spot_data.light_buffer_float.append(0.0)
+	spot_data.light_buffer_float.append(spot_data.range)
+	spot_data.light_buffer_float.append(spot_data.attenuation)
+
+	spot_data.light_buffer_bytes = spot_data.light_buffer_float.to_byte_array()
+
 	return spot_data
 	
 static func free_spot_light(spot_light_data : SpotLightData):
@@ -263,6 +303,18 @@ static func create_from_directional_light(directional : DirectionalLight3D) -> D
 	directional_data.color = directional.light_color
 	directional_data.intensity = directional.light_energy
 	directional_data.direction = -directional.global_basis.z
+
+	directional_data.light_buffer_float.append(directional_data.direction.x)
+	directional_data.light_buffer_float.append(directional_data.direction.y)
+	directional_data.light_buffer_float.append(directional_data.direction.z)
+	directional_data.light_buffer_float.append(directional_data.intensity)
+	directional_data.light_buffer_float.append(directional_data.color.r)
+	directional_data.light_buffer_float.append(directional_data.color.g)
+	directional_data.light_buffer_float.append(directional_data.color.b)
+	directional_data.light_buffer_float.append(0.0)
+
+	directional_data.light_buffer_bytes = directional_data.light_buffer_float.to_byte_array()
+
 	return directional_data
 
 static func free_directional_light(directional_light_data : DirectionalLightData):
