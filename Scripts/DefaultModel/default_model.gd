@@ -129,6 +129,7 @@ class DirectionalLightData extends LightData:
 
 class MeshData:
 	var is_skeletal : bool
+	var pose_array : Array[Projection]
 	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
 
