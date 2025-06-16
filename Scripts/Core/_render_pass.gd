@@ -28,7 +28,7 @@ func create_piplines_from_defs(pso_defs : Dictionary[String, TL_PSODef]) -> Dict
 	var pso_instances : Dictionary[String, RID] 
 	for key in pso_defs.keys():
 		shader_programs[key] = compile_shader_program(pso_defs[key])
-		pso_instances[key] = create_pipline_from_def(pso_defs[key], shader_programs[key])
+		pso_instances[key] = create_pipline_from_def(key, pso_defs[key], shader_programs[key])
 	return pso_instances
 
 func compile_shader_program(pso_def : TL_PSODef) -> RID:
@@ -44,7 +44,7 @@ func compile_shader_program(pso_def : TL_PSODef) -> RID:
 
 	return compile_shader(vertex_shader_src, fragment_shader_src)
 
-func create_pipline_from_def(pso_def : TL_PSODef, shader_program : RID) -> RID:
+func create_pipline_from_def(pso_key : String, pso_def : TL_PSODef, shader_program : RID) -> RID:
 	var has_depth_attachment : bool = depth_attachment != RID()
 
 	var framebuffer_format = renderer.rd.framebuffer_get_format(framebuffer)
@@ -66,8 +66,10 @@ func create_pipline_from_def(pso_def : TL_PSODef, shader_program : RID) -> RID:
 	
 	for i in range(define_color_attachments().size()):
 		colorBlendState.attachments.append(RDPipelineColorBlendStateAttachment.new())
-
-	return renderer.rd.render_pipeline_create(shader_program, framebuffer_format, vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
+	var specific_vertex_format = vertex_format		# TODO remove this hard coded patch
+	if pso_key == "draw_skeletal":
+		specific_vertex_format = TL_DefaultModel.get_or_create_skeletal_mesh_vertex_format()
+	return renderer.rd.render_pipeline_create(shader_program, framebuffer_format, specific_vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
 
 func _cleanup() -> void:
 	renderer.rd.free_rid(framebuffer)

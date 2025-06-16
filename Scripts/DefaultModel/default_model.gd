@@ -45,7 +45,7 @@ static func get_or_create_static_mesh_vertex_format() -> int:
 
 static var _skeletal_mesh_vertex_format : int = -1
 static func get_or_create_skeletal_mesh_vertex_format() -> int:
-	if _static_mesh_vertex_format == -1:
+	if _skeletal_mesh_vertex_format == -1:
 		var sizeof_float = 4
 		var sizeof_int = 4
 		var position_nb_floats = 3
