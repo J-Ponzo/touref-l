@@ -36,16 +36,6 @@ func _enter_tree() -> void:
 						var render_pass : _TL_RenderPass = render_pass_inst
 						render_pass.pso_defs = render_pass_def.pso_defs
 
-						# var path : String = render_pass_def.vertex_shader.resource_path
-						# var raw_source : String = render_pass_def.vertex_shader.source_code
-						# var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source)
-						# render_pass.vertex_shader_src = preprocessed_source
-						
-						# path = render_pass_def.fragment_shader.resource_path
-						# raw_source = render_pass_def.fragment_shader.source_code
-						# preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
-						# render_pass.fragment_shader_src = preprocessed_source
-
 						render_pass.renderer = renderer
 						renderer.render_passes.append(render_pass)
 					else:
