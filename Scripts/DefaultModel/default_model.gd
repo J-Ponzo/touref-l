@@ -6,6 +6,29 @@ const WARN_SURAFACE_SKIPPED = "TourefL : The material data for %dth surface of t
 
 static var rd = RenderingServer.get_rendering_device()
 
+static var _post_process_square_vertex_format : int = -1
+static func get_or_create_post_process_square_vertex_format() -> int:
+	if _post_process_square_vertex_format == -1:
+		var sizeof_float = 4
+		var position_nb_floats = 2
+		var uv_nb_floats = 2
+
+		var positionAttr = RDVertexAttribute.new()
+		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
+		positionAttr.stride = position_nb_floats * sizeof_float
+		positionAttr.offset = 0
+		positionAttr.location = 0
+
+		var uvAttr = RDVertexAttribute.new()
+		uvAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT
+		uvAttr.stride = uv_nb_floats * sizeof_float
+		uvAttr.offset = 0
+		uvAttr.location = 1
+		
+		_post_process_square_vertex_format = rd.vertex_format_create([positionAttr, uvAttr])
+
+	return _post_process_square_vertex_format
+
 static var _static_mesh_vertex_format : int = -1
 static func get_or_create_static_mesh_vertex_format() -> int:
 	if _static_mesh_vertex_format == -1:
@@ -130,6 +153,7 @@ class DirectionalLightData extends LightData:
 class MeshData:
 	var is_skeletal : bool
 	var pose_array : Array[Projection]
+	var pose_array_buffer : RID
 	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
 
@@ -229,6 +253,12 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var skin : Skin = mesh.skin
 	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
 	mesh_data.is_skeletal = skeleton != null && skin != null
+	if mesh_data.is_skeletal:
+		for bone_idx in range(skeleton.get_bone_count()):
+			var global_bone_transform : Transform3D = skeleton.get_bone_global_pose(bone_idx)
+			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
+			mesh_data.pose_array.append(Projection(global_bone_transform * inverse_bind))
+		mesh_data.pose_array_buffer = TL_RendererUtils.create_pose_array_buffer(mesh_data.pose_array)
 
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 	for i in range(0, mesh.mesh.get_surface_count()):
@@ -280,6 +310,9 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	return mesh_data
 
 static func free_mesh(mesh_data : MeshData):
+	if mesh_data.pose_array_buffer != RID():
+		rd.free_rid(mesh_data.pose_array_buffer)
+
 	for surface_data in mesh_data.surfaces_data:
 		free_surface(surface_data)
 

@@ -58,3 +58,11 @@ static func create_pipline(nb_color_attachments : int, shader_program : RID, fra
 	for i in range(nb_color_attachments):
 		colorBlendState.attachments.append(RDPipelineColorBlendStateAttachment.new())
 	return rd.render_pipeline_create(shader_program, framebuffer_format, vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
+
+static func create_pose_array_buffer(pose_array : Array[Projection]) -> RID:
+	var bytes : PackedByteArray
+	for pose_matrix in pose_array:
+		bytes.append_array(TL_RendererUtils.proj_to_bytes(pose_matrix))
+
+	return rd.uniform_buffer_create(bytes.size(), bytes)
+		

@@ -8,9 +8,15 @@ class TL_PSOInst:
 	var pipeline : RID
 	var vertex_format : int
 
+enum EVertexFormat {
+	Static_Mesh,
+	Skeletal_Mesh,
+	Post_Process_Square
+}
+
 @export var vertex_shader : TL_GLSLShader
 @export var fragment_shader : TL_GLSLShader
-@export var is_skeletal : bool
+@export var vertex_format : EVertexFormat
 
 func instanciate(framebuffer : RID, nb_color_attachment : int, depth_test : bool = true) -> TL_PSOInst:
 	var instance = TL_PSOInst.new()
@@ -27,10 +33,12 @@ func instanciate(framebuffer : RID, nb_color_attachment : int, depth_test : bool
 
 	instance.shader_program = TL_RendererUtils.compile_shader(vertex_shader_src, fragment_shader_src)
 
-	if is_skeletal:
-		instance.vertex_format = TL_DefaultModel.get_or_create_skeletal_mesh_vertex_format()
-	else :
+	if vertex_format == EVertexFormat.Static_Mesh:
 		instance.vertex_format = TL_DefaultModel.get_or_create_static_mesh_vertex_format()
+	elif vertex_format == EVertexFormat.Skeletal_Mesh:
+		instance.vertex_format = TL_DefaultModel.get_or_create_skeletal_mesh_vertex_format()
+	elif vertex_format == EVertexFormat.Post_Process_Square:
+		instance.vertex_format = TL_DefaultModel.get_or_create_post_process_square_vertex_format()
 
 	instance.pipeline = TL_RendererUtils.create_pipline(nb_color_attachment, instance.shader_program, framebuffer, instance.vertex_format, depth_test)
 
