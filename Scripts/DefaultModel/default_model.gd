@@ -119,6 +119,29 @@ static func get_or_create_skeletal_mesh_vertex_format() -> int:
 
 	return _skeletal_mesh_vertex_format
 
+static var _particles_vertex_format : int = -1
+static func get_or_create_particles_vertex_format() -> int:
+	if _particles_vertex_format == -1:
+		var sizeof_float = 4
+		var position_nb_floats = 3
+		var color_nb_floats = 3
+		
+		var positionAttr = RDVertexAttribute.new()
+		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
+		positionAttr.stride = position_nb_floats * sizeof_float
+		positionAttr.offset = 0
+		positionAttr.location = 0
+		
+		var vertexColorAttr = RDVertexAttribute.new()
+		vertexColorAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
+		vertexColorAttr.stride = color_nb_floats * sizeof_float
+		vertexColorAttr.offset = 0
+		vertexColorAttr.location = 1
+
+		_particles_vertex_format = rd.vertex_format_create([positionAttr, vertexColorAttr])
+
+	return _static_mesh_vertex_format
+
 class CameraData:
 	var view_matrix_bytes : PackedByteArray
 	var projection_matrix_bytes : PackedByteArray
@@ -170,6 +193,7 @@ class SurfaceData :
 	var normal_buffer : RID
 	var tangent_buffer : RID
 	var uv_buffer : RID
+	var color_buffer : RID
 	var bones_buffer : RID
 	var weights_buffer : RID
 	var vertex_array : RID
@@ -282,6 +306,7 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh) -> 
 		var has_normal : bool = false
 		var has_tangent : bool = false
 		var has_uv : bool = false
+		var has_color : bool = false
 		var has_bones : bool = false
 		var has_weights : bool = false
 
@@ -300,6 +325,11 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh) -> 
 			byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
 			surface_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
+		if arrays.size() > Mesh.ARRAY_COLOR and arrays[Mesh.ARRAY_COLOR] != null:
+			has_color = true
+			byte_array = arrays[Mesh.ARRAY_COLOR].to_byte_array()
+			surface_data.color_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
 		if arrays.size() > Mesh.ARRAY_BONES and arrays[Mesh.ARRAY_BONES] != null:
 			has_bones = true
 			byte_array = arrays[Mesh.ARRAY_BONES].to_byte_array()
@@ -317,6 +347,9 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh) -> 
 		elif has_normal and has_tangent and has_uv:
 			vertex_format = get_or_create_static_mesh_vertex_format()
 			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
+		elif has_color:
+			vertex_format = get_or_create_particles_vertex_format()
+			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.color_buffer])
 		elif LOG_WARNS :
 			push_warning(WARN_SURFACE_SKIPPED_VF % [i, mesh_resource.resource_name])
 
@@ -374,6 +407,9 @@ static func free_surface(surface_data : SurfaceData):
 	if surface_data.uv_buffer != RID():
 		rd.free_rid(surface_data.uv_buffer)
 		surface_data.uv_buffer = RID()
+	if surface_data.color_buffer != RID():
+		rd.free_rid(surface_data.color_buffer)
+		surface_data.color_buffer = RID()
 
 	if surface_data.bones_buffer != RID():
 		rd.free_rid(surface_data.bones_buffer)

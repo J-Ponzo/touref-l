@@ -11,6 +11,7 @@ class TL_PSOInst:
 enum EVertexFormat {
 	Static_Mesh,
 	Skeletal_Mesh,
+	Particles,
 	Post_Process_Square
 }
 
@@ -37,6 +38,8 @@ func instanciate(framebuffer : RID, nb_color_attachment : int, depth_test : bool
 		instance.vertex_format = TL_DefaultModel.get_or_create_static_mesh_vertex_format()
 	elif vertex_format == EVertexFormat.Skeletal_Mesh:
 		instance.vertex_format = TL_DefaultModel.get_or_create_skeletal_mesh_vertex_format()
+	elif vertex_format == EVertexFormat.Particles:
+		instance.vertex_format = TL_DefaultModel.get_or_create_particles_vertex_format()
 	elif vertex_format == EVertexFormat.Post_Process_Square:
 		instance.vertex_format = TL_DefaultModel.get_or_create_post_process_square_vertex_format()
 
