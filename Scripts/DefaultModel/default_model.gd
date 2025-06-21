@@ -2,7 +2,8 @@ class_name TL_DefaultModel
 
 const LOG_WARNS = false
 const WARN_NOT_SUPPORTED_MATERIAL = "TourefL : Unable to generate proxy data from %s material. It may have unsupported features."
-const WARN_SURAFACE_SKIPPED = "TourefL : The material data for %dth surface of the mesh %s could not be generated. This surface will be skipped."
+const WARN_SURFACE_SKIPPED_MAT = "TourefL : The material data for %dth surface of the mesh %s could not be generated. This surface will be skipped."
+const WARN_SURFACE_SKIPPED_VF = "TourefL : The vertex format for %dth surface of the mesh %s could not be generated. This surface will be skipped."
 
 static var rd = RenderingServer.get_rendering_device()
 
@@ -183,6 +184,10 @@ class MaterialData:
 	var orm_tex : RID
 	var orm_sampler : RID 
 
+class ParticlesData:
+	var multi_mesh_rid : RID
+	var mesh_data : MeshData
+
 static func create_from(obj : Object):
 	if obj is BaseMaterial3D:
 		return create_from_material(obj)
@@ -196,6 +201,8 @@ static func create_from(obj : Object):
 		return create_from_directional_light(obj)
 	elif obj is Camera3D:
 		return create_from_camera(obj)
+	elif obj is CPUParticles3D:
+		return create_from_cpu_particles(obj)
 
 static func free_data(data : Object):
 	if data is MaterialData:
@@ -212,6 +219,8 @@ static func free_data(data : Object):
 		return free_directional_light(data)
 	elif data is CameraData:
 		return free_camera(data)
+	elif data is ParticlesData:
+		return free_particles(data)
 
 static func create_from_material(material : BaseMaterial3D) -> MaterialData:
 	var material_data : TL_DefaultModel.MaterialData = TL_DefaultModel.MaterialData.new()
@@ -247,6 +256,72 @@ static func free_material(material_data : MaterialData):
 		rd.free_rid(material_data.orm_sampler)
 		material_data.orm_sampler = RID() 
 
+static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh) -> Array[SurfaceData]:
+	var orphan_surfaces : Array[SurfaceData]
+
+	for i in range(0, mesh_resource.get_surface_count()):
+		var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
+
+		surface_data.material_data = create_from_material(mesh_resource.surface_get_material(i))
+		if surface_data.material_data != null:
+			orphan_surfaces.append(surface_data)
+		elif LOG_WARNS :
+			push_warning(WARN_SURFACE_SKIPPED_MAT % [i, mesh_resource.resource_name])
+
+		var arrays = mesh_resource.surface_get_arrays(i)
+		surface_data.index_count = arrays[Mesh.ARRAY_INDEX].size()
+		var byte_array = arrays[Mesh.ARRAY_INDEX].to_byte_array()
+		surface_data.index_buffer = rd.index_buffer_create(arrays[Mesh.ARRAY_INDEX].size(), RenderingDevice.INDEX_BUFFER_FORMAT_UINT32, byte_array)
+		
+		surface_data.index_array = rd.index_array_create(surface_data.index_buffer, 0, surface_data.index_count)
+
+		surface_data.vertex_count = arrays[Mesh.ARRAY_VERTEX].size()
+		byte_array = arrays[Mesh.ARRAY_VERTEX].to_byte_array()
+		surface_data.position_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+		var has_normal : bool = false
+		var has_tangent : bool = false
+		var has_uv : bool = false
+		var has_bones : bool = false
+		var has_weights : bool = false
+
+		if arrays.size() > Mesh.ARRAY_NORMAL and arrays[Mesh.ARRAY_NORMAL] != null:
+			has_normal = true
+			byte_array = arrays[Mesh.ARRAY_NORMAL].to_byte_array()
+			surface_data.normal_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+		if arrays.size() > Mesh.ARRAY_TANGENT and arrays[Mesh.ARRAY_TANGENT] != null:
+			has_tangent = true
+			byte_array = arrays[Mesh.ARRAY_TANGENT].to_byte_array()
+			surface_data.tangent_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+		if arrays.size() > Mesh.ARRAY_TEX_UV and arrays[Mesh.ARRAY_TEX_UV] != null:
+			has_uv = true
+			byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
+			surface_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+		if arrays.size() > Mesh.ARRAY_BONES and arrays[Mesh.ARRAY_BONES] != null:
+			has_bones = true
+			byte_array = arrays[Mesh.ARRAY_BONES].to_byte_array()
+			surface_data.bones_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+		if arrays.size() > Mesh.ARRAY_WEIGHTS and arrays[Mesh.ARRAY_WEIGHTS] != null:
+			has_weights = true
+			byte_array = arrays[Mesh.ARRAY_WEIGHTS].to_byte_array()
+			surface_data.weights_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+		var vertex_format = -1
+		if has_normal and has_tangent and has_uv and has_bones and has_weights:
+			vertex_format = get_or_create_skeletal_mesh_vertex_format()
+			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer, surface_data.bones_buffer, surface_data.weights_buffer])
+		elif has_normal and has_tangent and has_uv:
+			vertex_format = get_or_create_static_mesh_vertex_format()
+			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
+		elif LOG_WARNS :
+			push_warning(WARN_SURFACE_SKIPPED_VF % [i, mesh_resource.resource_name])
+
+	return orphan_surfaces
+
 static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data = MeshData.new()
 
@@ -261,51 +336,11 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		mesh_data.pose_array_buffer = TL_RendererUtils.create_pose_array_buffer(mesh_data.pose_array)
 
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
-	for i in range(0, mesh.mesh.get_surface_count()):
-		var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
-		
-		surface_data.material_data = create_from_material(mesh.get_active_material(i))
-		if surface_data.material_data != null:
-			mesh_data.surfaces_data.append(surface_data)
-		elif LOG_WARNS :
-			push_warning(WARN_SURAFACE_SKIPPED % [i, mesh.name])
 
+	var orphan_surfaces : Array[SurfaceData] = _create_orphan_surfaces_from_mesh_resource(mesh.mesh)
+	for surface_data in orphan_surfaces:
 		surface_data.mesh_data = mesh_data
-
-		var arrays = mesh.mesh.surface_get_arrays(i)
-		surface_data.index_count = arrays[Mesh.ARRAY_INDEX].size()
-		var byte_array = arrays[Mesh.ARRAY_INDEX].to_byte_array()
-		surface_data.index_buffer = rd.index_buffer_create(arrays[Mesh.ARRAY_INDEX].size(), RenderingDevice.INDEX_BUFFER_FORMAT_UINT32, byte_array)
-		
-		surface_data.index_array = rd.index_array_create(surface_data.index_buffer, 0, surface_data.index_count)
-
-		surface_data.vertex_count = arrays[Mesh.ARRAY_VERTEX].size()
-		byte_array = arrays[Mesh.ARRAY_VERTEX].to_byte_array()
-		surface_data.position_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		byte_array = arrays[Mesh.ARRAY_NORMAL].to_byte_array()
-		surface_data.normal_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		byte_array = arrays[Mesh.ARRAY_TANGENT].to_byte_array()
-		surface_data.tangent_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
-		surface_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		if mesh_data.is_skeletal:
-			byte_array = arrays[Mesh.ARRAY_BONES].to_byte_array()
-			surface_data.bones_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-			byte_array = arrays[Mesh.ARRAY_WEIGHTS].to_byte_array()
-			surface_data.weights_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-		var vertex_format = -1
-		if mesh_data.is_skeletal:
-			vertex_format = get_or_create_skeletal_mesh_vertex_format()
-			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer, surface_data.bones_buffer, surface_data.weights_buffer])
-		else:
-			vertex_format = get_or_create_static_mesh_vertex_format()
-			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
+		mesh_data.surfaces_data.append(surface_data)
 
 	return mesh_data
 
@@ -450,3 +485,21 @@ static func free_camera(camera_data : CameraData):
 	if camera_data.matrices_uniform_buffer != RID():
 		rd.free_rid(camera_data.matrices_uniform_buffer)
 		camera_data.matrices_uniform_buffer = RID()
+
+static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
+	var particles_data = ParticlesData.new()
+	particles_data.multi_mesh_rid = cpu_particles.get_multimesh_rid()
+
+	var mesh_data = MeshData.new()
+	# mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
+	particles_data.mesh_data = mesh_data
+
+	var orphan_surfaces : Array[SurfaceData] = _create_orphan_surfaces_from_mesh_resource(cpu_particles.mesh)
+	for surface_data in orphan_surfaces:
+		surface_data.mesh_data = mesh_data
+		mesh_data.surfaces_data.append(surface_data)
+
+	return particles_data
+
+static func free_particles(particles_data : ParticlesData):
+	free_mesh(particles_data.mesh_data)
