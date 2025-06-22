@@ -1,6 +1,6 @@
 class_name TL_DefaultModel
 
-const LOG_WARNS = false
+const LOG_WARNS = true
 const WARN_NOT_SUPPORTED_MATERIAL = "TourefL : Unable to generate proxy data from %s material. It may have unsupported features."
 const WARN_SURFACE_SKIPPED_MAT = "TourefL : The material data for %dth surface of the mesh %s could not be generated. This surface will be skipped."
 const WARN_SURFACE_SKIPPED_VF = "TourefL : The vertex format for %dth surface of the mesh %s could not be generated. This surface will be skipped."
@@ -140,7 +140,7 @@ static func get_or_create_particles_vertex_format() -> int:
 
 		_particles_vertex_format = rd.vertex_format_create([positionAttr, vertexColorAttr])
 
-	return _static_mesh_vertex_format
+	return _particles_vertex_format
 
 class CameraData:
 	var view_matrix_bytes : PackedByteArray
@@ -210,6 +210,8 @@ class MaterialData:
 
 class ParticlesData:
 	var multi_mesh_rid : RID
+	var nb_particles : int
+	var instance_storage_buffer : RID
 	var mesh_data : MeshData
 
 static func create_from(obj : Object):
@@ -280,17 +282,21 @@ static func free_material(material_data : MaterialData):
 		rd.free_rid(material_data.orm_sampler)
 		material_data.orm_sampler = RID() 
 
-static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh) -> Array[SurfaceData]:
+static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh, ignore_mat : bool = false) -> Array[SurfaceData]:
 	var orphan_surfaces : Array[SurfaceData]
 
 	for i in range(0, mesh_resource.get_surface_count()):
 		var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
 
-		surface_data.material_data = create_from_material(mesh_resource.surface_get_material(i))
-		if surface_data.material_data != null:
+		if ignore_mat:
+			surface_data.material_data = MaterialData.new()
 			orphan_surfaces.append(surface_data)
-		elif LOG_WARNS :
-			push_warning(WARN_SURFACE_SKIPPED_MAT % [i, mesh_resource.resource_name])
+		else:
+			surface_data.material_data = create_from_material(mesh_resource.surface_get_material(i))
+			if surface_data.material_data != null:
+				orphan_surfaces.append(surface_data)
+			elif LOG_WARNS :
+				push_warning(WARN_SURFACE_SKIPPED_MAT % [i, mesh_resource.resource_name])
 
 		var arrays = mesh_resource.surface_get_arrays(i)
 		surface_data.index_count = arrays[Mesh.ARRAY_INDEX].size()
@@ -347,9 +353,9 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh) -> 
 		elif has_normal and has_tangent and has_uv:
 			vertex_format = get_or_create_static_mesh_vertex_format()
 			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
-		elif has_color:
-			vertex_format = get_or_create_particles_vertex_format()
-			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.color_buffer])
+		# elif has_color:
+		# 	vertex_format = get_or_create_particles_vertex_format()
+		# 	surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.color_buffer])
 		elif LOG_WARNS :
 			push_warning(WARN_SURFACE_SKIPPED_VF % [i, mesh_resource.resource_name])
 
@@ -366,7 +372,7 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 			var global_bone_transform : Transform3D = skeleton.get_bone_global_pose(bone_idx)
 			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
 			mesh_data.pose_array.append(Projection(global_bone_transform * inverse_bind))
-		mesh_data.pose_array_buffer = TL_RendererUtils.create_pose_array_buffer(mesh_data.pose_array)
+		mesh_data.pose_array_buffer = TL_RendererUtils.create_mat4_array_uniform_buffer(mesh_data.pose_array)
 
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 
@@ -526,11 +532,22 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 	var particles_data = ParticlesData.new()
 	particles_data.multi_mesh_rid = cpu_particles.get_multimesh_rid()
 
+	particles_data.nb_particles = RenderingServer.multimesh_get_instance_count(particles_data.multi_mesh_rid)
+	var instance_transforms : Array[Transform3D]
+	var instance_colors : Array[Color]
+	for idx : int in range(particles_data.nb_particles):
+		var transform : Transform3D = RenderingServer.multimesh_instance_get_transform(particles_data.multi_mesh_rid, idx)
+		transform = cpu_particles.global_transform * transform
+		instance_transforms.append(transform)
+		var color : Color = RenderingServer.multimesh_instance_get_color(particles_data.multi_mesh_rid, idx)
+		instance_colors.append(color)
+	particles_data.instance_storage_buffer = TL_RendererUtils.create_particles_instance_storage_buffer(instance_transforms, instance_colors)
+
 	var mesh_data = MeshData.new()
 	# mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 	particles_data.mesh_data = mesh_data
 
-	var orphan_surfaces : Array[SurfaceData] = _create_orphan_surfaces_from_mesh_resource(cpu_particles.mesh)
+	var orphan_surfaces : Array[SurfaceData] = _create_orphan_surfaces_from_mesh_resource(cpu_particles.mesh, true)
 	for surface_data in orphan_surfaces:
 		surface_data.mesh_data = mesh_data
 		mesh_data.surfaces_data.append(surface_data)
@@ -539,3 +556,5 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 
 static func free_particles(particles_data : ParticlesData):
 	free_mesh(particles_data.mesh_data)
+	if particles_data.instance_storage_buffer != RID() :
+		rd.free_rid(particles_data.instance_storage_buffer)

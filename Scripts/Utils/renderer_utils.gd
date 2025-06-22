@@ -59,10 +59,19 @@ static func create_pipline(nb_color_attachments : int, shader_program : RID, fra
 		colorBlendState.attachments.append(RDPipelineColorBlendStateAttachment.new())
 	return rd.render_pipeline_create(shader_program, framebuffer_format, vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
 
-static func create_pose_array_buffer(pose_array : Array[Projection]) -> RID:
+static func create_mat4_array_uniform_buffer(proj_array : Array[Projection]) -> RID:
 	var bytes : PackedByteArray
-	for pose_matrix in pose_array:
-		bytes.append_array(TL_RendererUtils.proj_to_bytes(pose_matrix))
+	for proj_matrix in proj_array:
+		bytes.append_array(TL_RendererUtils.proj_to_bytes(proj_matrix))
 
 	return rd.uniform_buffer_create(bytes.size(), bytes)
+
+static func create_particles_instance_storage_buffer(transform_array : Array[Transform3D], color_array : Array[Color]) -> RID:
+	var bytes : PackedByteArray
+	for idx : int in transform_array.size():
+		bytes.append_array(TL_RendererUtils.proj_to_bytes(Projection(transform_array[idx])))
+		var color : PackedColorArray = [color_array[idx]]
+		# bytes.append_array(color.to_byte_array())
+
+	return rd.storage_buffer_create(bytes.size(), bytes)
 		
