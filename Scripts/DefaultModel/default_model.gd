@@ -537,14 +537,13 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 	var instance_colors : Array[Color]
 	for idx : int in range(particles_data.nb_particles):
 		var transform : Transform3D = RenderingServer.multimesh_instance_get_transform(particles_data.multi_mesh_rid, idx)
-		transform = cpu_particles.global_transform * transform
 		instance_transforms.append(transform)
 		var color : Color = RenderingServer.multimesh_instance_get_color(particles_data.multi_mesh_rid, idx)
 		instance_colors.append(color)
 	particles_data.instance_storage_buffer = TL_RendererUtils.create_particles_instance_storage_buffer(instance_transforms, instance_colors)
 
 	var mesh_data = MeshData.new()
-	# mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
+	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cpu_particles.global_transform))
 	particles_data.mesh_data = mesh_data
 
 	var orphan_surfaces : Array[SurfaceData] = _create_orphan_surfaces_from_mesh_resource(cpu_particles.mesh, true)

@@ -74,4 +74,12 @@ static func create_particles_instance_storage_buffer(transform_array : Array[Tra
 		bytes.append_array(color.to_byte_array())
 
 	return rd.storage_buffer_create(bytes.size(), bytes)
-		
+
+static func update_particles_instance_storage_buffer(instance_storage_buffer : RID, transform_array : Array[Transform3D], color_array : Array[Color]) -> void:
+	var bytes : PackedByteArray
+	for idx : int in transform_array.size():
+		bytes.append_array(TL_RendererUtils.proj_to_bytes(Projection(transform_array[idx])))
+		var color : PackedColorArray = [color_array[idx]]
+		bytes.append_array(color.to_byte_array())
+
+	rd.buffer_update(instance_storage_buffer, 0, bytes.size(), bytes)
