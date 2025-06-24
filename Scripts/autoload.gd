@@ -23,7 +23,7 @@ var native_sub_viewport : SubViewport
 
 func _enter_tree() -> void:
 	for renderer_def : TL_RendererDef in registry.rederer_defs:
-		var renderer_inst = renderer_def.instanciate()
+		var renderer_inst = _TL_Renderer_Factory.create_renderer(renderer_def)
 		renderers.append(renderer_inst)
 	
 	native_sub_viewport_container = SubViewportContainer.new()
