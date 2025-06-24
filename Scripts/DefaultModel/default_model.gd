@@ -1,6 +1,6 @@
 class_name TL_DefaultModel
 
-const LOG_WARNS = true
+const LOG_WARNS = false
 const WARN_NOT_SUPPORTED_MATERIAL = "TourefL : Unable to generate proxy data from %s material. It may have unsupported features."
 const WARN_SURFACE_SKIPPED_MAT = "TourefL : The material data for %dth surface of the mesh %s could not be generated. This surface will be skipped."
 const WARN_SURFACE_SKIPPED_VF = "TourefL : The vertex format for %dth surface of the mesh %s could not be generated. This surface will be skipped."
