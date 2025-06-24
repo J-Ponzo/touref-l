@@ -34,14 +34,23 @@ func instanciate(framebuffer : RID, nb_color_attachment : int, depth_test : bool
 
 	instance.shader_program = TL_RendererUtils.compile_shader(vertex_shader_src, fragment_shader_src)
 
+	# if vertex_format == EVertexFormat.Static_Mesh:
+	# 	instance.vertex_format = TL_DefaultModel.get_or_create_static_mesh_vertex_format()
+	# elif vertex_format == EVertexFormat.Skeletal_Mesh:
+	# 	instance.vertex_format = TL_DefaultModel.get_or_create_skeletal_mesh_vertex_format()
+	# elif vertex_format == EVertexFormat.Particles:
+	# 	instance.vertex_format = TL_DefaultModel.get_or_create_particles_vertex_format()
+	# elif vertex_format == EVertexFormat.Post_Process_Square:
+	# 	instance.vertex_format = TL_DefaultModel.get_or_create_post_process_square_vertex_format()
+
 	if vertex_format == EVertexFormat.Static_Mesh:
-		instance.vertex_format = TL_DefaultModel.get_or_create_static_mesh_vertex_format()
+		instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(true, true, false, true, false, false, false)
 	elif vertex_format == EVertexFormat.Skeletal_Mesh:
-		instance.vertex_format = TL_DefaultModel.get_or_create_skeletal_mesh_vertex_format()
+		instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(true, true, false, true, false, true, true)
 	elif vertex_format == EVertexFormat.Particles:
-		instance.vertex_format = TL_DefaultModel.get_or_create_particles_vertex_format()
+		instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, false, false, false, false, false, false)
 	elif vertex_format == EVertexFormat.Post_Process_Square:
-		instance.vertex_format = TL_DefaultModel.get_or_create_post_process_square_vertex_format()
+		instance.vertex_format = TL_DefaultModel.get_or_create_post_process_square_vertex_format()#_TL_Renderer_Factory.get_or_create_vertex_format(false, false, false, true, false, false, false)
 
 	instance.pipeline = TL_RendererUtils.create_pipline(nb_color_attachment, instance.shader_program, framebuffer, instance.vertex_format, depth_test)
 
