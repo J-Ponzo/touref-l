@@ -7,141 +7,6 @@ const WARN_SURFACE_SKIPPED_VF = "TourefL : The vertex format for %dth surface of
 
 static var rd = RenderingServer.get_rendering_device()
 
-static var _post_process_square_vertex_format : int = -1
-static func get_or_create_post_process_square_vertex_format() -> int:
-	if _post_process_square_vertex_format == -1:
-		var sizeof_float = 4
-		var position_nb_floats = 2
-		var uv_nb_floats = 2
-
-		var positionAttr = RDVertexAttribute.new()
-		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
-		positionAttr.stride = position_nb_floats * sizeof_float
-		positionAttr.offset = 0
-		positionAttr.location = 0
-
-		var uvAttr = RDVertexAttribute.new()
-		uvAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT
-		uvAttr.stride = uv_nb_floats * sizeof_float
-		uvAttr.offset = 0
-		uvAttr.location = 1
-		
-		_post_process_square_vertex_format = rd.vertex_format_create([positionAttr, uvAttr])
-
-	return _post_process_square_vertex_format
-
-static var _static_mesh_vertex_format : int = -1
-static func get_or_create_static_mesh_vertex_format() -> int:
-	if _static_mesh_vertex_format == -1:
-		var sizeof_float = 4
-		var position_nb_floats = 3
-		var normal_nb_floats = 3
-		var tangent_nb_floats = 4
-		var uv_nb_floats = 2
-		
-		var positionAttr = RDVertexAttribute.new()
-		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
-		positionAttr.stride = position_nb_floats * sizeof_float
-		positionAttr.offset = 0
-		positionAttr.location = 0
-		
-		var normalAttr = RDVertexAttribute.new()
-		normalAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
-		normalAttr.stride = normal_nb_floats * sizeof_float
-		normalAttr.offset = 0
-		normalAttr.location = 1
-
-		var tangentAttr = RDVertexAttribute.new()
-		tangentAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT ;
-		tangentAttr.stride = tangent_nb_floats * sizeof_float
-		tangentAttr.offset = 0
-		tangentAttr.location = 2
-		
-		var uvAttr = RDVertexAttribute.new()
-		uvAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
-		uvAttr.stride = uv_nb_floats * sizeof_float
-		uvAttr.offset = 0
-		uvAttr.location = 3
-
-		_static_mesh_vertex_format = rd.vertex_format_create([positionAttr, normalAttr, tangentAttr, uvAttr])
-
-	return _static_mesh_vertex_format
-
-static var _skeletal_mesh_vertex_format : int = -1
-static func get_or_create_skeletal_mesh_vertex_format() -> int:
-	if _skeletal_mesh_vertex_format == -1:
-		var sizeof_float = 4
-		var sizeof_int = 4
-		var position_nb_floats = 3
-		var normal_nb_floats = 3
-		var tangent_nb_floats = 4
-		var uv_nb_floats = 2
-		var bones_nb_ints = 4
-		var weights_nb_floats = 4
-		
-		var positionAttr = RDVertexAttribute.new()
-		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
-		positionAttr.stride = position_nb_floats * sizeof_float
-		positionAttr.offset = 0
-		positionAttr.location = 0
-		
-		var normalAttr = RDVertexAttribute.new()
-		normalAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
-		normalAttr.stride = normal_nb_floats * sizeof_float
-		normalAttr.offset = 0
-		normalAttr.location = 1
-
-		var tangentAttr = RDVertexAttribute.new()
-		tangentAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT ;
-		tangentAttr.stride = tangent_nb_floats * sizeof_float
-		tangentAttr.offset = 0
-		tangentAttr.location = 2
-		
-		var uvAttr = RDVertexAttribute.new()
-		uvAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
-		uvAttr.stride = uv_nb_floats * sizeof_float
-		uvAttr.offset = 0
-		uvAttr.location = 3
-
-		var bonesAttr = RDVertexAttribute.new()
-		bonesAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SINT;
-		bonesAttr.stride = bones_nb_ints * sizeof_int
-		bonesAttr.offset = 0
-		bonesAttr.location = 4
-
-		var weightsAttr = RDVertexAttribute.new()
-		weightsAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT;
-		weightsAttr.stride = weights_nb_floats * sizeof_float
-		weightsAttr.offset = 0
-		weightsAttr.location = 5
-
-		_skeletal_mesh_vertex_format = rd.vertex_format_create([positionAttr, normalAttr, tangentAttr, uvAttr, bonesAttr, weightsAttr])
-
-	return _skeletal_mesh_vertex_format
-
-static var _particles_vertex_format : int = -1
-static func get_or_create_particles_vertex_format() -> int:
-	if _particles_vertex_format == -1:
-		var sizeof_float = 4
-		var position_nb_floats = 3
-		var color_nb_floats = 3
-		
-		var positionAttr = RDVertexAttribute.new()
-		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
-		positionAttr.stride = position_nb_floats * sizeof_float
-		positionAttr.offset = 0
-		positionAttr.location = 0
-		
-		var vertexColorAttr = RDVertexAttribute.new()
-		vertexColorAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
-		vertexColorAttr.stride = color_nb_floats * sizeof_float
-		vertexColorAttr.offset = 0
-		vertexColorAttr.location = 1
-
-		_particles_vertex_format = rd.vertex_format_create([positionAttr, vertexColorAttr])
-
-	return _particles_vertex_format
-
 class CameraData:
 	var view_matrix_bytes : PackedByteArray
 	var projection_matrix_bytes : PackedByteArray
@@ -348,10 +213,10 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh, ign
 
 		var vertex_format = -1
 		if has_normal and has_tangent and has_uv and has_bones and has_weights:
-			vertex_format = get_or_create_skeletal_mesh_vertex_format()
+			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, true, true)
 			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer, surface_data.bones_buffer, surface_data.weights_buffer])
 		elif has_normal and has_tangent and has_uv:
-			vertex_format = get_or_create_static_mesh_vertex_format()
+			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, false, false)
 			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
 		# elif has_color:
 		# 	vertex_format = get_or_create_particles_vertex_format()

@@ -6,7 +6,8 @@ const ERR_RENDERPASS_WRONG_PARENT = "TourefL : Cannot instantiate the render pas
 
 const SIZEOF_FLOAT = 4
 const SIZEOF_INT = 4
-const POSITION_NB_FLOATS = 3
+const POSITION_2D_NB_FLOATS = 2
+const POSITION_3D_NB_FLOATS = 3
 const NORMAL_NB_FLOATS = 3
 const TAGENT_NB_FLOATS = 4
 const COLOR_NB_FLOATS = 4
@@ -48,33 +49,41 @@ static func create_render_pass(renderer_inst : _TL_Renderer, render_pass_def : T
 	
 	return null
 
-static func get_mask_from_vertex_attrs(has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
+static func get_mask_from_vertex_attrs(is_2d : bool, has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
 	var mask : int = 0
-	mask |= 1 << 0 if has_normal else 0
-	mask |= 1 << 1 if has_tangent else 0
-	mask |= 1 << 2 if has_color else 0
-	mask |= 1 << 3 if has_uv else 0
-	mask |= 1 << 4 if has_uv2 else 0
-	mask |= 1 << 5 if has_bones else 0
-	mask |= 1 << 6 if has_weights else 0
+	mask |= 1 << 0 if is_2d else 0
+	mask |= 1 << 1 if has_normal else 0
+	mask |= 1 << 2 if has_tangent else 0
+	mask |= 1 << 3 if has_color else 0
+	mask |= 1 << 4 if has_uv else 0
+	mask |= 1 << 5 if has_uv2 else 0
+	mask |= 1 << 6 if has_bones else 0
+	mask |= 1 << 7 if has_weights else 0
 	return mask
 
 static var vertex_formats_cache : Dictionary[int, int]
 
-static func get_or_create_vertex_format(has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
-	var mask : int = get_mask_from_vertex_attrs(has_normal, has_tangent, has_color, has_uv, has_uv2, has_bones, has_weights) 
+static func get_or_create_vertex_format(is_2d : bool, has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
+	var mask : int = get_mask_from_vertex_attrs(is_2d, has_normal, has_tangent, has_color, has_uv, has_uv2, has_bones, has_weights) 
 	if !vertex_formats_cache.has(mask):
-		vertex_formats_cache[mask] = create_vertex_format(has_normal, has_tangent, has_color, has_uv, has_uv2, has_bones, has_weights)
+		vertex_formats_cache[mask] = create_vertex_format(is_2d, has_normal, has_tangent, has_color, has_uv, has_uv2, has_bones, has_weights)
 	return vertex_formats_cache[mask]
 
-static func create_vertex_format(has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
+static func create_vertex_format(is_2d : bool, has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
 	var attrs : Array[RDVertexAttribute]
-
-	var positionAttr = RDVertexAttribute.new()
-	positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
-	positionAttr.stride = POSITION_NB_FLOATS * SIZEOF_FLOAT
-	positionAttr.offset = 0
-	attrs.append(positionAttr)
+	
+	if is_2d:
+		var positionAttr = RDVertexAttribute.new()
+		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
+		positionAttr.stride = POSITION_2D_NB_FLOATS * SIZEOF_FLOAT
+		positionAttr.offset = 0
+		attrs.append(positionAttr)
+	else:
+		var positionAttr = RDVertexAttribute.new()
+		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
+		positionAttr.stride = POSITION_3D_NB_FLOATS * SIZEOF_FLOAT
+		positionAttr.offset = 0
+		attrs.append(positionAttr)
 
 	if has_normal:
 		var normalAttr = RDVertexAttribute.new()
