@@ -8,16 +8,16 @@ class_name TL_PSODef
 # 	var pipeline : RID
 # 	var vertex_format : int
 
-enum EVertexFormat {
-	Static_Mesh,
-	Skeletal_Mesh,
-	Particles,
-	Post_Process_Square
-}
+# enum EVertexFormat {
+# 	Static_Mesh,
+# 	Skeletal_Mesh,
+# 	Particles,
+# 	Post_Process_Square
+# }
 
 @export var vertex_shader : TL_GLSLShader
 @export var fragment_shader : TL_GLSLShader
-@export var vertex_format : EVertexFormat
+@export var vertex_format_def : TL_VertexFormatDef
 
 # func instanciate(framebuffer : RID, nb_color_attachment : int, depth_test : bool = true) -> TL_PSOInst:
 # 	var instance = TL_PSOInst.new()
