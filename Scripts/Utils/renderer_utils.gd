@@ -57,6 +57,7 @@ static func create_pipline(nb_color_attachments : int, shader_program : RID, fra
 	
 	for i in range(nb_color_attachments):
 		colorBlendState.attachments.append(RDPipelineColorBlendStateAttachment.new())
+
 	return rd.render_pipeline_create(shader_program, framebuffer_format, vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
 
 static func create_mat4_array_uniform_buffer(proj_array : Array[Projection]) -> RID:

@@ -6,7 +6,7 @@ const  ERR_UNDEFINED_DEPTH_ATTACHMENT = "TourefL : Invalid vertex pass %s. Undef
 const  ERR_UNDEFINED_COLOR_ATTACHMENT = "TourefL : Invalid vertex pass %s. Undefined color attachments (you have to override define_color_attachments())"
 
 var pso_defs : Dictionary[StringName, TL_PSODef]
-var pso_instances : Dictionary[StringName, TL_PSODef.TL_PSOInst]
+var pso_instances : Dictionary[StringName, _TL_PSO]
 
 var renderer : _TL_Renderer
 
@@ -21,10 +21,10 @@ func _setup() -> void:
 	framebuffer = create_framebuffer()
 	pso_instances = create_piplines_from_defs(pso_defs)
 	
-func create_piplines_from_defs(pso_defs : Dictionary[StringName, TL_PSODef]) -> Dictionary[StringName, TL_PSODef.TL_PSOInst]:
-	var pso_instances : Dictionary[StringName, TL_PSODef.TL_PSOInst] 
+func create_piplines_from_defs(pso_defs : Dictionary[StringName, TL_PSODef]) -> Dictionary[StringName, _TL_PSO]:
+	var pso_instances : Dictionary[StringName, _TL_PSO] 
 	for key in pso_defs.keys():
-		pso_instances[key] = pso_defs[key].instanciate(framebuffer, color_attachments.size())
+		pso_instances[key] = _TL_Renderer_Factory.create_pso(pso_defs[key], framebuffer, color_attachments.size())
 	return pso_instances
 	
 func _cleanup() -> void:

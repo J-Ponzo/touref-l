@@ -138,3 +138,31 @@ static func create_vertex_format(is_2d : bool, has_normal : bool, has_tangent : 
 		attrs[i].location = i
 
 	return rd.vertex_format_create(attrs)
+
+static func create_pso(pso_def : TL_PSODef, framebuffer : RID, nb_color_attachment : int, depth_test : bool = true) -> _TL_PSO:
+	var instance = _TL_PSO.new()
+
+	var path : String = pso_def.vertex_shader.resource_path
+	var raw_source : String = pso_def.vertex_shader.source_code
+	var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source)
+	var vertex_shader_src : String = preprocessed_source
+	
+	path = pso_def.fragment_shader.resource_path
+	raw_source = pso_def.fragment_shader.source_code
+	preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
+	var fragment_shader_src : String = preprocessed_source
+
+	instance.shader_program = TL_RendererUtils.compile_shader(vertex_shader_src, fragment_shader_src)
+
+	if pso_def.vertex_format == TL_PSODef.EVertexFormat.Static_Mesh:
+		instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, false, false)
+	elif pso_def.vertex_format == TL_PSODef.EVertexFormat.Skeletal_Mesh:
+		instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, true, true)
+	elif pso_def.vertex_format == TL_PSODef.EVertexFormat.Particles:
+		instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, false, false, false, false, false, false, false)
+	elif pso_def.vertex_format == TL_PSODef.EVertexFormat.Post_Process_Square:
+		instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(true, false, false, false, true, false, false, false)
+
+	instance.pipeline = TL_RendererUtils.create_pipline(nb_color_attachment, instance.shader_program, framebuffer, instance.vertex_format, depth_test)
+
+	return instance
