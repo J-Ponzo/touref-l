@@ -157,15 +157,6 @@ static func create_pso(pso_def : TL_PSODef, framebuffer : RID, nb_color_attachme
 	var vf_def : TL_VertexFormatDef = pso_def.vertex_format_def
 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def.is_2d, vf_def.has_normal, vf_def.has_tangent, vf_def.has_color, vf_def.has_uv, vf_def.has_uv2, vf_def.has_bones, vf_def.has_weights)
 
-	# if pso_def.vertex_format == TL_PSODef.EVertexFormat.Static_Mesh:
-	# 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, false, false)
-	# elif pso_def.vertex_format == TL_PSODef.EVertexFormat.Skeletal_Mesh:
-	# 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, true, true)
-	# elif pso_def.vertex_format == TL_PSODef.EVertexFormat.Particles:
-	# 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, false, false, false, false, false, false, false)
-	# elif pso_def.vertex_format == TL_PSODef.EVertexFormat.Post_Process_Square:
-	# 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(true, false, false, false, true, false, false, false)
-
 	instance.pipeline = TL_RendererUtils.create_pipline(nb_color_attachment, instance.shader_program, framebuffer, instance.vertex_format, depth_test)
 
 	return instance

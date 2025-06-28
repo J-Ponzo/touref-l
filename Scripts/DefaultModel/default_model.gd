@@ -57,8 +57,9 @@ class SurfaceData :
 	var position_buffer : RID
 	var normal_buffer : RID
 	var tangent_buffer : RID
-	var uv_buffer : RID
 	var color_buffer : RID
+	var uv_buffer : RID
+	var uv2_buffer : RID
 	var bones_buffer : RID
 	var weights_buffer : RID
 	var vertex_array : RID
@@ -176,8 +177,9 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh, ign
 
 		var has_normal : bool = false
 		var has_tangent : bool = false
-		var has_uv : bool = false
 		var has_color : bool = false
+		var has_uv : bool = false
+		var has_uv2 : bool = false
 		var has_bones : bool = false
 		var has_weights : bool = false
 
@@ -196,6 +198,11 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh, ign
 			byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
 			surface_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
+		if arrays.size() > Mesh.ARRAY_TEX_UV2 and arrays[Mesh.ARRAY_TEX_UV2] != null:
+			has_uv2 = true
+			byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
+			surface_data.uv2_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
 		if arrays.size() > Mesh.ARRAY_COLOR and arrays[Mesh.ARRAY_COLOR] != null:
 			has_color = true
 			byte_array = arrays[Mesh.ARRAY_COLOR].to_byte_array()
@@ -212,7 +219,10 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh, ign
 			surface_data.weights_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 		var vertex_format = -1
-		if has_normal and has_tangent and has_uv and has_bones and has_weights:
+		if ignore_mat:
+			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, false, false, false, false, false, false, false)
+			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer])
+		elif has_normal and has_tangent and has_uv and has_bones and has_weights:
 			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, true, true)
 			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer, surface_data.bones_buffer, surface_data.weights_buffer])
 		elif has_normal and has_tangent and has_uv:
@@ -275,12 +285,12 @@ static func free_surface(surface_data : SurfaceData):
 	if surface_data.tangent_buffer != RID():
 		rd.free_rid(surface_data.tangent_buffer)
 		surface_data.tangent_buffer = RID()
-	if surface_data.uv_buffer != RID():
-		rd.free_rid(surface_data.uv_buffer)
-		surface_data.uv_buffer = RID()
 	if surface_data.color_buffer != RID():
 		rd.free_rid(surface_data.color_buffer)
 		surface_data.color_buffer = RID()
+	if surface_data.uv2_buffer != RID():
+		rd.free_rid(surface_data.uv2_buffer)
+		surface_data.uv2_buffer = RID()
 
 	if surface_data.bones_buffer != RID():
 		rd.free_rid(surface_data.bones_buffer)
