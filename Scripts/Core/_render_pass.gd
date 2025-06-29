@@ -55,10 +55,18 @@ func create_piplines_from_defs(pso_defs : Dictionary[StringName, TL_PSODef]) -> 
 	return pso_instances
 	
 func _cleanup() -> void:
+
+
 	renderer.rd.free_rid(framebuffer)
 	for pso_inst in pso_instances.values():
 		renderer.rd.free_rid(pso_inst.pipeline)
 		renderer.rd.free_rid(pso_inst.shader_program)
+	pso_instances.clear()
+
+	for attachment in attachments.values():
+		renderer.rd.free_rid(attachment)
+	attachments.clear()
+	
 
 func _render() -> void:
 	pass
