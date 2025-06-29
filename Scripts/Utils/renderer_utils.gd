@@ -37,8 +37,7 @@ static func compile_shader(vertex_src : String, fragment_src : String) -> RID:
 	
 	return rd.shader_create_from_spirv(rd.shader_compile_spirv_from_source(shader_source))
 
-static func create_pipline(nb_color_attachments : int, shader_program : RID, framebuffer : RID, vertex_format : int, depth_test : bool = true) -> RID:
-	var framebuffer_format = rd.framebuffer_get_format(framebuffer)
+static func create_pipline(nb_color_attachments : int, shader_program : RID, framebuffer_format : int, vertex_format : int, depth_test : bool = true) -> RID:
 	var rasterizationState = RDPipelineRasterizationState.new()
 	rasterizationState.cull_mode = RenderingDevice.POLYGON_CULL_DISABLED
 	var multisampleState = RDPipelineMultisampleState.new()

@@ -26,8 +26,8 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 			var scene_proxy : _TL_SceneProxy = scn_proxy_inst
 			var renderer : _TL_Renderer = renderer_inst
 			renderer.scene_proxy = scene_proxy
-			for render_pass_def : TL_RenderPassDef in renderer_def.renderer_pass_defs:
-				var render_pass_inst = create_render_pass(renderer, render_pass_def)
+			for key : StringName in renderer_def.renderer_pass_defs.keys():
+				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
 			return renderer
 		else :
 			push_error(ERR_SCNPROXY_WRONG_PARENT % renderer_def.scene_proxy_script)
@@ -36,13 +36,22 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 	
 	return null
 
-static func create_render_pass(renderer_inst : _TL_Renderer, render_pass_def : TL_RenderPassDef) -> _TL_RenderPass:
+static func create_render_pass(renderer_inst : _TL_Renderer, render_pass_key : StringName, render_pass_def : TL_RenderPassDef) -> _TL_RenderPass:
 	var render_pass_inst = render_pass_def.pass_script.new()
 	if render_pass_inst is _TL_RenderPass:
 		var render_pass : _TL_RenderPass = render_pass_inst
 		render_pass.pso_defs = render_pass_def.pso_defs
 		render_pass.renderer = renderer_inst
-		renderer_inst.render_passes.append(render_pass)
+		renderer_inst.render_passes[render_pass_key] = render_pass
+
+		for attach_key : StringName in render_pass_def.fb_format_def.attachment_format_defs.keys():
+			var attachment : RID = create_texture_attachment(render_pass_def.fb_format_def.attachment_format_defs[attach_key])
+			render_pass.attachments[attach_key] = attachment
+			if render_pass_def.fb_format_def.depth_key == attach_key:
+				render_pass.depth_attachment = attachment
+			else:
+				render_pass.color_attachments.append(attachment)
+
 		return render_pass
 	else:
 		push_error(ERR_RENDERPASS_WRONG_PARENT % render_pass_def.pass_script)
@@ -157,6 +166,36 @@ static func create_pso(pso_def : TL_PSODef, framebuffer : RID, nb_color_attachme
 	var vf_def : TL_VertexFormatDef = pso_def.vertex_format_def
 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def.is_2d, vf_def.has_normal, vf_def.has_tangent, vf_def.has_color, vf_def.has_uv, vf_def.has_uv2, vf_def.has_bones, vf_def.has_weights)
 
-	instance.pipeline = TL_RendererUtils.create_pipline(nb_color_attachment, instance.shader_program, framebuffer, instance.vertex_format, depth_test)
+	var framebuffer_format : int = rd.framebuffer_get_format(framebuffer)
+
+	# var attachments := []
+
+	# # Color attachment
+	# var color := RDAttachmentFormat.new()
+	# color.format = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT
+	# color.usage_flags = RenderingDevice.TEXTURE_USAGE_COLOR_ATTACHMENT_BIT
+	# attachments.append(color)
+
+	# Crée le framebuffer format
+	# var framebuffer_format := rd.framebuffer_format_create(attachments)
+
+	instance.pipeline = TL_RendererUtils.create_pipline(nb_color_attachment, instance.shader_program, framebuffer_format, instance.vertex_format, depth_test)
 
 	return instance
+	
+static func create_texture_attachment(tex_attach_def : TL_AttachmentFormat_Def, width : int = -1, height : int = -1) -> RID:
+	if width == -1:
+		width = ProjectSettings.get_setting("display/window/size/viewport_width")
+	if height == -1:
+		height = ProjectSettings.get_setting("display/window/size/viewport_height")
+	
+	var tf = RDTextureFormat.new();
+	tf.usage_bits = 0
+	for bit in tex_attach_def.usage_flags:
+		tf.usage_bits |= bit
+	tf.width = width
+	tf.height = height
+	tf.format = tex_attach_def.format
+	var view = RDTextureView.new();
+
+	return rd.texture_create(tf, view)

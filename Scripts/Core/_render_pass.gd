@@ -7,6 +7,7 @@ const  ERR_UNDEFINED_COLOR_ATTACHMENT = "TourefL : Invalid vertex pass %s. Undef
 
 var pso_defs : Dictionary[StringName, TL_PSODef]
 var pso_instances : Dictionary[StringName, _TL_PSO]
+var attachments : Dictionary[StringName, RID]
 
 var renderer : _TL_Renderer
 
@@ -16,8 +17,7 @@ var depth_attachment : RID
 var color_attachments : Array[RID]
 
 func _setup() -> void:
-	depth_attachment = define_depth_attachment()
-	color_attachments = define_color_attachments()
+	# Attachments has to be created and freed here
 	framebuffer = create_framebuffer()
 	pso_instances = create_piplines_from_defs(pso_defs)
 	
@@ -35,14 +35,6 @@ func _cleanup() -> void:
 
 func _render() -> void:
 	pass
-
-func define_depth_attachment() -> RID:
-	push_error(ERR_UNDEFINED_DEPTH_ATTACHMENT % self.get_script())
-	return RID()
-
-func define_color_attachments() -> Array[RID]:
-	push_error(ERR_UNDEFINED_COLOR_ATTACHMENT % self.get_script())
-	return []
 
 func create_framebuffer() -> RID:
 	var all_attachments : Array[RID]
