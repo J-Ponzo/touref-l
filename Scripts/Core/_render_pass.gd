@@ -7,7 +7,8 @@ const  ERR_UNDEFINED_COLOR_ATTACHMENT = "TourefL : Invalid vertex pass %s. Undef
 
 var render_pass_def : TL_RenderPassDef
 var pso_defs : Dictionary[StringName, TL_PSODef]
-var pso_instances : Dictionary[StringName, _TL_PSO]
+var pso_name_to_mask : Dictionary[StringName, int]
+var pso_instances : Dictionary[int, _TL_PSO]
 var attachments : Dictionary[StringName, RID]
 
 var renderer : _TL_Renderer
@@ -19,7 +20,28 @@ func _setup() -> void:
 	attachments = create_attachments_from_def(render_pass_def.fb_format_def.attachment_format_defs)
 	framebuffer_format = create_framebuffer_format_from_def(render_pass_def.fb_format_def)
 	framebuffer = renderer.rd.framebuffer_create(attachments.values())
-	pso_instances = create_piplines_from_defs(pso_defs)
+	pso_name_to_mask = create_pso_name_to_mask(pso_defs)
+	pso_instances = create_piplines_from_defs(pso_defs, pso_name_to_mask)
+
+func get_or_create_pso_instance(mat_feature_flags_mask : int) -> _TL_PSO:
+	if !pso_instances.has(mat_feature_flags_mask):
+		var pso_def = _TL_Renderer_Factory.get_pso_def_from_mask(mat_feature_flags_mask)
+		pso_instances[mat_feature_flags_mask] = _TL_Renderer_Factory.create_pso(pso_def, framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
+	return pso_instances[mat_feature_flags_mask]
+	
+
+func create_pso_name_to_mask(pso_defs : Dictionary[StringName, TL_PSODef]) -> Dictionary[StringName, int]:
+	var pso_name_to_mask : Dictionary[StringName, int]
+	for key in pso_defs.keys(): 
+		pso_name_to_mask[key] = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(pso_defs[key].material_features_def)
+	return pso_name_to_mask
+
+func create_piplines_from_defs(pso_defs : Dictionary[StringName, TL_PSODef], pso_name_to_mask : Dictionary[StringName, int]) -> Dictionary[int, _TL_PSO]:
+	var pso_instances : Dictionary[int, _TL_PSO] 
+	for key in pso_defs.keys():
+		var mask : int = pso_name_to_mask[key]
+		pso_instances[mask] = _TL_Renderer_Factory.create_pso(pso_defs[key], framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
+	return pso_instances
 
 func create_framebuffer_format_from_def(fb_format_def : TL_FramebufferFormat_Def) -> int:
 	var attachment_formats : Array[RDAttachmentFormat]
@@ -47,12 +69,6 @@ func get_nb_color_attachments(fb_format_def : TL_FramebufferFormat_Def) -> int :
 	if fb_format_def.attachment_format_defs.has(fb_format_def.depth_key):
 		return fb_format_def.attachment_format_defs.size() - 1;
 	return fb_format_def.attachment_format_defs.size();
-
-func create_piplines_from_defs(pso_defs : Dictionary[StringName, TL_PSODef]) -> Dictionary[StringName, _TL_PSO]:
-	var pso_instances : Dictionary[StringName, _TL_PSO] 
-	for key in pso_defs.keys():
-		pso_instances[key] = _TL_Renderer_Factory.create_pso(pso_defs[key], framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
-	return pso_instances
 	
 func _cleanup() -> void:
 

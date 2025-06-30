@@ -51,6 +51,23 @@ static func create_render_pass(renderer_inst : _TL_Renderer, render_pass_key : S
 	
 	return null
 
+static func get_mask_from_bool_array(bools : Array[bool]) -> int:
+	if bools.size() > 32:
+		return -1
+	var mask : int = 0
+	for i in bools.size():
+		mask |= 1 << i if bools[i] else 0
+	return mask
+
+# TODO impl
+static func get_pso_def_from_mask(mask : int) -> TL_PSODef:
+	return null
+
+static func get_mask_from_material_feature_flags_def(material_features_def : TL_MaterialFeatureFlags_Def) -> int:
+	if material_features_def == null:
+		return -1
+	return get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced])
+
 static func get_vertex_format_def_from_mask(mask : int) -> TL_VertexFormatDef:
 	if mask < 0:
 		return null;
@@ -67,14 +84,6 @@ static func get_vertex_format_def_from_mask(mask : int) -> TL_VertexFormatDef:
 
 static func get_mask_from_vertex_format_def(vf_def : TL_VertexFormatDef) -> int:
 	return get_mask_from_bool_array([vf_def.is_2d, vf_def.has_normal, vf_def.has_tangent, vf_def.has_uv, vf_def.has_uv2, vf_def.has_color, vf_def.has_bones, vf_def.has_weights])
-
-static func get_mask_from_bool_array(bools : Array[bool]) -> int:
-	if bools.size() > 32:
-		return -1
-	var mask : int = 0
-	for i in bools.size():
-		mask |= 1 << i if bools[i] else 0
-	return mask
 
 static var vertex_formats_cache : Dictionary[int, int]
 
