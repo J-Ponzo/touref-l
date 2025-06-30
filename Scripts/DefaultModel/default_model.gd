@@ -63,6 +63,7 @@ class SurfaceData :
 	var bones_buffer : RID
 	var weights_buffer : RID
 	var vertex_array : RID
+	var vertex_format_mask : int = -1
 
 	var material_data : MaterialData
 
@@ -218,15 +219,25 @@ static func _create_orphan_surfaces_from_mesh_resource(mesh_resource : Mesh, ign
 			byte_array = arrays[Mesh.ARRAY_WEIGHTS].to_byte_array()
 			surface_data.weights_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
+		surface_data.vertex_format_mask = _TL_Renderer_Factory.get_mask_from_bool_array([false, has_normal, has_tangent, has_uv, has_uv2, has_color, has_bones, has_weights])
+
 		var vertex_format = -1
+		var mask : int
+		var vf_def : TL_VertexFormatDef
 		if ignore_mat:
-			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, false, false, false, false, false, false, false)
+			mask = _TL_Renderer_Factory.get_mask_from_bool_array([false, false, false, false, false, false, false, false])
+			vf_def = _TL_Renderer_Factory.get_vertex_format_def_from_mask(mask)
+			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer])
 		elif has_normal and has_tangent and has_uv and has_bones and has_weights:
-			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, true, true)
+			mask = _TL_Renderer_Factory.get_mask_from_bool_array([false, true, true, false, true, false, true, true])
+			vf_def = _TL_Renderer_Factory.get_vertex_format_def_from_mask(mask)
+			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer, surface_data.bones_buffer, surface_data.weights_buffer])
 		elif has_normal and has_tangent and has_uv:
-			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(false, true, true, false, true, false, false, false)
+			mask = _TL_Renderer_Factory.get_mask_from_bool_array([false, true, true, false, true, false, false, false])
+			vf_def = _TL_Renderer_Factory.get_vertex_format_def_from_mask(mask)
+			vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 			surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, [surface_data.position_buffer, surface_data.normal_buffer, surface_data.tangent_buffer, surface_data.uv_buffer])
 		# elif has_color:
 		# 	vertex_format = get_or_create_particles_vertex_format()

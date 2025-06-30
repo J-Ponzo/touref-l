@@ -51,30 +51,43 @@ static func create_render_pass(renderer_inst : _TL_Renderer, render_pass_key : S
 	
 	return null
 
-static func get_mask_from_vertex_attrs(is_2d : bool, has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
+static func get_vertex_format_def_from_mask(mask : int) -> TL_VertexFormatDef:
+	if mask < 0:
+		return null;
+	var vf_def : TL_VertexFormatDef = TL_VertexFormatDef.new()
+	vf_def.is_2d = 			(mask & 1 << 0) > 0
+	vf_def.has_normal = 	(mask & 1 << 1) > 0
+	vf_def.has_tangent = 	(mask & 1 << 2) > 0
+	vf_def.has_uv = 		(mask & 1 << 3) > 0
+	vf_def.has_uv2 = 		(mask & 1 << 4) > 0
+	vf_def.has_color = 		(mask & 1 << 5) > 0
+	vf_def.has_bones = 		(mask & 1 << 6) > 0
+	vf_def.has_weights = 	(mask & 1 << 7) > 0
+	return vf_def
+
+static func get_mask_from_vertex_format_def(vf_def : TL_VertexFormatDef) -> int:
+	return get_mask_from_bool_array([vf_def.is_2d, vf_def.has_normal, vf_def.has_tangent, vf_def.has_uv, vf_def.has_uv2, vf_def.has_color, vf_def.has_bones, vf_def.has_weights])
+
+static func get_mask_from_bool_array(bools : Array[bool]) -> int:
+	if bools.size() > 32:
+		return -1
 	var mask : int = 0
-	mask |= 1 << 0 if is_2d else 0
-	mask |= 1 << 1 if has_normal else 0
-	mask |= 1 << 2 if has_tangent else 0
-	mask |= 1 << 3 if has_color else 0
-	mask |= 1 << 4 if has_uv else 0
-	mask |= 1 << 5 if has_uv2 else 0
-	mask |= 1 << 6 if has_bones else 0
-	mask |= 1 << 7 if has_weights else 0
+	for i in bools.size():
+		mask |= 1 << i if bools[i] else 0
 	return mask
 
 static var vertex_formats_cache : Dictionary[int, int]
 
-static func get_or_create_vertex_format(is_2d : bool, has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
-	var mask : int = get_mask_from_vertex_attrs(is_2d, has_normal, has_tangent, has_color, has_uv, has_uv2, has_bones, has_weights) 
+static func get_or_create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
+	var mask : int = get_mask_from_vertex_format_def(vertex_format_def) 
 	if !vertex_formats_cache.has(mask):
-		vertex_formats_cache[mask] = create_vertex_format(is_2d, has_normal, has_tangent, has_color, has_uv, has_uv2, has_bones, has_weights)
+		vertex_formats_cache[mask] = create_vertex_format(vertex_format_def)
 	return vertex_formats_cache[mask]
 
-static func create_vertex_format(is_2d : bool, has_normal : bool, has_tangent : bool, has_color : bool, has_uv : bool, has_uv2 : bool, has_bones : bool, has_weights : bool) -> int:
+static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 	var attrs : Array[RDVertexAttribute]
 	
-	if is_2d:
+	if vertex_format_def.is_2d:
 		var positionAttr = RDVertexAttribute.new()
 		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
 		positionAttr.stride = POSITION_2D_NB_FLOATS * SIZEOF_FLOAT
@@ -87,49 +100,49 @@ static func create_vertex_format(is_2d : bool, has_normal : bool, has_tangent : 
 		positionAttr.offset = 0
 		attrs.append(positionAttr)
 
-	if has_normal:
+	if vertex_format_def.has_normal:
 		var normalAttr = RDVertexAttribute.new()
 		normalAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
 		normalAttr.stride = NORMAL_NB_FLOATS * SIZEOF_FLOAT
 		normalAttr.offset = 0
 		attrs.append(normalAttr)
 
-	if has_tangent:
+	if vertex_format_def.has_tangent:
 		var tangentAttr = RDVertexAttribute.new()
 		tangentAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT ;
 		tangentAttr.stride = TAGENT_NB_FLOATS * SIZEOF_FLOAT
 		tangentAttr.offset = 0
 		attrs.append(tangentAttr)
 
-	if has_color:
+	if vertex_format_def.has_color:
 		var colorAttr = RDVertexAttribute.new()
 		colorAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT ;
 		colorAttr.stride = COLOR_NB_FLOATS * SIZEOF_FLOAT
 		colorAttr.offset = 0
 		attrs.append(colorAttr)
 
-	if has_uv:
+	if vertex_format_def.has_uv:
 		var uvAttr = RDVertexAttribute.new()
 		uvAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
 		uvAttr.stride = UV_NB_FLOATS * SIZEOF_FLOAT
 		uvAttr.offset = 0
 		attrs.append(uvAttr)
 
-	if has_uv2:
+	if vertex_format_def.has_uv2:
 		var uv2Attr = RDVertexAttribute.new()
 		uv2Attr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
 		uv2Attr.stride = UV_NB_FLOATS * SIZEOF_FLOAT
 		uv2Attr.offset = 0
 		attrs.append(uv2Attr)
 
-	if has_bones:
+	if vertex_format_def.has_bones:
 		var bonesAttr = RDVertexAttribute.new()
 		bonesAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SINT;
 		bonesAttr.stride = BONES_NB_INTS * SIZEOF_INT
 		bonesAttr.offset = 0
 		attrs.append(bonesAttr)
 
-	if has_weights:
+	if vertex_format_def.has_weights:
 		var weightsAttr = RDVertexAttribute.new()
 		weightsAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT;
 		weightsAttr.stride = WEIGHT_NB_FLOATS * SIZEOF_FLOAT
@@ -157,7 +170,7 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 	instance.shader_program = TL_RendererUtils.compile_shader(vertex_shader_src, fragment_shader_src)
 
 	var vf_def : TL_VertexFormatDef = pso_def.vertex_format_def
-	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def.is_2d, vf_def.has_normal, vf_def.has_tangent, vf_def.has_color, vf_def.has_uv, vf_def.has_uv2, vf_def.has_bones, vf_def.has_weights)
+	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 
 	instance.pipeline = TL_RendererUtils.create_pipline(nb_color_attachment, instance.shader_program, framebuffer_format, instance.vertex_format, depth_test)
 
