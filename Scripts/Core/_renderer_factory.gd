@@ -74,7 +74,7 @@ static func get_vertex_format_def_from_material_feature_flags(mat_feats_def : TL
 	vf_def.has_normal = mat_feats_def.is_lit
 	vf_def.has_tangent = mat_feats_def.is_lit
 	vf_def.has_color = false
-	vf_def.has_uv = mat_feats_def.is_uv_mapped
+	vf_def.has_uv = mat_feats_def.is_textured
 	vf_def.has_uv2 = false
 	vf_def.has_bones = mat_feats_def.is_skeletal
 	vf_def.has_weights = mat_feats_def.is_skeletal
@@ -88,7 +88,7 @@ static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialF
 	mat_feats_def.is_skeletal = 	(mask & 1 << 0) > 0
 	mat_feats_def.is_lit = 			(mask & 1 << 1) > 0
 	mat_feats_def.is_instanced = 	(mask & 1 << 2) > 0
-	mat_feats_def.is_uv_mapped = 	(mask & 1 << 3) > 0
+	mat_feats_def.is_textured = 	(mask & 1 << 3) > 0
 	return mat_feats_def
 
 static func get_mask_from_material_feature_flags_def(material_features_def : TL_MaterialFeatureFlags_Def) -> int:
@@ -191,21 +191,25 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 
 	return rd.vertex_format_create(attrs)
 
-static func create_defines_from_material_feature_flags(mat_feats_def : TL_MaterialFeatureFlags_Def) -> Dictionary[StringName, int]:
+static func create_defines_from_material_feature_flags(mat_feats_def : TL_MaterialFeatureFlags_Def) -> Array[StringName]:
 	if mat_feats_def == null:
-		return {}
+		return []
 	
-	var defines : Dictionary[StringName, int]
-	defines["IS_SKELETAL"] = 1 if mat_feats_def.is_skeletal else 0
-	defines["IS_LIT"] = 1 if mat_feats_def.is_lit else 0
-	defines["IS_INSTANCED"] = 1 if mat_feats_def.is_instanced else 0
-	defines["IS_UV_MAPPED"] = 1 if mat_feats_def.is_uv_mapped else 0
+	var defines : Array[StringName]
+	if mat_feats_def.is_skeletal:
+		defines.append("SKELETAL")
+	if mat_feats_def.is_lit:
+		defines.append("LIT")
+	if mat_feats_def.is_instanced:
+		defines.append("INSTANCED")
+	if mat_feats_def.is_textured:
+		defines.append("TEXTURED")
 	return defines
 
 static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_attachment : int, depth_test : bool = true) -> _TL_PSO:
 	var instance = _TL_PSO.new()
 
-	var defines : Dictionary[StringName, int] = create_defines_from_material_feature_flags(pso_def.material_features_def)
+	var defines : Array[StringName] = create_defines_from_material_feature_flags(pso_def.material_features_def)
 
 	var path : String = pso_def.vertex_shader.resource_path
 	var raw_source : String = pso_def.vertex_shader.source_code

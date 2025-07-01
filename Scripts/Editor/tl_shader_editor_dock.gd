@@ -367,7 +367,7 @@ func compile_shader_action() -> void:
 	var raw_source = edited_shaders[current_shader_key].content
 	var path = current_shader_key
 	# TODO handle defines
-	var preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source, {})
+	var preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source, [])
 	if current_shader_key.get_extension() == EXTENSIONS["Vertex"]:
 		shader_source.source_vertex = preprocessed_source
 	elif current_shader_key.get_extension() == EXTENSIONS["Fragment"]:
