@@ -7,6 +7,7 @@ const  ERR_UNDEFINED_COLOR_ATTACHMENT = "TourefL : Invalid vertex pass %s. Undef
 
 var render_pass_def : TL_RenderPassDef
 var pso_defs : Dictionary[StringName, TL_PSODef]
+
 var pso_name_to_mask : Dictionary[StringName, int]
 var pso_instances : Dictionary[int, _TL_PSO]
 var attachments : Dictionary[StringName, RID]
@@ -25,7 +26,7 @@ func _setup() -> void:
 
 func get_or_create_pso_instance(mat_feature_flags_mask : int) -> _TL_PSO:
 	if !pso_instances.has(mat_feature_flags_mask):
-		var pso_def = _TL_Renderer_Factory.get_pso_def_from_mask(mat_feature_flags_mask)
+		var pso_def = _TL_Renderer_Factory.get_pso_def_from_mask_and_shaders(mat_feature_flags_mask, render_pass_def.uber_vertex_shader, render_pass_def.uber_fragment_shader)
 		pso_instances[mat_feature_flags_mask] = _TL_Renderer_Factory.create_pso(pso_def, framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
 	return pso_instances[mat_feature_flags_mask]
 	

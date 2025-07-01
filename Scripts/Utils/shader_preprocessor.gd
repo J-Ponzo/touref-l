@@ -6,9 +6,10 @@ const use_filenames_in_line_directives : bool = true
 # TODO find something more reliable for persistant debug reatures
 static var _is_debug = false
 
-static func preprocess(path : String, raw_source: String) -> String:
+static func preprocess(path : String, raw_source: String, defines : Dictionary[StringName, int]) -> String:
 	var already_included_paths = {}
 	var preprocessed_source : String = _expand_includes_rec(path, raw_source, already_included_paths)
+	# TODO use defines
 	if _is_debug:
 		print(preprocessed_source)
 	return preprocessed_source

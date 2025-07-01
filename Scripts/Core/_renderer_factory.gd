@@ -59,9 +59,37 @@ static func get_mask_from_bool_array(bools : Array[bool]) -> int:
 		mask |= 1 << i if bools[i] else 0
 	return mask
 
-# TODO impl
-static func get_pso_def_from_mask(mask : int) -> TL_PSODef:
-	return null
+static func get_pso_def_from_mask_and_shaders(mat_feats_mask : int, vertex_shader : TL_GLSLShader, fragment_shader : TL_GLSLShader) -> TL_PSODef:
+	var pso_def : TL_PSODef = TL_PSODef.new()
+	pso_def.vertex_shader = vertex_shader
+	pso_def.fragment_shader = fragment_shader
+	pso_def.material_features_def = get_material_feature_flags_def_from_mask(mat_feats_mask)
+	pso_def.vertex_format_def = get_vertex_format_def_from_material_feature_flags(pso_def.material_features_def)
+	return pso_def
+
+static func get_vertex_format_def_from_material_feature_flags(mat_feats_def : TL_MaterialFeatureFlags_Def) -> TL_VertexFormatDef:
+	var vf_def : TL_VertexFormatDef = TL_VertexFormatDef.new()
+
+	vf_def.is_2d = false
+	vf_def.has_normal = mat_feats_def.is_lit
+	vf_def.has_tangent = mat_feats_def.is_lit
+	vf_def.has_color = false
+	vf_def.has_uv = mat_feats_def.is_uv_mapped
+	vf_def.has_uv2 = false
+	vf_def.has_bones = mat_feats_def.is_skeletal
+	vf_def.has_weights = mat_feats_def.is_skeletal
+
+	return vf_def
+
+static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialFeatureFlags_Def:
+	if mask < 0:
+		return null;
+	var mat_feats_def : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
+	mat_feats_def.is_skeletal = 	(mask & 1 << 0) > 0
+	mat_feats_def.is_lit = 			(mask & 1 << 1) > 0
+	mat_feats_def.is_instanced = 	(mask & 1 << 2) > 0
+	mat_feats_def.is_uv_mapped = 	(mask & 1 << 3) > 0
+	return mat_feats_def
 
 static func get_mask_from_material_feature_flags_def(material_features_def : TL_MaterialFeatureFlags_Def) -> int:
 	if material_features_def == null:
@@ -163,17 +191,30 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 
 	return rd.vertex_format_create(attrs)
 
+static func create_defines_from_material_feature_flags(mat_feats_def : TL_MaterialFeatureFlags_Def) -> Dictionary[StringName, int]:
+	if mat_feats_def == null:
+		return {}
+	
+	var defines : Dictionary[StringName, int]
+	defines["IS_SKELETAL"] = 1 if mat_feats_def.is_skeletal else 0
+	defines["IS_LIT"] = 1 if mat_feats_def.is_lit else 0
+	defines["IS_INSTANCED"] = 1 if mat_feats_def.is_instanced else 0
+	defines["IS_UV_MAPPED"] = 1 if mat_feats_def.is_uv_mapped else 0
+	return defines
+
 static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_attachment : int, depth_test : bool = true) -> _TL_PSO:
 	var instance = _TL_PSO.new()
 
+	var defines : Dictionary[StringName, int] = create_defines_from_material_feature_flags(pso_def.material_features_def)
+
 	var path : String = pso_def.vertex_shader.resource_path
 	var raw_source : String = pso_def.vertex_shader.source_code
-	var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source)
+	var preprocessed_source : String = TL_Shader_Preprocessor.preprocess(path, raw_source, defines)
 	var vertex_shader_src : String = preprocessed_source
 	
 	path = pso_def.fragment_shader.resource_path
 	raw_source = pso_def.fragment_shader.source_code
-	preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source)
+	preprocessed_source = TL_Shader_Preprocessor.preprocess(path, raw_source, defines)
 	var fragment_shader_src : String = preprocessed_source
 
 	instance.shader_program = TL_RendererUtils.compile_shader(vertex_shader_src, fragment_shader_src)
