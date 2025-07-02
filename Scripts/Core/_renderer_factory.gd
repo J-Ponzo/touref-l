@@ -74,12 +74,26 @@ static func get_vertex_format_def_from_material_feature_flags(mat_feats_def : TL
 	vf_def.has_normal = mat_feats_def.is_lit
 	vf_def.has_tangent = mat_feats_def.is_lit
 	vf_def.has_color = false
-	vf_def.has_uv = mat_feats_def.is_textured
+	vf_def.has_uv = mat_feats_def.has_albedo_map
 	vf_def.has_uv2 = false
 	vf_def.has_bones = mat_feats_def.is_skeletal
 	vf_def.has_weights = mat_feats_def.is_skeletal
 
 	return vf_def
+
+# static func create_material_feature_flags(material : BaseMaterial3D, mesh : Mesh) -> TL_MaterialFeatureFlags_Def:
+# 	if material == null or mesh == null:
+# 		return null
+
+# 	var mat_feats_def : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
+
+# 	var skin : Skin = mesh.skin
+# 	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
+# 	mat_feats_def.is_skeletal = skeleton != null && skin != null
+# 	mat_feats_def.is_lit = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
+# 	mat_feats_def.is_instanced = false
+# 	mat_feats_def.has_albedo_map = material.albedo_texture != null
+# 	return mat_feats_def
 
 static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialFeatureFlags_Def:
 	if mask < 0:
@@ -88,13 +102,14 @@ static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialF
 	mat_feats_def.is_skeletal = 	(mask & 1 << 0) > 0
 	mat_feats_def.is_lit = 			(mask & 1 << 1) > 0
 	mat_feats_def.is_instanced = 	(mask & 1 << 2) > 0
-	mat_feats_def.is_textured = 	(mask & 1 << 3) > 0
+	mat_feats_def.has_albedo_map = 	(mask & 1 << 3) > 0
+	mat_feats_def.has_normal_map = 	(mask & 1 << 4) > 0
 	return mat_feats_def
 
 static func get_mask_from_material_feature_flags_def(material_features_def : TL_MaterialFeatureFlags_Def) -> int:
 	if material_features_def == null:
 		return -1
-	return get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced])
+	return get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced, material_features_def.has_albedo_map, material_features_def.has_normal_map])
 
 static func get_vertex_format_def_from_mask(mask : int) -> TL_VertexFormatDef:
 	if mask < 0:
@@ -103,15 +118,15 @@ static func get_vertex_format_def_from_mask(mask : int) -> TL_VertexFormatDef:
 	vf_def.is_2d = 			(mask & 1 << 0) > 0
 	vf_def.has_normal = 	(mask & 1 << 1) > 0
 	vf_def.has_tangent = 	(mask & 1 << 2) > 0
-	vf_def.has_uv = 		(mask & 1 << 3) > 0
-	vf_def.has_uv2 = 		(mask & 1 << 4) > 0
-	vf_def.has_color = 		(mask & 1 << 5) > 0
+	vf_def.has_color = 		(mask & 1 << 3) > 0
+	vf_def.has_uv = 		(mask & 1 << 4) > 0
+	vf_def.has_uv2 = 		(mask & 1 << 5) > 0
 	vf_def.has_bones = 		(mask & 1 << 6) > 0
 	vf_def.has_weights = 	(mask & 1 << 7) > 0
 	return vf_def
 
 static func get_mask_from_vertex_format_def(vf_def : TL_VertexFormatDef) -> int:
-	return get_mask_from_bool_array([vf_def.is_2d, vf_def.has_normal, vf_def.has_tangent, vf_def.has_uv, vf_def.has_uv2, vf_def.has_color, vf_def.has_bones, vf_def.has_weights])
+	return get_mask_from_bool_array([vf_def.is_2d, vf_def.has_normal, vf_def.has_tangent, vf_def.has_color, vf_def.has_uv, vf_def.has_uv2, vf_def.has_bones, vf_def.has_weights])
 
 static var vertex_formats_cache : Dictionary[int, int]
 
@@ -129,12 +144,14 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
 		positionAttr.stride = POSITION_2D_NB_FLOATS * SIZEOF_FLOAT
 		positionAttr.offset = 0
+		positionAttr.location = 0
 		attrs.append(positionAttr)
 	else:
 		var positionAttr = RDVertexAttribute.new()
 		positionAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
 		positionAttr.stride = POSITION_3D_NB_FLOATS * SIZEOF_FLOAT
 		positionAttr.offset = 0
+		positionAttr.location = 0
 		attrs.append(positionAttr)
 
 	if vertex_format_def.has_normal:
@@ -142,6 +159,7 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		normalAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32_SFLOAT;
 		normalAttr.stride = NORMAL_NB_FLOATS * SIZEOF_FLOAT
 		normalAttr.offset = 0
+		normalAttr.location = 1
 		attrs.append(normalAttr)
 
 	if vertex_format_def.has_tangent:
@@ -149,6 +167,7 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		tangentAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT ;
 		tangentAttr.stride = TAGENT_NB_FLOATS * SIZEOF_FLOAT
 		tangentAttr.offset = 0
+		tangentAttr.location = 2
 		attrs.append(tangentAttr)
 
 	if vertex_format_def.has_color:
@@ -156,6 +175,7 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		colorAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT ;
 		colorAttr.stride = COLOR_NB_FLOATS * SIZEOF_FLOAT
 		colorAttr.offset = 0
+		colorAttr.location = 3
 		attrs.append(colorAttr)
 
 	if vertex_format_def.has_uv:
@@ -163,6 +183,7 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		uvAttr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
 		uvAttr.stride = UV_NB_FLOATS * SIZEOF_FLOAT
 		uvAttr.offset = 0
+		uvAttr.location = 4
 		attrs.append(uvAttr)
 
 	if vertex_format_def.has_uv2:
@@ -170,6 +191,7 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		uv2Attr.format = RenderingDevice.DATA_FORMAT_R32G32_SFLOAT;
 		uv2Attr.stride = UV_NB_FLOATS * SIZEOF_FLOAT
 		uv2Attr.offset = 0
+		uv2Attr.location = 5
 		attrs.append(uv2Attr)
 
 	if vertex_format_def.has_bones:
@@ -177,6 +199,7 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		bonesAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SINT;
 		bonesAttr.stride = BONES_NB_INTS * SIZEOF_INT
 		bonesAttr.offset = 0
+		bonesAttr.location = 6
 		attrs.append(bonesAttr)
 
 	if vertex_format_def.has_weights:
@@ -184,10 +207,8 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		weightsAttr.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT;
 		weightsAttr.stride = WEIGHT_NB_FLOATS * SIZEOF_FLOAT
 		weightsAttr.offset = 0
+		weightsAttr.location = 7
 		attrs.append(weightsAttr)
-
-	for i in range(attrs.size()):
-		attrs[i].location = i
 
 	return rd.vertex_format_create(attrs)
 
@@ -202,8 +223,10 @@ static func create_defines_from_material_feature_flags(mat_feats_def : TL_Materi
 		defines.append("LIT")
 	if mat_feats_def.is_instanced:
 		defines.append("INSTANCED")
-	if mat_feats_def.is_textured:
-		defines.append("TEXTURED")
+	if mat_feats_def.has_albedo_map:
+		defines.append("ALBEDO_MAP")
+	if mat_feats_def.has_albedo_map:
+		defines.append("NORMAL_MAP")
 	return defines
 
 static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_attachment : int, depth_test : bool = true) -> _TL_PSO:
