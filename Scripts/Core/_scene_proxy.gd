@@ -63,6 +63,9 @@ func get_static_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
 func get_skeletal_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
 	return []
 
+func get_instanced_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
+	return []
+
 func get_omni_lights() -> Array[TL_DefaultModel.OmniLightData]:
 	return []
 

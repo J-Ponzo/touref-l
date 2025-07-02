@@ -43,6 +43,9 @@ class MeshData:
 	var is_skeletal : bool
 	var pose_array : Array[Projection]
 	var pose_array_buffer : RID
+	var is_instanced : bool
+	var nb_instances : int
+	var instance_storage_buffer : RID
 	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
 
@@ -78,8 +81,6 @@ class MaterialData:
 
 class ParticlesData:
 	var multi_mesh_rid : RID
-	var nb_particles : int
-	var instance_storage_buffer : RID
 	var mesh_data : MeshData
 
 static func create_from(obj : Object):
@@ -272,45 +273,14 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 
 	return mesh_data
 
-static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
-	var particles_data = ParticlesData.new()
-	particles_data.multi_mesh_rid = cpu_particles.get_multimesh_rid()
-
-	particles_data.nb_particles = RenderingServer.multimesh_get_instance_count(particles_data.multi_mesh_rid)
-	var instance_transforms : Array[Transform3D]
-	var instance_colors : Array[Color]
-	for idx : int in range(particles_data.nb_particles):
-		var transform : Transform3D = RenderingServer.multimesh_instance_get_transform(particles_data.multi_mesh_rid, idx)
-		instance_transforms.append(transform)
-		var color : Color = RenderingServer.multimesh_instance_get_color(particles_data.multi_mesh_rid, idx)
-		instance_colors.append(color)
-	particles_data.instance_storage_buffer = TL_RendererUtils.create_particles_instance_storage_buffer(instance_transforms, instance_colors)
-
-	var mesh_data = MeshData.new()
-	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cpu_particles.global_transform))
-	particles_data.mesh_data = mesh_data
-
-	for i in range(0, cpu_particles.mesh.get_surface_count()):
-		var material : BaseMaterial3D =  cpu_particles.mesh.surface_get_material(i)
-		var mat_feat_flags : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
-		mat_feat_flags.is_skeletal = false
-		mat_feat_flags.is_lit = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
-		mat_feat_flags.is_instanced = true
-		mat_feat_flags.has_albedo_map = material.albedo_texture != null
-		mat_feat_flags.has_normal_map = material.normal_texture != null
-
-		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
-
-		var surface_data : SurfaceData = _create_orphan_surface(cpu_particles.mesh, i, mat_feat_flags)
-		surface_data.mesh_data = mesh_data
-		surface_data.material_data = material_data
-		mesh_data.surfaces_data.append(surface_data)
-
-	return particles_data
-
 static func free_mesh(mesh_data : MeshData):
 	if mesh_data.pose_array_buffer != RID():
 		rd.free_rid(mesh_data.pose_array_buffer)
+		mesh_data.pose_array_buffer = RID()
+
+	if mesh_data.instance_storage_buffer != RID() :
+		rd.free_rid(mesh_data.instance_storage_buffer)
+		mesh_data.instance_storage_buffer = RID()
 
 	for surface_data in mesh_data.surfaces_data:
 		free_surface(surface_data)
@@ -453,7 +423,42 @@ static func free_camera(camera_data : CameraData):
 		rd.free_rid(camera_data.matrices_uniform_buffer)
 		camera_data.matrices_uniform_buffer = RID()
 
+static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
+	var particles_data = ParticlesData.new()
+	particles_data.multi_mesh_rid = cpu_particles.get_multimesh_rid()
+
+	var mesh_data = MeshData.new()
+	mesh_data.is_instanced = true
+	mesh_data.nb_instances = RenderingServer.multimesh_get_instance_count(particles_data.multi_mesh_rid)
+	var instance_transforms : Array[Transform3D]
+	var instance_colors : Array[Color]
+	for idx : int in range(mesh_data.nb_instances):
+		var transform : Transform3D = RenderingServer.multimesh_instance_get_transform(particles_data.multi_mesh_rid, idx)
+		instance_transforms.append(transform)
+		var color : Color = RenderingServer.multimesh_instance_get_color(particles_data.multi_mesh_rid, idx)
+		instance_colors.append(color)
+	mesh_data.instance_storage_buffer = TL_RendererUtils.create_particles_instance_storage_buffer(instance_transforms, instance_colors)
+
+	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cpu_particles.global_transform))
+	particles_data.mesh_data = mesh_data
+
+	for i in range(0, cpu_particles.mesh.get_surface_count()):
+		var material : BaseMaterial3D =  cpu_particles.mesh.surface_get_material(i)
+		var mat_feat_flags : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
+		mat_feat_flags.is_skeletal = false
+		mat_feat_flags.is_lit = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
+		mat_feat_flags.is_instanced = true
+		mat_feat_flags.has_albedo_map = material.albedo_texture != null
+		mat_feat_flags.has_normal_map = material.normal_texture != null
+
+		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
+
+		var surface_data : SurfaceData = _create_orphan_surface(cpu_particles.mesh, i, mat_feat_flags)
+		surface_data.mesh_data = mesh_data
+		surface_data.material_data = material_data
+		mesh_data.surfaces_data.append(surface_data)
+
+	return particles_data
+
 static func free_particles(particles_data : ParticlesData):
 	free_mesh(particles_data.mesh_data)
-	if particles_data.instance_storage_buffer != RID() :
-		rd.free_rid(particles_data.instance_storage_buffer)
