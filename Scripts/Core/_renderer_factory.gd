@@ -81,6 +81,41 @@ static func get_vertex_format_def_from_material_feature_flags(mat_feats_def : TL
 
 	return vf_def
 
+static func create_material_feature_flags(material : BaseMaterial3D, is_skeletal : bool, is_instanced : bool) -> TL_MaterialFeatureFlags_Def:
+	var mat_feat_flags : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
+	mat_feat_flags.is_skeletal = is_skeletal
+	mat_feat_flags.is_lit = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
+	mat_feat_flags.is_instanced = is_instanced
+	mat_feat_flags.has_albedo_map = material.albedo_texture != null
+	mat_feat_flags.has_normal_map = material.normal_texture != null
+
+	if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
+		mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_BACK
+	elif material.cull_mode == BaseMaterial3D.CullMode.CULL_DISABLED:
+		mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_DISABLED
+	elif material.cull_mode == BaseMaterial3D.CullMode.CULL_FRONT:
+		mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_FRONT
+
+	if material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_DISABLED:
+		mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.Opaque
+	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_SCISSOR:
+		mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.AlphaScissor
+	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_HASH:
+		mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.AlphaHash
+	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA:
+		if material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MIX:
+			mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Mix
+		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_ADD:
+			mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Add
+		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_SUB:
+			mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Subtract
+		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MUL:
+			mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Multiply
+		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_PREMULT_ALPHA:
+			mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_PremultAlpha
+
+	return mat_feat_flags
+
 static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialFeatureFlags_Def:
 	if mask < 0:
 		return null;
@@ -92,6 +127,7 @@ static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialF
 	mat_feats_def.has_normal_map = 	(mask & 1 << 4) > 0
 
 	mat_feats_def.cull_mode = (mask >> 5) & 0b11
+	mat_feats_def.render_mode = (mask >> 7) & 0b111
 
 	return mat_feats_def
 
@@ -101,6 +137,7 @@ static func get_mask_from_material_feature_flags_def(material_features_def : TL_
 	var mask : int = get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced, material_features_def.has_albedo_map, material_features_def.has_normal_map])
 
 	mask |= material_features_def.cull_mode << 5	# 2 bits
+	mask |= material_features_def.render_mode << 7	# 3 bits
 
 	return mask
 
@@ -244,7 +281,8 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 
 	var rasterizationState = RDPipelineRasterizationState.new()
-	rasterizationState.cull_mode = pso_def.material_features_def.cull_mode
+	if pso_def.material_features_def != null:
+		rasterizationState.cull_mode = pso_def.material_features_def.cull_mode
 
 	var multisampleState = RDPipelineMultisampleState.new()
 
@@ -261,6 +299,48 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 	var colorBlendState = RDPipelineColorBlendState.new()
 	for i in range(nb_color_attachments):
 		var colorBlendStateAttachment : RDPipelineColorBlendStateAttachment = RDPipelineColorBlendStateAttachment.new()
+		if pso_def.material_features_def != null:
+			if pso_def.material_features_def.render_mode == TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Mix:
+				colorBlendStateAttachment.enable_blend = true
+				colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
+				colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+				colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+				colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
+				colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+				colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+			elif pso_def.material_features_def.render_mode == TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Add:
+				colorBlendStateAttachment.enable_blend = true
+				colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
+				colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
+				colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+				colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+				colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+				colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+			elif pso_def.material_features_def.render_mode == TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Subtract:
+				colorBlendStateAttachment.enable_blend = true
+				colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_REVERSE_SUBTRACT
+				colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_REVERSE_SUBTRACT
+				colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+				colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+				colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+				colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+			elif pso_def.material_features_def.render_mode == TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Multiply:
+				colorBlendStateAttachment.enable_blend = true
+				colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
+				colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
+				colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_DST_COLOR
+				colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ZERO
+				colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_DST_ALPHA
+				colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ZERO
+			elif pso_def.material_features_def.render_mode == TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_PremultAlpha:
+				colorBlendStateAttachment.enable_blend = true
+				colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
+				colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
+				colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+				colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+				colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+				colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+
 		colorBlendState.attachments.append(colorBlendStateAttachment)
 
 	instance.pipeline = rd.render_pipeline_create(instance.shader_program, framebuffer_format, instance.vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)

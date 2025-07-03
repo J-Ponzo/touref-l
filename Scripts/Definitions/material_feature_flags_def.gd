@@ -1,6 +1,17 @@
 extends Resource
 class_name TL_MaterialFeatureFlags_Def
 
+enum ERenderMode {
+    Opaque,
+    Transparent_Mix,
+    Transparent_Add,
+    Transparent_Subtract,
+    Transparent_Multiply,
+    Transparent_PremultAlpha,
+    AlphaScissor,
+    AlphaHash
+}
+
 @export var is_skeletal : bool
 @export var is_lit : bool
 @export var is_instanced : bool
@@ -8,3 +19,4 @@ class_name TL_MaterialFeatureFlags_Def
 @export var has_normal_map : bool
 
 @export var cull_mode : RenderingDevice.PolygonCullMode
+@export var render_mode : ERenderMode

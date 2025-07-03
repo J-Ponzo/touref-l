@@ -257,19 +257,7 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 
 	for i in range(0, mesh.mesh.get_surface_count()):
 		var material : BaseMaterial3D =  mesh.mesh.surface_get_material(i)
-		var mat_feat_flags : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
-		mat_feat_flags.is_skeletal = mesh_data.is_skeletal
-		mat_feat_flags.is_lit = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
-		mat_feat_flags.is_instanced = false
-		mat_feat_flags.has_albedo_map = material.albedo_texture != null
-		mat_feat_flags.has_normal_map = material.normal_texture != null
-
-		if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
-			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_BACK
-		elif material.cull_mode == BaseMaterial3D.CullMode.CULL_DISABLED:
-			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_DISABLED
-		elif material.cull_mode == BaseMaterial3D.CullMode.CULL_FRONT:
-			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_FRONT
+		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.is_skeletal, false)
 
 		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
 
@@ -451,19 +439,7 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 
 	for i in range(0, cpu_particles.mesh.get_surface_count()):
 		var material : BaseMaterial3D =  cpu_particles.mesh.surface_get_material(i)
-		var mat_feat_flags : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
-		mat_feat_flags.is_skeletal = false
-		mat_feat_flags.is_lit = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
-		mat_feat_flags.is_instanced = true
-		mat_feat_flags.has_albedo_map = material.albedo_texture != null
-		mat_feat_flags.has_normal_map = material.normal_texture != null
-
-		if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
-			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_BACK
-		elif material.cull_mode == BaseMaterial3D.CullMode.CULL_DISABLED:
-			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_DISABLED
-		elif material.cull_mode == BaseMaterial3D.CullMode.CULL_FRONT:
-			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_FRONT
+		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.is_skeletal, true)
 
 		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
 
