@@ -37,28 +37,6 @@ static func compile_shader(vertex_src : String, fragment_src : String) -> RID:
 	
 	return rd.shader_create_from_spirv(rd.shader_compile_spirv_from_source(shader_source))
 
-static func create_pipline(nb_color_attachments : int, shader_program : RID, framebuffer_format : int, vertex_format : int, depth_test : bool = true) -> RID:
-	var rasterizationState = RDPipelineRasterizationState.new()
-	rasterizationState.cull_mode = RenderingDevice.POLYGON_CULL_DISABLED
-	var multisampleState = RDPipelineMultisampleState.new()
-
-	var depthStencilState = RDPipelineDepthStencilState.new()
-	if depth_test:
-		depthStencilState.enable_depth_test = true
-		depthStencilState.enable_depth_write = true
-		depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_LESS
-	else:
-		depthStencilState.enable_depth_test = false
-		depthStencilState.enable_depth_write = false
-		depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_ALWAYS
-	
-	var colorBlendState = RDPipelineColorBlendState.new()
-	
-	for i in range(nb_color_attachments):
-		colorBlendState.attachments.append(RDPipelineColorBlendStateAttachment.new())
-
-	return rd.render_pipeline_create(shader_program, framebuffer_format, vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
-
 static func create_mat4_array_uniform_buffer(proj_array : Array[Projection]) -> RID:
 	var bytes : PackedByteArray
 	for proj_matrix in proj_array:

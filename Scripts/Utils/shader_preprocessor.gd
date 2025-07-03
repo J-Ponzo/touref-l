@@ -4,7 +4,7 @@ class_name TL_Shader_Preprocessor
 const use_filenames_in_line_directives : bool = true
 
 # TODO find something more reliable for persistant debug reatures
-static var _is_debug = true
+static var _is_debug = false
 
 static func preprocess(path : String, raw_source: String, defines : Array[StringName]) -> String:
 	var already_included_paths = {}

@@ -264,6 +264,13 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		mat_feat_flags.has_albedo_map = material.albedo_texture != null
 		mat_feat_flags.has_normal_map = material.normal_texture != null
 
+		if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
+			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_BACK
+		elif material.cull_mode == BaseMaterial3D.CullMode.CULL_DISABLED:
+			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_DISABLED
+		elif material.cull_mode == BaseMaterial3D.CullMode.CULL_FRONT:
+			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_FRONT
+
 		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
 
 		var surface_data : SurfaceData = _create_orphan_surface(mesh.mesh, i, mat_feat_flags)
@@ -450,6 +457,13 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 		mat_feat_flags.is_instanced = true
 		mat_feat_flags.has_albedo_map = material.albedo_texture != null
 		mat_feat_flags.has_normal_map = material.normal_texture != null
+
+		if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
+			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_BACK
+		elif material.cull_mode == BaseMaterial3D.CullMode.CULL_DISABLED:
+			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_DISABLED
+		elif material.cull_mode == BaseMaterial3D.CullMode.CULL_FRONT:
+			mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_FRONT
 
 		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
 

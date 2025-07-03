@@ -81,20 +81,6 @@ static func get_vertex_format_def_from_material_feature_flags(mat_feats_def : TL
 
 	return vf_def
 
-# static func create_material_feature_flags(material : BaseMaterial3D, mesh : Mesh) -> TL_MaterialFeatureFlags_Def:
-# 	if material == null or mesh == null:
-# 		return null
-
-# 	var mat_feats_def : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
-
-# 	var skin : Skin = mesh.skin
-# 	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
-# 	mat_feats_def.is_skeletal = skeleton != null && skin != null
-# 	mat_feats_def.is_lit = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
-# 	mat_feats_def.is_instanced = false
-# 	mat_feats_def.has_albedo_map = material.albedo_texture != null
-# 	return mat_feats_def
-
 static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialFeatureFlags_Def:
 	if mask < 0:
 		return null;
@@ -104,12 +90,19 @@ static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialF
 	mat_feats_def.is_instanced = 	(mask & 1 << 2) > 0
 	mat_feats_def.has_albedo_map = 	(mask & 1 << 3) > 0
 	mat_feats_def.has_normal_map = 	(mask & 1 << 4) > 0
+
+	mat_feats_def.cull_mode = (mask >> 5) & 0b11
+
 	return mat_feats_def
 
 static func get_mask_from_material_feature_flags_def(material_features_def : TL_MaterialFeatureFlags_Def) -> int:
 	if material_features_def == null:
 		return -1
-	return get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced, material_features_def.has_albedo_map, material_features_def.has_normal_map])
+	var mask : int = get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced, material_features_def.has_albedo_map, material_features_def.has_normal_map])
+
+	mask |= material_features_def.cull_mode << 5	# 2 bits
+
+	return mask
 
 static func get_vertex_format_def_from_mask(mask : int) -> TL_VertexFormatDef:
 	if mask < 0:
@@ -123,6 +116,7 @@ static func get_vertex_format_def_from_mask(mask : int) -> TL_VertexFormatDef:
 	vf_def.has_uv2 = 		(mask & 1 << 5) > 0
 	vf_def.has_bones = 		(mask & 1 << 6) > 0
 	vf_def.has_weights = 	(mask & 1 << 7) > 0
+
 	return vf_def
 
 static func get_mask_from_vertex_format_def(vf_def : TL_VertexFormatDef) -> int:
@@ -229,7 +223,7 @@ static func create_defines_from_material_feature_flags(mat_feats_def : TL_Materi
 		defines.append("NORMAL_MAP")
 	return defines
 
-static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_attachment : int, depth_test : bool = true) -> _TL_PSO:
+static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_attachments : int, depth_test : bool = true) -> _TL_PSO:
 	var instance = _TL_PSO.new()
 
 	var defines : Array[StringName] = create_defines_from_material_feature_flags(pso_def.material_features_def)
@@ -249,7 +243,27 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 	var vf_def : TL_VertexFormatDef = pso_def.vertex_format_def
 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 
-	instance.pipeline = TL_RendererUtils.create_pipline(nb_color_attachment, instance.shader_program, framebuffer_format, instance.vertex_format, depth_test)
+	var rasterizationState = RDPipelineRasterizationState.new()
+	rasterizationState.cull_mode = pso_def.material_features_def.cull_mode
+
+	var multisampleState = RDPipelineMultisampleState.new()
+
+	var depthStencilState = RDPipelineDepthStencilState.new()
+	if depth_test:
+		depthStencilState.enable_depth_test = true
+		depthStencilState.enable_depth_write = true
+		depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_LESS
+	else:
+		depthStencilState.enable_depth_test = false
+		depthStencilState.enable_depth_write = false
+		depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_ALWAYS
+	
+	var colorBlendState = RDPipelineColorBlendState.new()
+	for i in range(nb_color_attachments):
+		var colorBlendStateAttachment : RDPipelineColorBlendStateAttachment = RDPipelineColorBlendStateAttachment.new()
+		colorBlendState.attachments.append(colorBlendStateAttachment)
+
+	instance.pipeline = rd.render_pipeline_create(instance.shader_program, framebuffer_format, instance.vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
 
 	return instance
 	
