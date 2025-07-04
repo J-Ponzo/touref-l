@@ -41,7 +41,8 @@ class DirectionalLightData extends LightData:
 
 class MeshData:
 	var is_skeletal : bool
-	var pose_array : Array[Projection]
+	# var pose_array : Array[Projection]
+	var pose_array_bytes : PackedByteArray
 	var pose_array_buffer : RID
 	var is_instanced : bool
 	var nb_instances : int
@@ -250,8 +251,10 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		for bone_idx in range(skeleton.get_bone_count()):
 			var global_bone_transform : Transform3D = skeleton.get_bone_global_pose(bone_idx)
 			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
-			mesh_data.pose_array.append(Projection(global_bone_transform * inverse_bind))
-		mesh_data.pose_array_buffer = TL_RendererUtils.create_mat4_array_uniform_buffer(mesh_data.pose_array)
+			var proj_bytes = TL_RendererUtils.proj_to_bytes(Projection(global_bone_transform * inverse_bind))
+			mesh_data.pose_array_bytes.append_array(proj_bytes)
+
+		mesh_data.pose_array_buffer = rd.uniform_buffer_create(mesh_data.pose_array_bytes.size(), mesh_data.pose_array_bytes)
 
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 
