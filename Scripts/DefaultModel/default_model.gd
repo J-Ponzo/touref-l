@@ -41,7 +41,8 @@ class DirectionalLightData extends LightData:
 
 class MeshData:
 	var is_skeletal : bool
-	var pose_array : Array[Projection]
+	# var pose_array : Array[Projection]
+	var pose_array_bytes : PackedByteArray
 	var pose_array_buffer : RID
 	var is_instanced : bool
 	var nb_instances : int
@@ -240,18 +241,91 @@ static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_
 
 	return surface_data
 
+const SIZEOF_FLOAT = 4
+const SIZEOF_MAT4 = SIZEOF_FLOAT * 4 * 4
+
+static  func update_mat4_in_bytes_array(mat4_bytes_array : PackedByteArray, mat_idx : int, mat4 : Projection) -> void:
+	var start : int = mat_idx * SIZEOF_MAT4
+	var peer : StreamPeerBuffer = StreamPeerBuffer.new()
+	peer.data_array = mat4_bytes_array
+
+	peer.seek(start)
+	peer.put_float(mat4.x.x)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.x.y)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.x.z)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.x.w)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.y.x)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.y.y)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.y.z)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.y.w)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.z.x)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.z.y)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.z.z)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.z.w)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.w.x)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.w.y)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.w.z)
+
+	start += SIZEOF_FLOAT
+	peer.seek(start)
+	peer.put_float(mat4.w.w)
+
 static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
-	var mesh_data = MeshData.new()
+	var mesh_data : MeshData = MeshData.new()
 
 	var skin : Skin = mesh.skin
 	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
 	mesh_data.is_skeletal = skeleton != null && skin != null
 	if mesh_data.is_skeletal:
+		mesh_data.pose_array_bytes.resize(SIZEOF_MAT4 * skeleton.get_bone_count())
 		for bone_idx in range(skeleton.get_bone_count()):
 			var global_bone_transform : Transform3D = skeleton.get_bone_global_pose(bone_idx)
 			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
-			mesh_data.pose_array.append(Projection(global_bone_transform * inverse_bind))
-		mesh_data.pose_array_buffer = TL_RendererUtils.create_mat4_array_uniform_buffer(mesh_data.pose_array)
+			# mesh_data.pose_array.append(Projection(global_bone_transform * inverse_bind))
+			update_mat4_in_bytes_array(mesh_data.pose_array_bytes, bone_idx, Projection(global_bone_transform * inverse_bind))
+		mesh_data.pose_array_buffer = rd.uniform_buffer_create(mesh_data.pose_array_bytes.size(), mesh_data.pose_array_bytes)
 
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 
