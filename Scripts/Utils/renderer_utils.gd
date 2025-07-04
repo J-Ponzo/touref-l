@@ -37,12 +37,12 @@ static func compile_shader(vertex_src : String, fragment_src : String) -> RID:
 	
 	return rd.shader_create_from_spirv(rd.shader_compile_spirv_from_source(shader_source))
 
-# static func create_mat4_array_uniform_buffer(proj_array : Array[Projection]) -> RID:
-# 	var bytes : PackedByteArray
-# 	for proj_matrix in proj_array:
-# 		bytes.append_array(TL_RendererUtils.proj_to_bytes(proj_matrix))
+static func create_mat4_array_uniform_buffer(proj_array : Array[Projection]) -> RID:
+	var bytes : PackedByteArray
+	for proj_matrix in proj_array:
+		bytes.append_array(TL_RendererUtils.proj_to_bytes(proj_matrix))
 
-# 	return rd.uniform_buffer_create(bytes.size(), bytes)
+	return rd.uniform_buffer_create(bytes.size(), bytes)
 
 static func create_particles_instance_storage_buffer(transform_array : Array[Transform3D], color_array : Array[Color]) -> RID:
 	var bytes : PackedByteArray
