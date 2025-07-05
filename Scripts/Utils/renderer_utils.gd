@@ -1,16 +1,19 @@
 extends Object
 class_name TL_RendererUtils
 
+static var native_mem_manager : NativeMemoryManager = NativeMemoryManager.new()
+
 static var rd = RenderingServer.get_rendering_device()
 
 static func proj_to_bytes(proj: Projection) -> PackedByteArray:
-	var floats = PackedFloat32Array([
-		proj.x.x, proj.x.y, proj.x.z, proj.x.w,
-		proj.y.x, proj.y.y, proj.y.z, proj.y.w,
-		proj.z.x, proj.z.y, proj.z.z, proj.z.w,
-		proj.w.x, proj.w.y, proj.w.z, proj.w.w
-	])
-	return floats.to_byte_array()
+	# var floats = PackedFloat32Array([
+	# 	proj.x.x, proj.x.y, proj.x.z, proj.x.w,
+	# 	proj.y.x, proj.y.y, proj.y.z, proj.y.w,
+	# 	proj.z.x, proj.z.y, proj.z.z, proj.z.w,
+	# 	proj.w.x, proj.w.y, proj.w.z, proj.w.w
+	# ])
+	# return floats.to_byte_array()
+	return native_mem_manager.proj_to_bytes(proj)
 
 static func create_sampler_state(mag_filter = RenderingDevice.SAMPLER_FILTER_LINEAR, min_filter = RenderingDevice.SAMPLER_FILTER_LINEAR, repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT, repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT) -> RDSamplerState:
 	var sampler_state := RDSamplerState.new()
