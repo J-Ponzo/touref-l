@@ -1,15 +1,21 @@
 #include "native_memory_manager.h"
+#include "native_memory_rendering_device.h"
 #include <godot_cpp/core/class_db.hpp>
-#include <godot_cpp/variant/packed_byte_array.hpp>
 
 using namespace godot;
 
+std::unordered_map<uint32_t, PackedByteArray> NativeMemoryManager::packed_byte_arrays;
+uint32_t NativeMemoryManager::last_id_dealt = UINT32_MAX;
+
+std::optional<PackedByteArray> NativeMemoryManager::get_packed_byte_array(uint32_t id) {
+	if (NativeMemoryManager::packed_byte_arrays.find(id) != NativeMemoryManager::packed_byte_arrays.end())
+		return NativeMemoryManager::packed_byte_arrays[id];
+	return std::nullopt;
+}
+
 void NativeMemoryManager::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("proj_to_bytes"), &NativeMemoryManager::proj_to_bytes);
-	// ClassDB::bind_method(D_METHOD("get_amplitude"), &GDExample::get_amplitude);
-	// ClassDB::bind_method(D_METHOD("set_amplitude", "p_amplitude"), &GDExample::set_amplitude);
-
-	// ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "amplitude"), "set_amplitude", "get_amplitude");
+	ClassDB::bind_method(D_METHOD("create_packed_byte_array"), &NativeMemoryManager::create_packed_byte_array);
 }
 
 NativeMemoryManager::NativeMemoryManager() {
@@ -30,4 +36,11 @@ PackedByteArray NativeMemoryManager::proj_to_bytes(const Projection proj) {
 	memcpy(p_byteArray, proj.columns, SIZEOF_MAT4);
 
 	return byteArray;
+}
+
+int NativeMemoryManager::create_packed_byte_array(int size) {
+	uint32_t id = last_id_dealt++;
+	packed_byte_arrays[id] = PackedByteArray();
+	packed_byte_arrays[id].resize(size);
+	return id;
 }

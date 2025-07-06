@@ -1,6 +1,7 @@
 #include "register_types.h"
 
 #include "native_memory_manager.h"
+#include "native_memory_rendering_device.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -8,15 +9,16 @@
 
 using namespace godot;
 
-void initialize_nativememmanager_module(ModuleInitializationLevel p_level) {
+void initialize_tlnativemem_module(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
 
 	GDREGISTER_RUNTIME_CLASS(NativeMemoryManager);
+	GDREGISTER_RUNTIME_CLASS(NativeMemoryRenderingDevice);
 }
 
-void uninitialize_nativememmanager_module(ModuleInitializationLevel p_level) {
+void uninitialize_tlnativemem_module(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
@@ -24,11 +26,11 @@ void uninitialize_nativememmanager_module(ModuleInitializationLevel p_level) {
 
 extern "C" {
 // Initialization.
-GDExtensionBool GDE_EXPORT nativememmanager_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, const GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization) {
+GDExtensionBool GDE_EXPORT tlnativemem_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, const GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization) {
 	godot::GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
 
-	init_obj.register_initializer(initialize_nativememmanager_module);
-	init_obj.register_terminator(uninitialize_nativememmanager_module);
+	init_obj.register_initializer(initialize_tlnativemem_module);
+	init_obj.register_terminator(uninitialize_tlnativemem_module);
 	init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
 
 	return init_obj.init();

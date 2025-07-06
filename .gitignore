@@ -9,6 +9,12 @@ export_credentials.cfg
 # Imported translations (automatically generated from CSV files)
 *.translation
 
+# Auto-Saves & Intermediate & Temps
+~*
+GDExtension/src/*.obj
+GDExtension/src/*.obj.import
+GDExtension/.sconsign.dblite
+
 # Mono-specific ignores
 .mono/
 data_*/
