@@ -245,6 +245,7 @@ static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_
 # TODO centralize this
 const SIZEOF_FLOAT = 4
 const SIZEOF_MAT4 = SIZEOF_FLOAT * 16
+const MAX_BONES = 128
 
 static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data : MeshData = MeshData.new()
@@ -260,9 +261,9 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
 			mesh_data.pose_array[bone_idx] = Projection(global_bone_transform * inverse_bind)
 
-		mesh_data.pose_array_bytes_id = TL_NativeMemory.ManagerInst.create_packed_byte_array(nb_bones * SIZEOF_MAT4)
+		mesh_data.pose_array_bytes_id = TL_NativeMemory.ManagerInst.create_packed_byte_array(MAX_BONES * SIZEOF_MAT4)
 		TL_NativeMemory.ManagerInst.fill_packed_byte_array_with_projections(mesh_data.pose_array_bytes_id, 0, mesh_data.pose_array)
-		mesh_data.pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(nb_bones * SIZEOF_MAT4, mesh_data.pose_array_bytes_id, 0)
+		mesh_data.pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, mesh_data.pose_array_bytes_id, 0)
 
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 
