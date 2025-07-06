@@ -41,10 +41,11 @@ class DirectionalLightData extends LightData:
 
 class MeshData:
 	var is_skeletal : bool
-	var pose_array : Array[Projection]
-	var pose_array_bytes_id : int
-	# var pose_array_bytes : PackedByteArray
-	var pose_array_buffer : RID
+	var invert_bind_pose_array_buffer : RID
+	var global_bone_pose_array : Array[Projection]
+	var global_bone_pose_array_bytes_id : int
+	var global_bone_pose_array_buffer : RID
+
 	var is_instanced : bool
 	var nb_instances : int
 	var instance_storage_buffer : RID
@@ -255,15 +256,22 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	mesh_data.is_skeletal = skeleton != null && skin != null
 	if mesh_data.is_skeletal:
 		var nb_bones : int = skeleton.get_bone_count()
-		mesh_data.pose_array.resize(nb_bones)
+		var invert_bind_pose_array : PackedByteArray
+		mesh_data.global_bone_pose_array.resize(nb_bones)
 		for bone_idx in range(nb_bones):
 			var global_bone_transform : Transform3D = skeleton.get_bone_global_pose(bone_idx)
 			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
-			mesh_data.pose_array[bone_idx] = Projection(global_bone_transform * inverse_bind)
+			invert_bind_pose_array.append_array(TL_RendererUtils.proj_to_bytes(Projection(inverse_bind)))
+			mesh_data.global_bone_pose_array[bone_idx] = Projection(global_bone_transform)
+		for i in range(nb_bones, MAX_BONES):
+			for j in range(SIZEOF_MAT4):
+				invert_bind_pose_array.append(0)
 
-		mesh_data.pose_array_bytes_id = TL_NativeMemory.ManagerInst.create_packed_byte_array(MAX_BONES * SIZEOF_MAT4)
-		TL_NativeMemory.ManagerInst.fill_packed_byte_array_with_projections(mesh_data.pose_array_bytes_id, 0, mesh_data.pose_array)
-		mesh_data.pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, mesh_data.pose_array_bytes_id, 0)
+		mesh_data.invert_bind_pose_array_buffer = rd.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, invert_bind_pose_array)
+
+		mesh_data.global_bone_pose_array_bytes_id = TL_NativeMemory.ManagerInst.create_packed_byte_array(MAX_BONES * SIZEOF_MAT4)
+		TL_NativeMemory.ManagerInst.fill_packed_byte_array_with_projections(mesh_data.global_bone_pose_array_bytes_id, 0, mesh_data.global_bone_pose_array)
+		mesh_data.global_bone_pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, mesh_data.global_bone_pose_array_bytes_id, 0)
 
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 
@@ -281,9 +289,13 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	return mesh_data
 
 static func free_mesh(mesh_data : MeshData):
-	if mesh_data.pose_array_buffer != RID():
-		rd.free_rid(mesh_data.pose_array_buffer)
-		mesh_data.pose_array_buffer = RID()
+	if mesh_data.global_bone_pose_array_buffer != RID():
+		rd.free_rid(mesh_data.global_bone_pose_array_buffer)
+		mesh_data.global_bone_pose_array_buffer = RID()
+
+	if mesh_data.invert_bind_pose_array_buffer != RID():
+		rd.free_rid(mesh_data.invert_bind_pose_array_buffer)
+		mesh_data.invert_bind_pose_array_buffer = RID()
 
 	if mesh_data.instance_storage_buffer != RID() :
 		rd.free_rid(mesh_data.instance_storage_buffer)
