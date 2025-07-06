@@ -26,57 +26,67 @@ NativeMemoryRenderingDevice::~NativeMemoryRenderingDevice() {
 }
 
 Error NativeMemoryRenderingDevice::buffer_update(RID buffer, int offset, int size_bytes, int data_id) {
-    std::optional<PackedByteArray> data = NativeMemoryManager::get_packed_byte_array(data_id);
-    if (!data.has_value())
+    PackedByteArray* data = NativeMemoryManager::get_packed_byte_array(static_cast<uint32_t>(data_id));
+    if (data == nullptr) {
+        UtilityFunctions::push_error("NativeMemoryManager::buffer_update(RID buffer = ", buffer, ", int offset = ", offset, ", int size_bytes = ", size_bytes, ", int data_id = ", data_id);
         return Error::ERR_INVALID_DATA;
-    return rd->buffer_update(buffer, offset, size_bytes, data.value());
+    }
+    return rd->buffer_update(buffer, static_cast<uint32_t>(offset), static_cast<uint32_t>(size_bytes), *data);
 }
 
 void NativeMemoryRenderingDevice::compute_list_set_push_constant(int compute_list, int buffer_id, int size_bytes) {
-    std::optional<PackedByteArray> buffer = NativeMemoryManager::get_packed_byte_array(buffer_id);
-    if (!buffer.has_value())
-        return
-    rd->compute_list_set_push_constant(compute_list, buffer.value(), size_bytes);
+    PackedByteArray* buffer = NativeMemoryManager::get_packed_byte_array(static_cast<uint32_t>(buffer_id));
+    if (buffer == nullptr) {
+        return;
+    }
+    rd->compute_list_set_push_constant(static_cast<uint64_t>(compute_list), *buffer, size_bytes);
 }
 
 void NativeMemoryRenderingDevice::draw_list_set_push_constant(int draw_list,  int buffer_id, int size_bytes) {
-    std::optional<PackedByteArray> buffer = NativeMemoryManager::get_packed_byte_array(buffer_id);
-    if (!buffer.has_value())
-        return
-    rd->draw_list_set_push_constant(draw_list, buffer.value(), size_bytes);
+    PackedByteArray* buffer = NativeMemoryManager::get_packed_byte_array(static_cast<uint32_t>(buffer_id));
+    if (buffer == nullptr) {
+        return;
+    }
+    rd->draw_list_set_push_constant(static_cast<uint64_t>(draw_list), *buffer, size_bytes);
 }
 
 RID NativeMemoryRenderingDevice::index_buffer_create(int size_indices, RenderingDevice::IndexBufferFormat format, int data_id, bool use_restart_indices, BitField<RenderingDevice::BufferCreationBits> creation_bits) {
-    std::optional<PackedByteArray> data = NativeMemoryManager::get_packed_byte_array(data_id);
-    if (!data.has_value())
+     PackedByteArray* data = NativeMemoryManager::get_packed_byte_array(static_cast<uint32_t>(data_id));
+    if (data == nullptr) {
         return RID();
-    return rd->index_buffer_create(size_indices, format, data.value(), use_restart_indices, creation_bits);
+    }
+    return rd->index_buffer_create(static_cast<uint32_t>(size_indices), format, *data, use_restart_indices, creation_bits);
 }
 
 RID NativeMemoryRenderingDevice::storage_buffer_create(int size_indices, int data_id, BitField<RenderingDevice::StorageBufferUsage> usage, BitField<RenderingDevice::BufferCreationBits> creation_bits) {
-    std::optional<PackedByteArray> data = NativeMemoryManager::get_packed_byte_array(data_id);
-    if (!data.has_value())
+     PackedByteArray* data = NativeMemoryManager::get_packed_byte_array(static_cast<uint32_t>(data_id));
+    if (data == nullptr) {
         return RID();
-    return rd->storage_buffer_create(size_indices, data.value(), usage, creation_bits);
+    }
+    return rd->storage_buffer_create(static_cast<uint32_t>(size_indices), *data, usage, creation_bits);
 }
 
 RID NativeMemoryRenderingDevice::texture_buffer_create(int size_bytes, RenderingDevice::DataFormat format, int data_id) {
-    std::optional<PackedByteArray> data = NativeMemoryManager::get_packed_byte_array(data_id);
-    if (!data.has_value())
+     PackedByteArray* data = NativeMemoryManager::get_packed_byte_array(static_cast<uint32_t>(data_id));
+    if (data == nullptr) {
         return RID();
-    return rd->texture_buffer_create(size_bytes, format, data.value());
+    }
+    return rd->texture_buffer_create(static_cast<uint32_t>(size_bytes), format, *data);
 }
 
 RID NativeMemoryRenderingDevice::uniform_buffer_create(int size_bytes, int data_id, BitField<RenderingDevice::BufferCreationBits> creation_bits) {
-    std::optional<PackedByteArray> data = NativeMemoryManager::get_packed_byte_array(data_id);
-    if (!data.has_value())
+     PackedByteArray* data = NativeMemoryManager::get_packed_byte_array(static_cast<uint32_t>(data_id));
+    if (data == nullptr) {
+        UtilityFunctions::push_error("NativeMemoryManager::uniform_buffer_create(int size_bytes = ", size_bytes, ", int data_id = ", data_id, ", BitField<RenderingDevice::BufferCreationBits> creation_bits = ???");
         return RID();
-    return rd->uniform_buffer_create(size_bytes, data.value(), creation_bits);
+    }
+    return rd->uniform_buffer_create(static_cast<uint32_t>(size_bytes), *data, creation_bits);
 }
 
 RID NativeMemoryRenderingDevice::vertex_buffer_create(int size_bytes, int data_id, BitField<RenderingDevice::BufferCreationBits> creation_bits) {
-    std::optional<PackedByteArray> data = NativeMemoryManager::get_packed_byte_array(data_id);
-    if (!data.has_value())
+     PackedByteArray* data = NativeMemoryManager::get_packed_byte_array(static_cast<uint32_t>(data_id));
+    if (data == nullptr) {
         return RID();
-    return rd->vertex_buffer_create(size_bytes, data.value(), creation_bits);
+    }
+    return rd->vertex_buffer_create(static_cast<uint32_t>(size_bytes), *data, creation_bits);
 }

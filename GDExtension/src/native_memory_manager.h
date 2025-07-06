@@ -20,13 +20,14 @@ protected:
 	static void _bind_methods();
 
 public:
-	static std::optional<PackedByteArray> get_packed_byte_array(uint32_t id);
+	static PackedByteArray* get_packed_byte_array(uint32_t id);
 
 	NativeMemoryManager();
 	~NativeMemoryManager();
 
 	PackedByteArray proj_to_bytes(const Projection proj);
 	int create_packed_byte_array(int size = 0);
+	void fill_packed_byte_array_with_projections(int array_id, int offset, TypedArray<Projection> projections);
 };
 
 }
