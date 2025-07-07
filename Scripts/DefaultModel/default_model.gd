@@ -7,8 +7,6 @@ const WARN_SURFACE_SKIPPED_VF = "TourefL : The vertex format for %dth surface of
 
 static var rd = RenderingServer.get_rendering_device()
 
-static var existing_skeleton_data : Array[SkeletonData]
-
 class CameraData:
 	var view_matrix_bytes : PackedByteArray
 	var projection_matrix_bytes : PackedByteArray
@@ -52,6 +50,8 @@ class MeshData:
 	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
 
+static var existing_skeletons_data : Array[SkeletonData]
+
 class SkeletonData:
 	var instance_id : int
 
@@ -59,8 +59,18 @@ class SkeletonData:
 	var global_bone_pose_array_bytes_id : int
 	var global_bone_pose_array_buffer : RID
 
-class SurfaceData :
+class SurfaceData:
 	var mesh_data : MeshData
+	var topology_data : TopologyData
+	var vertex_array : RID
+	var material_data : MaterialData
+
+static var existing_topologies_data : Array[TopologyData]
+static var existing_topologies_ref_count : Array[int]
+
+class TopologyData:
+	var instance_id : int
+	var surface_id : int
 
 	var index_count : int
 	var index_buffer : RID
@@ -75,10 +85,8 @@ class SurfaceData :
 	var uv2_buffer : RID
 	var bones_buffer : RID
 	var weights_buffer : RID
-	var vertex_array : RID
-	var vertex_format_mask : int = -1
 
-	var material_data : MaterialData
+	var vertex_format_mask : int = -1
 
 class MaterialData:
 	var albedo_tex : RID 
@@ -158,19 +166,94 @@ static func free_material(material_data : MaterialData):
 		rd.free_rid(material_data.orm_sampler)
 		material_data.orm_sampler = RID() 
 
+const HAS_NORMAL = 		1 << 1
+const HAS_TANGEANT = 	1 << 2
+const HAS_COLOR = 		1 << 3
+const HAS_UV = 			1 << 4
+const HAS_UV2 = 		1 << 5
+const HAS_BONES = 		1 << 6
+const HAS_WEIGHTS = 	1 << 7
+
 static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> SurfaceData:
 	var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
+	surface_data.topology_data = _get_or_create_topology_data(mesh_resource, surface_idx)
+
+	var vf_def : TL_VertexFormatDef = _TL_Renderer_Factory.get_vertex_format_def_from_material_feature_flags(mat_feat_flags)
+	var buffers : Array[RID]
+	buffers.append(surface_data.topology_data.position_buffer)
+	var vf_mask : int = surface_data.topology_data.vertex_format_mask
+	if vf_def.has_normal:
+		if (vf_mask & HAS_NORMAL) == 0:
+			_free_or_decr_topology(surface_data.topology_data)
+			return null
+		buffers.append(surface_data.topology_data.normal_buffer)
+	if vf_def.has_tangent:
+		if (vf_mask & HAS_TANGEANT) == 0:
+			_free_or_decr_topology(surface_data.topology_data)
+			return null
+		buffers.append(surface_data.topology_data.tangent_buffer)
+	if vf_def.has_color:
+		if (vf_mask & HAS_COLOR) == 0:
+			_free_or_decr_topology(surface_data.topology_data)
+			return null
+		buffers.append(surface_data.topology_data.color_buffer)
+	if vf_def.has_uv:
+		if (vf_mask & HAS_UV) == 0:
+			_free_or_decr_topology(surface_data.topology_data)
+			return null
+		buffers.append(surface_data.topology_data.uv_buffer)
+	if vf_def.has_uv2:
+		if (vf_mask & HAS_UV2) == 0:
+			_free_or_decr_topology(surface_data.topology_data)
+			return null
+		buffers.append(surface_data.topology_data.uv2_buffer)
+	if vf_def.has_bones:
+		if (vf_mask & HAS_BONES) == 0:
+			_free_or_decr_topology(surface_data.topology_data)
+			return null
+		buffers.append(surface_data.topology_data.bones_buffer)
+	if vf_def.has_weights:
+		if (vf_mask & HAS_WEIGHTS) == 0:
+			_free_or_decr_topology(surface_data.topology_data)
+			return null
+		buffers.append(surface_data.topology_data.weights_buffer)
+	var vertex_format : int = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
+
+	surface_data.vertex_array = rd.vertex_array_create(surface_data.topology_data.vertex_count, vertex_format, buffers)
+
+	return surface_data
+
+static func free_surface(surface_data : SurfaceData):
+	surface_data.mesh_data = null
+
+	if surface_data.vertex_array != RID():
+		rd.free_rid(surface_data.vertex_array)
+		surface_data.vertex_array = RID()
+
+	_free_or_decr_topology(surface_data.topology_data)
+	free_material(surface_data.material_data)
+
+static func _get_or_create_topology_data(mesh_resource : Mesh, surface_idx : int) -> TopologyData:
+	for i in range(existing_topologies_data.size()):
+		var existing_topology_data : TopologyData = existing_topologies_data[i]
+		if existing_topology_data.surface_id == surface_idx and existing_topology_data.instance_id == mesh_resource.get_instance_id():
+			existing_topologies_ref_count[i] += 1
+			return existing_topology_data
+
+	var topology_data : TopologyData = TopologyData.new()
+	topology_data.instance_id = mesh_resource.get_instance_id()
+	topology_data.surface_id = surface_idx
 
 	var arrays = mesh_resource.surface_get_arrays(surface_idx)
-	surface_data.index_count = arrays[Mesh.ARRAY_INDEX].size()
+	topology_data.index_count = arrays[Mesh.ARRAY_INDEX].size()
 	var byte_array = arrays[Mesh.ARRAY_INDEX].to_byte_array()
-	surface_data.index_buffer = rd.index_buffer_create(arrays[Mesh.ARRAY_INDEX].size(), RenderingDevice.INDEX_BUFFER_FORMAT_UINT32, byte_array)
+	topology_data.index_buffer = rd.index_buffer_create(arrays[Mesh.ARRAY_INDEX].size(), RenderingDevice.INDEX_BUFFER_FORMAT_UINT32, byte_array)
 	
-	surface_data.index_array = rd.index_array_create(surface_data.index_buffer, 0, surface_data.index_count)
+	topology_data.index_array = rd.index_array_create(topology_data.index_buffer, 0, topology_data.index_count)
 
-	surface_data.vertex_count = arrays[Mesh.ARRAY_VERTEX].size()
+	topology_data.vertex_count = arrays[Mesh.ARRAY_VERTEX].size()
 	byte_array = arrays[Mesh.ARRAY_VERTEX].to_byte_array()
-	surface_data.position_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+	topology_data.position_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 	var has_normal : bool = false
 	var has_tangent : bool = false
@@ -183,112 +266,89 @@ static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_
 	if arrays.size() > Mesh.ARRAY_NORMAL and arrays[Mesh.ARRAY_NORMAL] != null:
 		has_normal = true
 		byte_array = arrays[Mesh.ARRAY_NORMAL].to_byte_array()
-		surface_data.normal_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+		topology_data.normal_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 	if arrays.size() > Mesh.ARRAY_TANGENT and arrays[Mesh.ARRAY_TANGENT] != null:
 		has_tangent = true
 		byte_array = arrays[Mesh.ARRAY_TANGENT].to_byte_array()
-		surface_data.tangent_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-	if arrays.size() > Mesh.ARRAY_TEX_UV and arrays[Mesh.ARRAY_TEX_UV] != null:
-		has_uv = true
-		byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
-		surface_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
-
-	if arrays.size() > Mesh.ARRAY_TEX_UV2 and arrays[Mesh.ARRAY_TEX_UV2] != null:
-		has_uv2 = true
-		byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
-		surface_data.uv2_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+		topology_data.tangent_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 	if arrays.size() > Mesh.ARRAY_COLOR and arrays[Mesh.ARRAY_COLOR] != null:
 		has_color = true
 		byte_array = arrays[Mesh.ARRAY_COLOR].to_byte_array()
-		surface_data.color_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+		topology_data.color_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+	if arrays.size() > Mesh.ARRAY_TEX_UV and arrays[Mesh.ARRAY_TEX_UV] != null:
+		has_uv = true
+		byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
+		topology_data.uv_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+
+	if arrays.size() > Mesh.ARRAY_TEX_UV2 and arrays[Mesh.ARRAY_TEX_UV2] != null:
+		has_uv2 = true
+		byte_array = arrays[Mesh.ARRAY_TEX_UV].to_byte_array()
+		topology_data.uv2_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 	if arrays.size() > Mesh.ARRAY_BONES and arrays[Mesh.ARRAY_BONES] != null:
 		has_bones = true
 		byte_array = arrays[Mesh.ARRAY_BONES].to_byte_array()
-		surface_data.bones_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+		topology_data.bones_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 	if arrays.size() > Mesh.ARRAY_WEIGHTS and arrays[Mesh.ARRAY_WEIGHTS] != null:
 		has_weights = true
 		byte_array = arrays[Mesh.ARRAY_WEIGHTS].to_byte_array()
-		surface_data.weights_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
+		topology_data.weights_buffer = rd.vertex_buffer_create(byte_array.size(), byte_array)
 
-	surface_data.vertex_format_mask = _TL_Renderer_Factory.get_mask_from_bool_array([false, has_normal, has_tangent, has_uv, has_uv2, has_color, has_bones, has_weights])
+	topology_data.vertex_format_mask = _TL_Renderer_Factory.get_mask_from_bool_array([false, has_normal, has_tangent, has_color, has_uv, has_uv2, has_bones, has_weights])
 
-	var vf_def : TL_VertexFormatDef = _TL_Renderer_Factory.get_vertex_format_def_from_material_feature_flags(mat_feat_flags)
-	var buffers : Array[RID]
-	buffers.append(surface_data.position_buffer)
-	if vf_def.has_normal:
-		if !has_normal:
-			return null
-		buffers.append(surface_data.normal_buffer)
-	if vf_def.has_tangent:
-		if !has_tangent:
-			return null
-		buffers.append(surface_data.tangent_buffer)
-	if vf_def.has_color:
-		if !has_color:
-			return null
-		buffers.append(surface_data.color_buffer)
-	if vf_def.has_uv:
-		if !has_uv:
-			return null
-		buffers.append(surface_data.uv_buffer)
-	if vf_def.has_uv2:
-		if !has_uv2:
-			return null
-		buffers.append(surface_data.uv2_buffer)
-	if vf_def.has_bones:
-		if !has_bones:
-			return null
-		buffers.append(surface_data.bones_buffer)
-	if vf_def.has_weights:
-		if !has_weights:
-			return null
-		buffers.append(surface_data.weights_buffer)
-	var vertex_format : int = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
+	existing_topologies_data.append(topology_data)
+	existing_topologies_ref_count.append(1)
 
-	surface_data.vertex_array = rd.vertex_array_create(surface_data.vertex_count, vertex_format, buffers)
+	return topology_data
 
-	return surface_data
+static func _free_or_decr_topology(topology_data : TopologyData):
+	for i in range(existing_topologies_data.size()):
+		var existing_topology_data : TopologyData = existing_topologies_data[i]
+		if existing_topology_data == topology_data:
+			existing_topologies_ref_count[i] -= 1
+			if existing_topologies_ref_count[i] > 0:
+				return
+			else:
+				existing_topologies_data.remove_at(i)
+				existing_topologies_ref_count.remove_at(i)
+				break
 
-static func free_surface(surface_data : SurfaceData):
-	if surface_data.index_array != RID():
-		rd.free_rid(surface_data.index_array)
-		surface_data.index_array = RID()
-	if surface_data.vertex_array != RID():
-		rd.free_rid(surface_data.vertex_array)
-		surface_data.vertex_array = RID()
+	if topology_data.index_array != RID():
+		rd.free_rid(topology_data.index_array)
+		topology_data.index_array = RID()
 	
-	if surface_data.index_buffer != RID():
-		rd.free_rid(surface_data.index_buffer)
-		surface_data.index_buffer = RID()
-	if surface_data.position_buffer != RID():
-		rd.free_rid(surface_data.position_buffer)
-		surface_data.position_buffer = RID()
-	if surface_data.normal_buffer != RID():
-		rd.free_rid(surface_data.normal_buffer)
-		surface_data.normal_buffer = RID()
-	if surface_data.tangent_buffer != RID():
-		rd.free_rid(surface_data.tangent_buffer)
-		surface_data.tangent_buffer = RID()
-	if surface_data.color_buffer != RID():
-		rd.free_rid(surface_data.color_buffer)
-		surface_data.color_buffer = RID()
-	if surface_data.uv2_buffer != RID():
-		rd.free_rid(surface_data.uv2_buffer)
-		surface_data.uv2_buffer = RID()
+	if topology_data.index_buffer != RID():
+		rd.free_rid(topology_data.index_buffer)
+		topology_data.index_buffer = RID()
+	if topology_data.position_buffer != RID():
+		rd.free_rid(topology_data.position_buffer)
+		topology_data.position_buffer = RID()
+	if topology_data.normal_buffer != RID():
+		rd.free_rid(topology_data.normal_buffer)
+		topology_data.normal_buffer = RID()
+	if topology_data.tangent_buffer != RID():
+		rd.free_rid(topology_data.tangent_buffer)
+		topology_data.tangent_buffer = RID()
+	if topology_data.color_buffer != RID():
+		rd.free_rid(topology_data.color_buffer)
+		topology_data.color_buffer = RID()
+	if topology_data.uv_buffer != RID():
+		rd.free_rid(topology_data.uv_buffer)
+		topology_data.uv_buffer = RID()
+	if topology_data.uv2_buffer != RID():
+		rd.free_rid(topology_data.uv2_buffer)
+		topology_data.uv2_buffer = RID()
 
-	if surface_data.bones_buffer != RID():
-		rd.free_rid(surface_data.bones_buffer)
-		surface_data.bones_buffer = RID()
-	if surface_data.weights_buffer != RID():
-		rd.free_rid(surface_data.weights_buffer)
-		surface_data.weights_buffer = RID()
-
-	free_material(surface_data.material_data)
+	if topology_data.bones_buffer != RID():
+		rd.free_rid(topology_data.bones_buffer)
+		topology_data.bones_buffer = RID()
+	if topology_data.weights_buffer != RID():
+		rd.free_rid(topology_data.weights_buffer)
+		topology_data.weights_buffer = RID()
 
 # TODO centralize this
 const SIZEOF_FLOAT = 4
@@ -341,7 +401,7 @@ static func free_mesh(mesh_data : MeshData):
 		free_surface(surface_data)
 
 static func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
-	for existing_skeleton_data in existing_skeleton_data:
+	for existing_skeleton_data in existing_skeletons_data:
 		if existing_skeleton_data.instance_id == skeleton.get_instance_id():
 			return existing_skeleton_data
 
@@ -358,7 +418,7 @@ static func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 	TL_NativeMemory.ManagerInst.fill_packed_byte_array_with_projections(skeleton_data.global_bone_pose_array_bytes_id, 0, skeleton_data.global_bone_pose_array)
 	skeleton_data.global_bone_pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, skeleton_data.global_bone_pose_array_bytes_id, 0)
 
-	existing_skeleton_data.append(skeleton_data)
+	existing_skeletons_data.append(skeleton_data)
 
 	return skeleton_data
 
@@ -367,8 +427,8 @@ static func free_skeleton(skeleton_data : SkeletonData):
 		rd.free_rid(skeleton_data.global_bone_pose_array_buffer)
 		skeleton_data.global_bone_pose_array_buffer = RID()
 
-	var idx : int = existing_skeleton_data.find(skeleton_data)
-	existing_skeleton_data.remove_at(idx)
+	var idx : int = existing_skeletons_data.find(skeleton_data)
+	existing_skeletons_data.remove_at(idx)
 
 static func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 	var omni_data = OmniLightData.new()
