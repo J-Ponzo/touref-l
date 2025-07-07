@@ -7,6 +7,8 @@ const WARN_SURFACE_SKIPPED_VF = "TourefL : The vertex format for %dth surface of
 
 static var rd = RenderingServer.get_rendering_device()
 
+static var existing_skeleton_data : Array[SkeletonData]
+
 class CameraData:
 	var view_matrix_bytes : PackedByteArray
 	var projection_matrix_bytes : PackedByteArray
@@ -40,17 +42,22 @@ class DirectionalLightData extends LightData:
 	var direction : Vector3
 
 class MeshData:
-	var is_skeletal : bool
+	var skeleton_data : SkeletonData
 	var invert_bind_pose_array_buffer : RID
-	var global_bone_pose_array : Array[Projection]
-	var global_bone_pose_array_bytes_id : int
-	var global_bone_pose_array_buffer : RID
 
 	var is_instanced : bool
 	var nb_instances : int
 	var instance_storage_buffer : RID
+
 	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
+
+class SkeletonData:
+	var instance_id : int
+
+	var global_bone_pose_array : Array[Projection]
+	var global_bone_pose_array_bytes_id : int
+	var global_bone_pose_array_buffer : RID
 
 class SurfaceData :
 	var mesh_data : MeshData
@@ -89,6 +96,8 @@ class ParticlesData:
 static func create_from(obj : Object):
 	if obj is MeshInstance3D :
 		return create_from_mesh(obj)
+	elif obj is Skeleton3D:
+		return get_or_create_from_skeleton(obj)
 	elif obj is OmniLight3D:
 		return create_from_omni_light(obj)
 	elif obj is SpotLight3D:
@@ -103,6 +112,8 @@ static func create_from(obj : Object):
 static func free_data(data : Object):
 	if data is MaterialData:
 		return free_material(data)
+	elif data is SkeletonData:
+		return free_skeleton(data)
 	elif data is SurfaceData:
 		return free_surface(data)
 	elif data is MeshData :
@@ -243,67 +254,6 @@ static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_
 
 	return surface_data
 
-# TODO centralize this
-const SIZEOF_FLOAT = 4
-const SIZEOF_MAT4 = SIZEOF_FLOAT * 16
-const MAX_BONES = 128
-
-static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
-	var mesh_data : MeshData = MeshData.new()
-
-	var skin : Skin = mesh.skin
-	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
-	mesh_data.is_skeletal = skeleton != null && skin != null
-	if mesh_data.is_skeletal:
-		var nb_bones : int = skeleton.get_bone_count()
-		var invert_bind_pose_array : PackedByteArray
-		mesh_data.global_bone_pose_array.resize(nb_bones)
-		for bone_idx in range(nb_bones):
-			var global_bone_transform : Transform3D = skeleton.get_bone_global_pose(bone_idx)
-			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
-			invert_bind_pose_array.append_array(TL_RendererUtils.proj_to_bytes(Projection(inverse_bind)))
-			mesh_data.global_bone_pose_array[bone_idx] = Projection(global_bone_transform)
-		for i in range(nb_bones, MAX_BONES):
-			for j in range(SIZEOF_MAT4):
-				invert_bind_pose_array.append(0)
-
-		mesh_data.invert_bind_pose_array_buffer = rd.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, invert_bind_pose_array)
-
-		mesh_data.global_bone_pose_array_bytes_id = TL_NativeMemory.ManagerInst.create_packed_byte_array(MAX_BONES * SIZEOF_MAT4)
-		TL_NativeMemory.ManagerInst.fill_packed_byte_array_with_projections(mesh_data.global_bone_pose_array_bytes_id, 0, mesh_data.global_bone_pose_array)
-		mesh_data.global_bone_pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, mesh_data.global_bone_pose_array_bytes_id, 0)
-
-	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
-
-	for i in range(0, mesh.mesh.get_surface_count()):
-		var material : BaseMaterial3D =  mesh.mesh.surface_get_material(i)
-		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.is_skeletal, false)
-
-		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
-
-		var surface_data : SurfaceData = _create_orphan_surface(mesh.mesh, i, mat_feat_flags)
-		surface_data.material_data = material_data
-		surface_data.mesh_data = mesh_data
-		mesh_data.surfaces_data.append(surface_data)
-
-	return mesh_data
-
-static func free_mesh(mesh_data : MeshData):
-	if mesh_data.global_bone_pose_array_buffer != RID():
-		rd.free_rid(mesh_data.global_bone_pose_array_buffer)
-		mesh_data.global_bone_pose_array_buffer = RID()
-
-	if mesh_data.invert_bind_pose_array_buffer != RID():
-		rd.free_rid(mesh_data.invert_bind_pose_array_buffer)
-		mesh_data.invert_bind_pose_array_buffer = RID()
-
-	if mesh_data.instance_storage_buffer != RID() :
-		rd.free_rid(mesh_data.instance_storage_buffer)
-		mesh_data.instance_storage_buffer = RID()
-
-	for surface_data in mesh_data.surfaces_data:
-		free_surface(surface_data)
-
 static func free_surface(surface_data : SurfaceData):
 	if surface_data.index_array != RID():
 		rd.free_rid(surface_data.index_array)
@@ -339,6 +289,86 @@ static func free_surface(surface_data : SurfaceData):
 		surface_data.weights_buffer = RID()
 
 	free_material(surface_data.material_data)
+
+# TODO centralize this
+const SIZEOF_FLOAT = 4
+const SIZEOF_MAT4 = SIZEOF_FLOAT * 16
+const MAX_BONES = 128
+
+static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
+	var mesh_data : MeshData = MeshData.new()
+
+	var skin : Skin = mesh.skin
+	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
+	if skeleton != null && skin != null:
+		mesh_data.skeleton_data = get_or_create_from_skeleton(skeleton)
+		var nb_bones : int = skeleton.get_bone_count()
+		var invert_bind_pose_array : PackedByteArray
+		for bone_idx in range(nb_bones):
+			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
+			invert_bind_pose_array.append_array(TL_RendererUtils.proj_to_bytes(Projection(inverse_bind)))
+		for i in range(nb_bones, MAX_BONES):
+			for j in range(SIZEOF_MAT4):
+				invert_bind_pose_array.append(0)
+
+		mesh_data.invert_bind_pose_array_buffer = rd.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, invert_bind_pose_array)
+
+	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
+
+	for i in range(0, mesh.mesh.get_surface_count()):
+		var material : BaseMaterial3D =  mesh.mesh.surface_get_material(i)
+		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.skeleton_data != null, false)
+
+		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
+
+		var surface_data : SurfaceData = _create_orphan_surface(mesh.mesh, i, mat_feat_flags)
+		surface_data.material_data = material_data
+		surface_data.mesh_data = mesh_data
+		mesh_data.surfaces_data.append(surface_data)
+
+	return mesh_data
+
+static func free_mesh(mesh_data : MeshData):
+	if mesh_data.invert_bind_pose_array_buffer != RID():
+		rd.free_rid(mesh_data.invert_bind_pose_array_buffer)
+		mesh_data.invert_bind_pose_array_buffer = RID()
+
+	if mesh_data.instance_storage_buffer != RID() :
+		rd.free_rid(mesh_data.instance_storage_buffer)
+		mesh_data.instance_storage_buffer = RID()
+
+	for surface_data in mesh_data.surfaces_data:
+		free_surface(surface_data)
+
+static func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
+	for existing_skeleton_data in existing_skeleton_data:
+		if existing_skeleton_data.instance_id == skeleton.get_instance_id():
+			return existing_skeleton_data
+
+	var skeleton_data : SkeletonData = SkeletonData.new()
+	skeleton_data.instance_id = skeleton.get_instance_id()
+
+	var nb_bones : int = skeleton.get_bone_count()
+	skeleton_data.global_bone_pose_array.resize(nb_bones)
+	for bone_idx in range(nb_bones):
+		var global_bone_transform : Transform3D = skeleton.get_bone_global_pose(bone_idx)
+		skeleton_data.global_bone_pose_array[bone_idx] = Projection(global_bone_transform)
+
+	skeleton_data.global_bone_pose_array_bytes_id = TL_NativeMemory.ManagerInst.create_packed_byte_array(MAX_BONES * SIZEOF_MAT4)
+	TL_NativeMemory.ManagerInst.fill_packed_byte_array_with_projections(skeleton_data.global_bone_pose_array_bytes_id, 0, skeleton_data.global_bone_pose_array)
+	skeleton_data.global_bone_pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, skeleton_data.global_bone_pose_array_bytes_id, 0)
+
+	existing_skeleton_data.append(skeleton_data)
+
+	return skeleton_data
+
+static func free_skeleton(skeleton_data : SkeletonData):
+	if skeleton_data.global_bone_pose_array_buffer != RID():
+		rd.free_rid(skeleton_data.global_bone_pose_array_buffer)
+		skeleton_data.global_bone_pose_array_buffer = RID()
+
+	var idx : int = existing_skeleton_data.find(skeleton_data)
+	existing_skeleton_data.remove_at(idx)
 
 static func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 	var omni_data = OmniLightData.new()
@@ -463,7 +493,7 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 
 	for i in range(0, cpu_particles.mesh.get_surface_count()):
 		var material : BaseMaterial3D =  cpu_particles.mesh.surface_get_material(i)
-		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.is_skeletal, true)
+		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.skeleton_data != null, true)
 
 		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
 
