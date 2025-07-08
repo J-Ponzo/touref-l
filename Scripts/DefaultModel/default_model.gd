@@ -8,6 +8,7 @@ const WARN_SURFACE_SKIPPED_VF = "TourefL : The vertex format for %dth surface of
 static var rd = RenderingServer.get_rendering_device()
 
 class CameraData:
+	var view_transform : Transform3D
 	var view_matrix_bytes : PackedByteArray
 	var projection_matrix_bytes : PackedByteArray
 
@@ -47,6 +48,7 @@ class MeshData:
 	var nb_instances : int
 	var instance_storage_buffer : RID
 
+	var bounding_box : AABB
 	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
 
@@ -131,6 +133,15 @@ static func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
 	sort_key |= custom_id			# Custom_ID
 
 	return sort_key
+
+# TODO optimize : compute this on mesh level
+static func generate_transparent_sort_key(surface_data : SurfaceData, camera_data : CameraData) -> int:
+	var view_pos : Vector3 = camera_data.view_transform * surface_data.mesh_data.bounding_box.get_center()
+	var distance : float = -view_pos.z
+	var sort_key : int = distance * 9223372036854775807
+
+	return sort_key
+
 
 static func create_from(obj : Object):
 	if obj is MeshInstance3D :
@@ -251,6 +262,9 @@ static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_
 	var vertex_format : int = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 
 	surface_data.vertex_array = rd.vertex_array_create(surface_data.topology_data.vertex_count, vertex_format, buffers)
+
+	if mat_feat_flags.render_mode != TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Mix:
+		surface_data.sort_key = generate_opaque_sort_key(surface_data)
 
 	return surface_data
 
@@ -388,6 +402,7 @@ const MAX_BONES = 128
 
 static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data : MeshData = MeshData.new()
+	mesh_data.bounding_box = mesh.get_aabb()
 
 	var skin : Skin = mesh.skin
 	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
@@ -548,7 +563,8 @@ static func free_directional_light(directional_light_data : DirectionalLightData
 
 static func create_from_camera(cam : Camera3D) -> CameraData:
 	var cam_data = CameraData.new()
-	cam_data.view_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cam.get_camera_transform().affine_inverse()))
+	cam_data.view_transform = cam.get_camera_transform().affine_inverse()
+	cam_data.view_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cam_data.view_transform))
 	cam_data.projection_matrix_bytes = TL_RendererUtils.proj_to_bytes(cam.get_camera_projection().flipped_y())
 
 	var bytes = cam_data.view_matrix_bytes
