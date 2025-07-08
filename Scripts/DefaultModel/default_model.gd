@@ -92,6 +92,7 @@ class TopologyData:
 	var vertex_format_mask : int = -1
 
 class MaterialData:
+	var albedo : Color
 	var albedo_tex : RID 
 	var albedo_sampler : RID 
 	var normal_tex : RID
@@ -112,17 +113,20 @@ static  func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
 static func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
 	var pso_id = surface_data.material_data.mat_feat_flags_mask
 	
+	var color_hash : int = hash_int_to_bits(surface_data.material_data.albedo.to_rgba64(), 8)
 	var albedo_hash : int = hash_int_to_bits(surface_data.material_data.albedo_sampler.get_id(), 8)
 	var normal_hash : int = hash_int_to_bits(surface_data.material_data.normal_sampler.get_id(), 8)
 	var orm_hash : int = hash_int_to_bits(surface_data.material_data.orm_sampler.get_id(), 8)
-	var material_id : int = albedo_hash
-	material_id |= normal_hash << 8
-	material_id |= orm_hash << 16
+	var material_id : int = color_hash
+	material_id |= albedo_hash << 8
+	material_id |= normal_hash << 16
+	material_id |= orm_hash << 24
+
 
 	var index_array_hash : int = hash_int_to_bits(surface_data.topology_data.index_array.get_id(), 16)
 	var vertex_array_hash : int = hash_int_to_bits(surface_data.vertex_array.get_id(), 16)
 	var mesh_id : int = index_array_hash
-	mesh_id |= vertex_array_hash << 8
+	mesh_id |= vertex_array_hash << 16
 
 	var custom_id : int = 0
 
@@ -184,10 +188,10 @@ static func create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_
 
 	material_data.mat_feat_flags_mask = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(mat_feat_flags)
 
+	material_data.albedo = material.albedo_color
 	if mat_feat_flags.has_albedo_map:
 		material_data.albedo_tex = RenderingServer.texture_get_rd_texture(material.albedo_texture)
 		material_data.albedo_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
-
 	if mat_feat_flags.has_normal_map and mat_feat_flags.is_lit:
 		material_data.normal_tex = RenderingServer.texture_get_rd_texture(material.normal_texture)
 		material_data.normal_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
