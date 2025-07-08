@@ -20,3 +20,6 @@ enum ERenderMode {
 
 @export var cull_mode : RenderingDevice.PolygonCullMode
 @export var render_mode : ERenderMode
+
+func is_transparent() -> bool:
+    return render_mode == ERenderMode.Transparent_Mix or render_mode == ERenderMode.Transparent_Add or render_mode == ERenderMode.Transparent_Subtract or render_mode == ERenderMode.Transparent_Multiply or render_mode == ERenderMode.Transparent_PremultAlpha

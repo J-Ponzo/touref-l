@@ -263,9 +263,6 @@ static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_
 
 	surface_data.vertex_array = rd.vertex_array_create(surface_data.topology_data.vertex_count, vertex_format, buffers)
 
-	if mat_feat_flags.render_mode != TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Mix:
-		surface_data.sort_key = generate_opaque_sort_key(surface_data)
-
 	return surface_data
 
 static func free_surface(surface_data : SurfaceData):
@@ -431,6 +428,9 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		surface_data.material_data = material_data
 		surface_data.mesh_data = mesh_data
 		mesh_data.surfaces_data.append(surface_data)
+
+		if mat_feat_flags.is_transparent():
+			surface_data.sort_key = generate_opaque_sort_key(surface_data)
 
 	return mesh_data
 
@@ -608,6 +608,9 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 		surface_data.mesh_data = mesh_data
 		surface_data.material_data = material_data
 		mesh_data.surfaces_data.append(surface_data)
+
+		if mat_feat_flags.is_transparent():
+			surface_data.sort_key = generate_opaque_sort_key(surface_data)
 
 	return particles_data
 
