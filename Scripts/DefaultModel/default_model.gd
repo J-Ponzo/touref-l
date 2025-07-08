@@ -60,6 +60,7 @@ class SkeletonData:
 	var global_bone_pose_array_buffer : RID
 
 class SurfaceData:
+	var sort_key : int
 	var mesh_data : MeshData
 	var topology_data : TopologyData
 	var vertex_array : RID
@@ -100,6 +101,36 @@ class MaterialData:
 class ParticlesData:
 	var multi_mesh_rid : RID
 	var mesh_data : MeshData
+
+static  func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
+	var h = hash(src_int)
+	var mask = (1 << trg_nb_bits) - 1
+	return h & mask
+
+static func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
+	var pso_id = surface_data.material_data.mat_feat_flags_mask
+	
+	var albedo_hash : int = hash_int_to_bits(surface_data.material_data.albedo_sampler.get_id(), 8)
+	var normal_hash : int = hash_int_to_bits(surface_data.material_data.normal_sampler.get_id(), 8)
+	var orm_hash : int = hash_int_to_bits(surface_data.material_data.orm_sampler.get_id(), 8)
+	var material_id : int = albedo_hash
+	material_id |= normal_hash << 8
+	material_id |= orm_hash << 16
+
+	var index_array_hash : int = hash_int_to_bits(surface_data.topology_data.index_array.get_id(), 16)
+	var vertex_array_hash : int = hash_int_to_bits(surface_data.vertex_array.get_id(), 16)
+	var mesh_id : int = index_array_hash
+	mesh_id |= vertex_array_hash << 8
+
+	var custom_id : int = 0
+
+	var sort_key : int = 0
+	sort_key |= pso_id << 48		# PSO_ID
+	sort_key |= material_id << 32	# Material_ID
+	sort_key |= mesh_id << 16		# Mesh_ID
+	sort_key |= custom_id			# Custom_ID
+
+	return sort_key
 
 static func create_from(obj : Object):
 	if obj is MeshInstance3D :
