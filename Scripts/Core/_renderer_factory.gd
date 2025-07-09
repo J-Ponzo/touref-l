@@ -256,7 +256,7 @@ static func create_defines_from_material_feature_flags(mat_feats_def : TL_Materi
 		defines.append("INSTANCED")
 	if mat_feats_def.has_albedo_map:
 		defines.append("ALBEDO_MAP")
-	if mat_feats_def.has_albedo_map:
+	if mat_feats_def.has_normal_map:
 		defines.append("NORMAL_MAP")
 	return defines
 
