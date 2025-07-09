@@ -495,7 +495,7 @@ static func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 	omni_data.light_buffer_float.append(omni_data.location.y)
 	omni_data.light_buffer_float.append(omni_data.location.z)
 	omni_data.light_buffer_float.append(omni_data.intensity)
-	var linear_color : Color = omni_data.color.srgb_to_linear()
+	var linear_color : Color = omni_data.color#.srgb_to_linear()
 	omni_data.light_buffer_float.append(linear_color.r)
 	omni_data.light_buffer_float.append(linear_color.g)
 	omni_data.light_buffer_float.append(linear_color.b)
