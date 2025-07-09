@@ -102,7 +102,7 @@ static func create_material_feature_flags(material : BaseMaterial3D, is_skeletal
 		mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.AlphaScissor
 	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_HASH:
 		mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.AlphaHash
-	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA:
+	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA or material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS:
 		if material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MIX:
 			mat_feat_flags.render_mode = TL_MaterialFeatureFlags_Def.ERenderMode.Transparent_Mix
 		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_ADD:
