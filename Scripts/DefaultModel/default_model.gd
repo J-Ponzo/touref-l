@@ -406,7 +406,10 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	mesh_data.bounding_box = mesh.get_aabb()
 
 	var skin : Skin = mesh.skin
-	var skeleton : Skeleton3D = mesh.get_node_or_null(mesh.skeleton)
+	var node_at_skeleton_path = mesh.get_node_or_null(mesh.skeleton)
+	var skeleton : Skeleton3D = null
+	if node_at_skeleton_path != null and node_at_skeleton_path is Skeleton3D:
+		skeleton = node_at_skeleton_path
 	if skeleton != null && skin != null:
 		mesh_data.skeleton_data = get_or_create_from_skeleton(skeleton)
 		var nb_bones : int = skeleton.get_bone_count()
