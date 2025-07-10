@@ -17,6 +17,7 @@ enum ERenderMode {
 @export var is_instanced : bool
 @export var has_albedo_map : bool
 @export var has_normal_map : bool
+@export var has_orm_map : bool
 
 @export var cull_mode : RenderingDevice.PolygonCullMode
 @export var render_mode : ERenderMode

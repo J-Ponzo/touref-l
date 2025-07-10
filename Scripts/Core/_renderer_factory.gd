@@ -74,12 +74,33 @@ static func get_vertex_format_def_from_material_feature_flags(mat_feats_def : TL
 	vf_def.has_normal = mat_feats_def.is_lit
 	vf_def.has_tangent = mat_feats_def.is_lit
 	vf_def.has_color = false
-	vf_def.has_uv = mat_feats_def.has_albedo_map
+	vf_def.has_uv = mat_feats_def.has_albedo_map or mat_feats_def.has_normal_map or mat_feats_def.has_orm_map
 	vf_def.has_uv2 = false
 	vf_def.has_bones = mat_feats_def.is_skeletal
 	vf_def.has_weights = mat_feats_def.is_skeletal
 
 	return vf_def
+
+static func try_extract_orm_from_material(material : BaseMaterial3D) -> Texture2D:
+	if material.orm_texture != null:
+		return material.orm_texture
+	
+	var textures : Array[Texture2D]
+	if material.ao_texture != null and material.ao_texture_channel == BaseMaterial3D.TextureChannel.TEXTURE_CHANNEL_RED:
+		textures.append(material.ao_texture)
+	if material.roughness_texture != null and material.roughness_texture_channel == BaseMaterial3D.TextureChannel.TEXTURE_CHANNEL_GREEN:
+		textures.append(material.roughness_texture)
+	if material.metallic_texture != null and material.metallic_texture_channel == BaseMaterial3D.TextureChannel.TEXTURE_CHANNEL_BLUE:
+		textures.append(material.roughness_texture)
+
+	if textures.size() == 0:
+		return null
+	var texture = textures[0]
+	for i in range(1, textures.size()):
+		if texture != textures[i]:
+			return null
+
+	return texture
 
 static func create_material_feature_flags(material : BaseMaterial3D, is_skeletal : bool, is_instanced : bool) -> TL_MaterialFeatureFlags_Def:
 	var mat_feat_flags : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
@@ -88,6 +109,7 @@ static func create_material_feature_flags(material : BaseMaterial3D, is_skeletal
 	mat_feat_flags.is_instanced = is_instanced
 	mat_feat_flags.has_albedo_map = material.albedo_texture != null
 	mat_feat_flags.has_normal_map = material.normal_texture != null
+	mat_feat_flags.has_orm_map = try_extract_orm_from_material(material) != null
 
 	if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
 		mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_BACK
@@ -125,19 +147,20 @@ static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialF
 	mat_feats_def.is_instanced = 	(mask & 1 << 2) > 0
 	mat_feats_def.has_albedo_map = 	(mask & 1 << 3) > 0
 	mat_feats_def.has_normal_map = 	(mask & 1 << 4) > 0
+	mat_feats_def.has_orm_map = 	(mask & 1 << 5) > 0
 
-	mat_feats_def.cull_mode = (mask >> 5) & 0b11
-	mat_feats_def.render_mode = (mask >> 7) & 0b111
+	mat_feats_def.cull_mode = (mask >> 6) & 0b11
+	mat_feats_def.render_mode = (mask >> 8) & 0b111
 
 	return mat_feats_def
 
 static func get_mask_from_material_feature_flags_def(material_features_def : TL_MaterialFeatureFlags_Def) -> int:
 	if material_features_def == null:
 		return -1
-	var mask : int = get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced, material_features_def.has_albedo_map, material_features_def.has_normal_map])
+	var mask : int = get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced, material_features_def.has_albedo_map, material_features_def.has_normal_map, material_features_def.has_orm_map])
 
-	mask |= material_features_def.cull_mode << 5	# 2 bits
-	mask |= material_features_def.render_mode << 7	# 3 bits
+	mask |= material_features_def.cull_mode << 6	# 2 bits
+	mask |= material_features_def.render_mode << 8	# 3 bits
 
 	return mask
 
@@ -258,6 +281,8 @@ static func create_defines_from_material_feature_flags(mat_feats_def : TL_Materi
 		defines.append("ALBEDO_MAP")
 	if mat_feats_def.has_normal_map:
 		defines.append("NORMAL_MAP")
+	if mat_feats_def.has_orm_map:
+		defines.append("ORM_MAP")
 	return defines
 
 static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_attachments : int, depth_test : bool = true) -> _TL_PSO:

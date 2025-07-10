@@ -195,6 +195,9 @@ static func create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_
 	if mat_feat_flags.has_normal_map and mat_feat_flags.is_lit:
 		material_data.normal_tex = RenderingServer.texture_get_rd_texture(material.normal_texture)
 		material_data.normal_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
+	if mat_feat_flags.has_orm_map and mat_feat_flags.is_lit:
+		material_data.orm_tex = RenderingServer.texture_get_rd_texture(_TL_Renderer_Factory.try_extract_orm_from_material(material))
+		material_data.orm_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
 
 	return material_data
 
