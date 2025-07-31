@@ -539,10 +539,10 @@ static func create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
 	spot_data.light_buffer_float.append(linear_color.g)
 	spot_data.light_buffer_float.append(linear_color.b)
 	spot_data.light_buffer_float.append(spot_data.angle_attenuation)
-	spot_data.light_buffer_float.append(0.0)
-	spot_data.light_buffer_float.append(0.0)
 	spot_data.light_buffer_float.append(spot_data.range)
 	spot_data.light_buffer_float.append(spot_data.attenuation)
+	spot_data.light_buffer_float.append(0.0)
+	spot_data.light_buffer_float.append(0.0)
 
 	spot_data.light_buffer_bytes = spot_data.light_buffer_float.to_byte_array()
 
