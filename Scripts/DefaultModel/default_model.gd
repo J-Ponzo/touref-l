@@ -439,7 +439,7 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		surface_data.mesh_data = mesh_data
 		mesh_data.surfaces_data.append(surface_data)
 
-		if mat_feat_flags.is_transparent():
+		if !mat_feat_flags.is_transparent():
 			surface_data.sort_key = generate_opaque_sort_key(surface_data)
 
 	return mesh_data
@@ -622,7 +622,7 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 		surface_data.material_data = material_data
 		mesh_data.surfaces_data.append(surface_data)
 
-		if mat_feat_flags.is_transparent():
+		if !mat_feat_flags.is_transparent():
 			surface_data.sort_key = generate_opaque_sort_key(surface_data)
 
 	return particles_data
