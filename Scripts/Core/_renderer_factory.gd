@@ -25,6 +25,7 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 		if scn_proxy_inst is _TL_SceneProxy:
 			var scene_proxy : _TL_SceneProxy = scn_proxy_inst
 			var renderer : _TL_Renderer = renderer_inst
+			renderer.renderer_def = renderer_def
 			renderer.scene_proxy = scene_proxy
 			for key : StringName in renderer_def.renderer_pass_defs.keys():
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
