@@ -92,7 +92,7 @@ class TopologyData:
 	var vertex_format_mask : int = -1
 
 class MaterialData:
-	var albedo : Color
+	var albedo_buffer : RID
 	var albedo_tex : RID 
 	var albedo_sampler : RID 
 	var normal_tex : RID
@@ -113,7 +113,7 @@ static  func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
 static func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
 	var pso_id = surface_data.material_data.mat_feat_flags_mask
 	
-	var color_hash : int = hash_int_to_bits(surface_data.material_data.albedo.to_rgba64(), 8)
+	var color_hash : int = hash_int_to_bits(surface_data.material_data.albedo_buffer.get_id(), 8)
 	var albedo_hash : int = hash_int_to_bits(surface_data.material_data.albedo_sampler.get_id(), 8)
 	var normal_hash : int = hash_int_to_bits(surface_data.material_data.normal_sampler.get_id(), 8)
 	var orm_hash : int = hash_int_to_bits(surface_data.material_data.orm_sampler.get_id(), 8)
@@ -187,8 +187,11 @@ static func create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_
 	var material_data : TL_DefaultModel.MaterialData = TL_DefaultModel.MaterialData.new()
 
 	material_data.mat_feat_flags_mask = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(mat_feat_flags)
+	
+	var albedo_floats_array : PackedFloat32Array = [material.albedo_color.r, material.albedo_color.g, material.albedo_color.b, material.albedo_color.a]
+	var bytes : PackedByteArray =  albedo_floats_array.to_byte_array()
+	material_data.albedo_buffer = rd.uniform_buffer_create(bytes.size(), bytes)
 
-	material_data.albedo = material.albedo_color
 	if mat_feat_flags.has_albedo_map:
 		material_data.albedo_tex = RenderingServer.texture_get_rd_texture(material.albedo_texture)
 		material_data.albedo_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
