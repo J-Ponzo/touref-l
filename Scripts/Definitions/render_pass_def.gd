@@ -6,3 +6,4 @@ class_name TL_RenderPassDef
 @export var pso_defs : Dictionary[StringName, TL_PSODef]
 @export var uber_vertex_shader : TL_GLSLShader
 @export var uber_fragment_shader : TL_GLSLShader
+@export var defines : Array[StringName]

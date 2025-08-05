@@ -30,7 +30,8 @@ func get_or_create_pso_instance(mat_feature_flags_mask : int) -> _TL_PSO:
 func create_pso_name_to_mask(pso_defs : Dictionary[StringName, TL_PSODef]) -> Dictionary[StringName, int]:
 	var pso_name_to_mask : Dictionary[StringName, int]
 	for key in pso_defs.keys(): 
-		pso_name_to_mask[key] = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(pso_defs[key].material_features_def)
+		var material_features_def : TL_MaterialFeatureFlags_Def =  _TL_Renderer_Factory.get_material_feature_flags_def_from_pso_def(pso_defs[key])
+		pso_name_to_mask[key] = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(material_features_def)
 	return pso_name_to_mask
 
 func create_piplines_from_defs(pso_defs : Dictionary[StringName, TL_PSODef], pso_name_to_mask : Dictionary[StringName, int]) -> Dictionary[int, _TL_PSO]:
