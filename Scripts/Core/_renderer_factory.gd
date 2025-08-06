@@ -60,8 +60,8 @@ static func get_mask_from_bool_array(bools : Array[bool]) -> int:
 		mask |= 1 << i if bools[i] else 0
 	return mask
 
-static func get_pso_def_from_mask_and_shaders(mat_feats_mask : int, vertex_shader : TL_GLSLShader, fragment_shader : TL_GLSLShader) -> TL_PSODef:
-	var pso_def : TL_PSODef = TL_PSODef.new()
+static func get_pso_def_from_mask_and_shaders(mat_feats_mask : int, vertex_shader : TL_GLSLShader, fragment_shader : TL_GLSLShader) -> TL_ExpicitPSODef:
+	var pso_def : TL_ExpicitPSODef = TL_ExpicitPSODef.new()
 	pso_def.vertex_shader = vertex_shader
 	pso_def.fragment_shader = fragment_shader
 	# pso_def.material_features_def = get_material_feature_flags_def_from_mask(mat_feats_mask)
@@ -125,22 +125,22 @@ static func create_material_feature_flags(material : BaseMaterial3D, is_skeletal
 		mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_FRONT
 
 	if material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_DISABLED:
-		mat_feat_flags.render_mode = TL_PSODef.ERenderMode.Opaque
+		mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Opaque
 	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_SCISSOR:
-		mat_feat_flags.render_mode = TL_PSODef.ERenderMode.AlphaScissor
+		mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.AlphaScissor
 	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_HASH:
-		mat_feat_flags.render_mode = TL_PSODef.ERenderMode.AlphaHash
+		mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.AlphaHash
 	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA or material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS:
 		if material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MIX:
-			mat_feat_flags.render_mode = TL_PSODef.ERenderMode.Transparent_Mix
+			mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Mix
 		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_ADD:
-			mat_feat_flags.render_mode = TL_PSODef.ERenderMode.Transparent_Add
+			mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Add
 		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_SUB:
-			mat_feat_flags.render_mode = TL_PSODef.ERenderMode.Transparent_Subtract
+			mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Subtract
 		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MUL:
-			mat_feat_flags.render_mode = TL_PSODef.ERenderMode.Transparent_Multiply
+			mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Multiply
 		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_PREMULT_ALPHA:
-			mat_feat_flags.render_mode = TL_PSODef.ERenderMode.Transparent_PremultAlpha
+			mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha
 
 	return mat_feat_flags
 
@@ -160,7 +160,7 @@ static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialF
 
 	return mat_feats_def
 
-static func get_material_feature_flags_def_from_pso_def(pso_def : TL_PSODef) -> TL_MaterialFeatureFlags_Def:
+static func get_material_feature_flags_def_from_pso_def(pso_def : TL_ExpicitPSODef) -> TL_MaterialFeatureFlags_Def:
 	var mat_feats_def : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
 	mat_feats_def.is_skeletal = pso_def.defines.has("SKELETAL")
 	mat_feats_def.is_lit = pso_def.defines.has("LIT")
@@ -305,7 +305,7 @@ static func create_defines_from_material_feature_flags(mat_feats_def : TL_Materi
 		defines.append("ORM_MAP")
 	return defines
 
-static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_attachments : int, depth_test : bool = true) -> _TL_PSO:
+static func create_pso(pso_def : TL_ExpicitPSODef, framebuffer_format : int, nb_color_attachments : int, depth_test : bool = true) -> _TL_PSO:
 	var instance = _TL_PSO.new()
 
 	var path : String = pso_def.vertex_shader.resource_path
@@ -341,7 +341,7 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 	var colorBlendState = RDPipelineColorBlendState.new()
 	for i in range(nb_color_attachments):
 		var colorBlendStateAttachment : RDPipelineColorBlendStateAttachment = RDPipelineColorBlendStateAttachment.new()
-		if pso_def.render_mode == TL_PSODef.ERenderMode.Transparent_Mix:
+		if pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix:
 			colorBlendStateAttachment.enable_blend = true
 			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
 			colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
@@ -349,7 +349,7 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
 			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
 			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
-		elif pso_def.render_mode == TL_PSODef.ERenderMode.Transparent_Add:
+		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add:
 			colorBlendStateAttachment.enable_blend = true
 			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
 			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
@@ -357,7 +357,7 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
 			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
 			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-		elif pso_def.render_mode == TL_PSODef.ERenderMode.Transparent_Subtract:
+		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Subtract:
 			colorBlendStateAttachment.enable_blend = true
 			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_REVERSE_SUBTRACT
 			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_REVERSE_SUBTRACT
@@ -365,7 +365,7 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
 			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
 			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-		elif pso_def.render_mode == TL_PSODef.ERenderMode.Transparent_Multiply:
+		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Multiply:
 			colorBlendStateAttachment.enable_blend = true
 			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
 			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
@@ -373,7 +373,7 @@ static func create_pso(pso_def : TL_PSODef, framebuffer_format : int, nb_color_a
 			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ZERO
 			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_DST_ALPHA
 			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ZERO
-		elif pso_def.render_mode == TL_PSODef.ERenderMode.Transparent_PremultAlpha:
+		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha:
 			colorBlendStateAttachment.enable_blend = true
 			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
 			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
