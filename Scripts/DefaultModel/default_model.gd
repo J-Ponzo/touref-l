@@ -113,20 +113,20 @@ static  func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
 static func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
 	var pso_id = surface_data.material_data.mat_feat_flags_mask
 	
-	var color_hash : int = hash_int_to_bits(surface_data.material_data.albedo_buffer.get_id(), 8)
-	var albedo_hash : int = hash_int_to_bits(surface_data.material_data.albedo_sampler.get_id(), 8)
-	var normal_hash : int = hash_int_to_bits(surface_data.material_data.normal_sampler.get_id(), 8)
-	var orm_hash : int = hash_int_to_bits(surface_data.material_data.orm_sampler.get_id(), 8)
+	var color_hash : int = hash_int_to_bits(surface_data.material_data.albedo_buffer.get_id(), 4)
+	var albedo_hash : int = hash_int_to_bits(surface_data.material_data.albedo_sampler.get_id(), 4)
+	var normal_hash : int = hash_int_to_bits(surface_data.material_data.normal_sampler.get_id(), 4)
+	var orm_hash : int = hash_int_to_bits(surface_data.material_data.orm_sampler.get_id(), 4)
 	var material_id : int = color_hash
-	material_id |= albedo_hash << 8
-	material_id |= normal_hash << 16
-	material_id |= orm_hash << 24
+	material_id |= albedo_hash << 4
+	material_id |= normal_hash << 8
+	material_id |= orm_hash << 12
 
 
-	var index_array_hash : int = hash_int_to_bits(surface_data.topology_data.index_array.get_id(), 16)
-	var vertex_array_hash : int = hash_int_to_bits(surface_data.vertex_array.get_id(), 16)
+	var index_array_hash : int = hash_int_to_bits(surface_data.topology_data.index_array.get_id(), 8)
+	var vertex_array_hash : int = hash_int_to_bits(surface_data.vertex_array.get_id(), 8)
 	var mesh_id : int = index_array_hash
-	mesh_id |= vertex_array_hash << 16
+	mesh_id |= vertex_array_hash << 8
 
 	var custom_id : int = 0
 
