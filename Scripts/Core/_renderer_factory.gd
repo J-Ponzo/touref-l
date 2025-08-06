@@ -42,7 +42,6 @@ static func create_render_pass(renderer_inst : _TL_Renderer, render_pass_key : S
 	if render_pass_inst is _TL_RenderPass:
 		var render_pass : _TL_RenderPass = render_pass_inst
 		render_pass.render_pass_def = render_pass_def
-		render_pass.pso_defs = render_pass_def.pso_defs
 		render_pass.renderer = renderer_inst
 		renderer_inst.render_passes[render_pass_key] = render_pass
 

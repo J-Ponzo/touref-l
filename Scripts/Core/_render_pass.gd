@@ -1,7 +1,6 @@
 class_name _TL_RenderPass
 
 var render_pass_def : TL_RenderPassDef
-var pso_defs : Dictionary[StringName, TL_ExpicitPSODef]
 
 var pso_name_to_mask : Dictionary[StringName, int]
 var pso_instances : Dictionary[int, _TL_PSO]
@@ -20,7 +19,7 @@ func _setup() -> void:
 
 	var attachments : Array[RID] = renderer.get_attachments(render_pass_def.fb_format_def.get_all_attachment_keys())
 	framebuffer = renderer.rd.framebuffer_create(attachments, framebuffer_format)
-	explicits_pso = create_explicits_pso_from_defs(pso_defs)
+	explicits_pso = create_explicits_pso_from_defs(render_pass_def.pso_defs)
 	# pso_name_to_mask = create_pso_name_to_mask(pso_defs)
 	# pso_instances = create_piplines_from_defs(pso_defs, pso_name_to_mask)
 
