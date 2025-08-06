@@ -7,6 +7,8 @@ var pso_name_to_mask : Dictionary[StringName, int]
 var pso_instances : Dictionary[int, _TL_PSO]
 # var attachments : Dictionary[StringName, RID]
 
+var explicits_pso : Dictionary[StringName, _TL_PSO]
+
 var renderer : _TL_Renderer
 
 var framebuffer_format : int
@@ -18,14 +20,21 @@ func _setup() -> void:
 
 	var attachments : Array[RID] = renderer.get_attachments(render_pass_def.fb_format_def.get_all_attachment_keys())
 	framebuffer = renderer.rd.framebuffer_create(attachments, framebuffer_format)
-	pso_name_to_mask = create_pso_name_to_mask(pso_defs)
-	pso_instances = create_piplines_from_defs(pso_defs, pso_name_to_mask)
+	explicits_pso = create_explicits_pso_from_defs(pso_defs)
+	# pso_name_to_mask = create_pso_name_to_mask(pso_defs)
+	# pso_instances = create_piplines_from_defs(pso_defs, pso_name_to_mask)
 
 func get_or_create_pso_instance(mat_feature_flags_mask : int) -> _TL_PSO:
 	if !pso_instances.has(mat_feature_flags_mask):
 		var pso_def = _TL_Renderer_Factory.get_pso_def_from_mask_and_shaders(mat_feature_flags_mask, render_pass_def.uber_vertex_shader, render_pass_def.uber_fragment_shader)
 		pso_instances[mat_feature_flags_mask] = _TL_Renderer_Factory.create_pso(pso_def, framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
 	return pso_instances[mat_feature_flags_mask]
+
+func create_explicits_pso_from_defs(pso_defs : Dictionary[StringName, TL_ExpicitPSODef]) -> Dictionary[StringName, _TL_PSO]:
+	var pso_instances : Dictionary[StringName, _TL_PSO] 
+	for key in pso_defs.keys():
+		pso_instances[key] = _TL_Renderer_Factory.create_pso(pso_defs[key], framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
+	return pso_instances
 
 func create_pso_name_to_mask(pso_defs : Dictionary[StringName, TL_ExpicitPSODef]) -> Dictionary[StringName, int]:
 	var pso_name_to_mask : Dictionary[StringName, int]
