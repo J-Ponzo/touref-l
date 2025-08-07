@@ -1,5 +1,6 @@
 class_name _TL_SceneProxy
 
+var render : _TL_Renderer
 var _scene_root : Node
 
 func _setup(scene_root : Node) -> void:

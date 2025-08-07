@@ -3,6 +3,7 @@ class_name _TL_Renderer_Factory
 const ERR_RENDERER_WRONG_PARENT = "TourefL : Cannot instantiate the renderer from class %s. It must inherit from _TL_Renderer."
 const ERR_SCNPROXY_WRONG_PARENT = "TourefL : Cannot instantiate the scene proxy from class %s. It must inherit from _TL_SceneProxy."
 const ERR_RENDERPASS_WRONG_PARENT = "TourefL : Cannot instantiate the render pass from class %s. It must inherit from _TL_RenderPass."
+const ERR_FEATUREFLAG_WRONG_PARENT = "TourefL : Cannot instantiate the feature flag manager from class %s. It must inherit from _TL_FeatureFlagManager."
 
 const SIZEOF_FLOAT = 4
 const SIZEOF_INT = 4
@@ -21,17 +22,25 @@ static var rd = RenderingServer.get_rendering_device()
 static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 	var renderer_inst = renderer_def.renderer_script.new()
 	if renderer_inst is _TL_Renderer:
+		var renderer : _TL_Renderer = renderer_inst
+		renderer.renderer_def = renderer_def
 		var scn_proxy_inst = renderer_def.scene_proxy_script.new()
 		if scn_proxy_inst is _TL_SceneProxy:
 			var scene_proxy : _TL_SceneProxy = scn_proxy_inst
-			var renderer : _TL_Renderer = renderer_inst
-			renderer.renderer_def = renderer_def
+			scene_proxy.render = renderer
 			renderer.scene_proxy = scene_proxy
 			for key : StringName in renderer_def.renderer_pass_defs.keys():
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
 			return renderer
 		else :
 			push_error(ERR_SCNPROXY_WRONG_PARENT % renderer_def.scene_proxy_script)
+		var feature_flag_manager_inst = renderer_def.feature_flag_manager_def.manager_script.new()
+		if feature_flag_manager_inst is _TL_FeatureFlagManager:
+			var feature_flag_manager : _TL_FeatureFlagManager = feature_flag_manager_inst
+			feature_flag_manager.feature_flag_manager_def = renderer_def.feature_flag_manager_def
+			renderer_inst.feature_flag_manager = feature_flag_manager
+		else:
+			push_error(ERR_FEATUREFLAG_WRONG_PARENT % renderer_def.feature_flag_manager_def.manager_script)
 	else :
 		push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)
 	

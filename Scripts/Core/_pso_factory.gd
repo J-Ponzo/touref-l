@@ -1,5 +1,7 @@
 class_name _TL_PSOFactory
 
+var render_pass : _TL_RenderPass
+
 var generated_pso_def : TL_GeneratedPSODef
 var framebuffer_format : int
 var nb_color_attachments : int

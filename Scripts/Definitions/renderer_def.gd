@@ -5,3 +5,4 @@ class_name TL_RendererDef
 @export var scene_proxy_script : GDScript
 @export var renderer_pass_defs : Dictionary[StringName, TL_RenderPassDef]
 @export var attachment_format_defs : Dictionary[StringName, TL_AttachmentFormat_Def]
+@export var feature_flag_manager_def : TL_FeatureFlagManager_Def

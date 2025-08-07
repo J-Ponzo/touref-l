@@ -1,0 +1,3 @@
+class_name _TL_FeatureFlagManager
+
+var feature_flag_manager_def : TL_FeatureFlagManager_Def

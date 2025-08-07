@@ -5,6 +5,7 @@ var renderer_def : TL_RendererDef
 var scene_proxy : _TL_SceneProxy
 var render_passes : Dictionary[StringName, _TL_RenderPass]
 var attachments : Dictionary[StringName, RID]
+var feature_flag_manager : _TL_FeatureFlagManager
 
 var rd = RenderingServer.get_rendering_device()
 

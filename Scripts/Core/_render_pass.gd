@@ -38,6 +38,7 @@ func create_pso_factories_from_defs(generated_pso_defs : Dictionary[StringName, 
 		var generated_pso_def : TL_GeneratedPSODef = generated_pso_defs[key]
 		var pso_factory_inst = generated_pso_def.factory_script.new()
 		if pso_factory_inst is _TL_PSOFactory:
+			pso_factory_inst.render_pass = self
 			pso_factory_inst.generated_pso_def = generated_pso_def
 			pso_factory_inst.framebuffer_format = framebuffer_format
 			pso_factory_inst.nb_color_attachments = nb_color_attachment
