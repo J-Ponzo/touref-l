@@ -31,16 +31,17 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 			renderer.scene_proxy = scene_proxy
 			for key : StringName in renderer_def.renderer_pass_defs.keys():
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
-			return renderer
 		else :
 			push_error(ERR_SCNPROXY_WRONG_PARENT % renderer_def.scene_proxy_script)
-		var feature_flag_manager_inst = renderer_def.feature_flag_manager_def.manager_script.new()
-		if feature_flag_manager_inst is _TL_FeatureFlagManager:
-			var feature_flag_manager : _TL_FeatureFlagManager = feature_flag_manager_inst
-			feature_flag_manager.feature_flag_manager_def = renderer_def.feature_flag_manager_def
-			renderer_inst.feature_flag_manager = feature_flag_manager
-		else:
-			push_error(ERR_FEATUREFLAG_WRONG_PARENT % renderer_def.feature_flag_manager_def.manager_script)
+		if renderer_def.feature_flag_manager_def != null:
+			var feature_flag_manager_inst = renderer_def.feature_flag_manager_def.manager_script.new()
+			if feature_flag_manager_inst is _TL_FeatureFlagManager:
+				var feature_flag_manager : _TL_FeatureFlagManager = feature_flag_manager_inst
+				feature_flag_manager.feature_flag_manager_def = renderer_def.feature_flag_manager_def
+				renderer_inst.feature_flag_manager = feature_flag_manager
+			else:
+				push_error(ERR_FEATUREFLAG_WRONG_PARENT % renderer_def.feature_flag_manager_def.manager_script)
+		return renderer
 	else :
 		push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)
 	
