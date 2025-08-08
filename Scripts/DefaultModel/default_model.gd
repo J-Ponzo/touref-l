@@ -147,7 +147,7 @@ func generate_transparent_sort_key(surface_data : SurfaceData, camera_data : Cam
 
 	return sort_key
 
-
+# TODO add _ before specific create functions
 func create_from(obj : Object):
 	if obj is MeshInstance3D :
 		return create_from_mesh(obj)
@@ -460,6 +460,7 @@ func free_mesh(mesh_data : MeshData):
 	for surface_data in mesh_data.surfaces_data:
 		free_surface(surface_data)
 
+# TODO find a way to notify weather it was created or not
 func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 	for existing_skeleton_data in existing_skeletons_data:
 		if existing_skeleton_data.instance_id == skeleton.get_instance_id():
