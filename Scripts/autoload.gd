@@ -96,8 +96,8 @@ func _put_native_renderer_online() -> void:
 	native_sub_viewport_container.visible = true
 
 func _put_custom_renderer_online(renderer_idx : int) -> void:
-	renderers[renderer_idx].scene_proxy._setup(scene)
 	renderers[renderer_idx]._setup()
+	renderers[renderer_idx].scene_proxy._setup(scene)
 	
 	var render_target_from_rd : Texture2DRD = Texture2DRD.new()
 	render_target_from_rd.texture_rd_rid = renderers[renderer_idx].get_render_target()

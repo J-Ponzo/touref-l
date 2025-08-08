@@ -1,3 +1,4 @@
+extends _TL_ProxyModel
 class_name TL_DefaultModel
 
 const LOG_WARNS = false
@@ -52,7 +53,7 @@ class MeshData:
 	var model_matrix_bytes : PackedByteArray
 	var surfaces_data : Array[SurfaceData]
 
-static var existing_skeletons_data : Array[SkeletonData]
+var existing_skeletons_data : Array[SkeletonData]
 
 class SkeletonData:
 	var instance_id : int
@@ -68,8 +69,8 @@ class SurfaceData:
 	var vertex_array : RID
 	var material_data : MaterialData
 
-static var existing_topologies_data : Array[TopologyData]
-static var existing_topologies_ref_count : Array[int]
+var existing_topologies_data : Array[TopologyData]
+var existing_topologies_ref_count : Array[int]
 
 class TopologyData:
 	var instance_id : int
@@ -105,12 +106,12 @@ class ParticlesData:
 	var multi_mesh_rid : RID
 	var mesh_data : MeshData
 
-static  func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
+func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
 	var h = hash(src_int)
 	var mask = (1 << trg_nb_bits) - 1
 	return h & mask
 
-static func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
+func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
 	var pso_id = surface_data.material_data.mat_feat_flags_mask
 	
 	var color_hash : int = hash_int_to_bits(surface_data.material_data.albedo_buffer.get_id(), 4)
@@ -139,7 +140,7 @@ static func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
 	return sort_key
 
 # TODO optimize : compute this on mesh level
-static func generate_transparent_sort_key(surface_data : SurfaceData, camera_data : CameraData) -> int:
+func generate_transparent_sort_key(surface_data : SurfaceData, camera_data : CameraData) -> int:
 	var view_pos : Vector3 = camera_data.view_transform * surface_data.mesh_data.bounding_box.get_center()
 	var distance : float = -view_pos.z
 	var sort_key : int = distance * 9223372036854775807
@@ -147,7 +148,7 @@ static func generate_transparent_sort_key(surface_data : SurfaceData, camera_dat
 	return sort_key
 
 
-static func create_from(obj : Object):
+func create_from(obj : Object):
 	if obj is MeshInstance3D :
 		return create_from_mesh(obj)
 	elif obj is Skeleton3D:
@@ -163,7 +164,7 @@ static func create_from(obj : Object):
 	elif obj is CPUParticles3D:
 		return create_from_cpu_particles(obj)
 
-static func free_data(data : Object):
+func free_data(data : Object):
 	if data is MaterialData:
 		return free_material(data)
 	elif data is SkeletonData:
@@ -183,7 +184,7 @@ static func free_data(data : Object):
 	elif data is ParticlesData:
 		return free_particles(data)
 
-static func create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> MaterialData:
+func create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> MaterialData:
 	var material_data : TL_DefaultModel.MaterialData = TL_DefaultModel.MaterialData.new()
 
 	material_data.mat_feat_flags_mask = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(mat_feat_flags)
@@ -204,7 +205,7 @@ static func create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_
 
 	return material_data
 
-static func free_material(material_data : MaterialData):
+func free_material(material_data : MaterialData):
 	if material_data == null:
 		return
 	
@@ -226,7 +227,7 @@ const HAS_UV2 = 		1 << 5
 const HAS_BONES = 		1 << 6
 const HAS_WEIGHTS = 	1 << 7
 
-static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> SurfaceData:
+func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> SurfaceData:
 	var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
 	surface_data.topology_data = _get_or_create_topology_data(mesh_resource, surface_idx)
 
@@ -275,7 +276,7 @@ static func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_
 
 	return surface_data
 
-static func free_surface(surface_data : SurfaceData):
+func free_surface(surface_data : SurfaceData):
 	surface_data.mesh_data = null
 
 	if surface_data.vertex_array != RID():
@@ -285,7 +286,7 @@ static func free_surface(surface_data : SurfaceData):
 	_free_or_decr_topology(surface_data.topology_data)
 	free_material(surface_data.material_data)
 
-static func _get_or_create_topology_data(mesh_resource : Mesh, surface_idx : int) -> TopologyData:
+func _get_or_create_topology_data(mesh_resource : Mesh, surface_idx : int) -> TopologyData:
 	for i in range(existing_topologies_data.size()):
 		var existing_topology_data : TopologyData = existing_topologies_data[i]
 		if existing_topology_data.surface_id == surface_idx and existing_topology_data.instance_id == mesh_resource.get_instance_id():
@@ -357,7 +358,7 @@ static func _get_or_create_topology_data(mesh_resource : Mesh, surface_idx : int
 
 	return topology_data
 
-static func _free_or_decr_topology(topology_data : TopologyData):
+func _free_or_decr_topology(topology_data : TopologyData):
 	for i in range(existing_topologies_data.size()):
 		var existing_topology_data : TopologyData = existing_topologies_data[i]
 		if existing_topology_data == topology_data:
@@ -407,7 +408,7 @@ const SIZEOF_FLOAT = 4
 const SIZEOF_MAT4 = SIZEOF_FLOAT * 16
 const MAX_BONES = 128
 
-static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
+func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data : MeshData = MeshData.new()
 	mesh_data.bounding_box = mesh.get_aabb()
 
@@ -447,7 +448,7 @@ static func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 
 	return mesh_data
 
-static func free_mesh(mesh_data : MeshData):
+func free_mesh(mesh_data : MeshData):
 	if mesh_data.invert_bind_pose_array_buffer != RID():
 		rd.free_rid(mesh_data.invert_bind_pose_array_buffer)
 		mesh_data.invert_bind_pose_array_buffer = RID()
@@ -459,7 +460,7 @@ static func free_mesh(mesh_data : MeshData):
 	for surface_data in mesh_data.surfaces_data:
 		free_surface(surface_data)
 
-static func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
+func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 	for existing_skeleton_data in existing_skeletons_data:
 		if existing_skeleton_data.instance_id == skeleton.get_instance_id():
 			return existing_skeleton_data
@@ -481,7 +482,7 @@ static func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 
 	return skeleton_data
 
-static func free_skeleton(skeleton_data : SkeletonData):
+func free_skeleton(skeleton_data : SkeletonData):
 	if skeleton_data.global_bone_pose_array_buffer != RID():
 		rd.free_rid(skeleton_data.global_bone_pose_array_buffer)
 		skeleton_data.global_bone_pose_array_buffer = RID()
@@ -489,7 +490,7 @@ static func free_skeleton(skeleton_data : SkeletonData):
 	var idx : int = existing_skeletons_data.find(skeleton_data)
 	existing_skeletons_data.remove_at(idx)
 
-static func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
+func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 	var omni_data = OmniLightData.new()
 	omni_data.color = omni.light_color
 	omni_data.intensity = omni.light_energy
@@ -515,10 +516,10 @@ static func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 
 	return omni_data
 
-static func free_omni_light(omni_light_data : OmniLightData):
+func free_omni_light(omni_light_data : OmniLightData):
 	pass
 
-static func create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
+func create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
 	var spot_data : TL_DefaultModel.SpotLightData = TL_DefaultModel.SpotLightData.new()
 	spot_data.color = spot.light_color
 	spot_data.intensity = spot.light_energy
@@ -551,10 +552,10 @@ static func create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
 
 	return spot_data
 	
-static func free_spot_light(spot_light_data : SpotLightData):
+func free_spot_light(spot_light_data : SpotLightData):
 	pass
 
-static func create_from_directional_light(directional : DirectionalLight3D) -> DirectionalLightData:
+func create_from_directional_light(directional : DirectionalLight3D) -> DirectionalLightData:
 	var directional_data = DirectionalLightData.new()
 	directional_data.color = directional.light_color
 	directional_data.intensity = directional.light_energy
@@ -574,10 +575,10 @@ static func create_from_directional_light(directional : DirectionalLight3D) -> D
 
 	return directional_data
 
-static func free_directional_light(directional_light_data : DirectionalLightData):
+func free_directional_light(directional_light_data : DirectionalLightData):
 	pass
 
-static func create_from_camera(cam : Camera3D) -> CameraData:
+func create_from_camera(cam : Camera3D) -> CameraData:
 	var cam_data = CameraData.new()
 	cam_data.view_transform = cam.get_camera_transform().affine_inverse()
 	cam_data.view_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cam_data.view_transform))
@@ -590,12 +591,12 @@ static func create_from_camera(cam : Camera3D) -> CameraData:
 
 	return cam_data;
 
-static func free_camera(camera_data : CameraData):
+func free_camera(camera_data : CameraData):
 	if camera_data.matrices_uniform_buffer != RID():
 		rd.free_rid(camera_data.matrices_uniform_buffer)
 		camera_data.matrices_uniform_buffer = RID()
 
-static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
+func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
 	var particles_data = ParticlesData.new()
 	particles_data.multi_mesh_rid = cpu_particles.get_multimesh_rid()
 
@@ -630,5 +631,5 @@ static func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> Particl
 
 	return particles_data
 
-static func free_particles(particles_data : ParticlesData):
+func free_particles(particles_data : ParticlesData):
 	free_mesh(particles_data.mesh_data)
