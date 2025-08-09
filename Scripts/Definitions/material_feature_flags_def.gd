@@ -8,8 +8,8 @@ class_name TL_MaterialFeatureFlags_Def
 @export var has_normal_map : bool
 @export var has_orm_map : bool
 
-@export var cull_mode : RenderingDevice.PolygonCullMode
-@export var render_mode : TL_ExpicitPSODef.ERenderMode
+# @export var cull_mode : RenderingDevice.PolygonCullMode
+# @export var render_mode : TL_ExpicitPSODef.ERenderMode
 
-func is_transparent() -> bool:
-    return render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Subtract or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Multiply or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha
+# func is_transparent() -> bool:
+#     return render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Subtract or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Multiply or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha

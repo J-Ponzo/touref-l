@@ -100,7 +100,13 @@ class MaterialData:
 	var normal_sampler : RID
 	var orm_tex : RID
 	var orm_sampler : RID 
-	var mat_feat_flags_mask : int = -1
+	var mat_feat_flags_mask : int = -1					# TODO Remove
+	var cull_mode : RenderingDevice.PolygonCullMode
+	var render_mode : TL_ExpicitPSODef.ERenderMode
+
+	# TODO find something else to keep plein data objects
+	func is_transparent() -> bool:
+		return render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Subtract or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Multiply or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha
 
 class ParticlesData:
 	var multi_mesh_rid : RID
@@ -203,6 +209,31 @@ func _create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_Materi
 	if mat_feat_flags.has_orm_map and mat_feat_flags.is_lit:
 		material_data.orm_tex = RenderingServer.texture_get_rd_texture(_TL_Renderer_Factory.try_extract_orm_from_material(material))
 		material_data.orm_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
+
+	if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
+		material_data.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_BACK
+	elif material.cull_mode == BaseMaterial3D.CullMode.CULL_DISABLED:
+		material_data.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_DISABLED
+	elif material.cull_mode == BaseMaterial3D.CullMode.CULL_FRONT:
+		material_data.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_FRONT
+
+	if material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_DISABLED:
+		material_data.render_mode = TL_ExpicitPSODef.ERenderMode.Opaque
+	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_SCISSOR:
+		material_data.render_mode = TL_ExpicitPSODef.ERenderMode.AlphaScissor
+	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_HASH:
+		material_data.render_mode = TL_ExpicitPSODef.ERenderMode.AlphaHash
+	elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA or material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS:
+		if material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MIX:
+			material_data.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Mix
+		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_ADD:
+			material_data.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Add
+		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_SUB:
+			material_data.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Subtract
+		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MUL:
+			material_data.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Multiply
+		elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_PREMULT_ALPHA:
+			material_data.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha
 
 	return material_data
 
@@ -444,7 +475,7 @@ func _create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		surface_data.mesh_data = mesh_data
 		mesh_data.surfaces_data.append(surface_data)
 
-		if !mat_feat_flags.is_transparent():
+		if !material_data.is_transparent():
 			surface_data.sort_key = generate_opaque_sort_key(surface_data)
 
 	return mesh_data
@@ -628,7 +659,7 @@ func _create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData
 		surface_data.material_data = material_data
 		mesh_data.surfaces_data.append(surface_data)
 
-		if !mat_feat_flags.is_transparent():
+		if !material_data.is_transparent():
 			surface_data.sort_key = generate_opaque_sort_key(surface_data)
 
 	return particles_data

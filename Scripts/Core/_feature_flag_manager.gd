@@ -23,7 +23,27 @@ var data_mask_lookup : Dictionary[Object, Name_Mask_Pair]
 var query_caches : Dictionary[StringName, QueryCache]
 var main_buckets : Dictionary[StringName, DataBucket]
 
-func build_flags_mask(set_name : StringName, flags : Array[StringName]) -> int:
+func get_flags_mask(data : Object) -> int:
+	if data_mask_lookup.has(data):
+		return data_mask_lookup[data].flags_mask
+	return 0
+
+func get_flags(data : Object) -> Array[StringName]:
+	if data_mask_lookup.has(data):
+		return _get_flags_from_name_and_mask(data_mask_lookup[data].set_name, data_mask_lookup[data].flags_mask)
+	return []
+
+func _get_flags_from_name_and_mask(set_name : StringName, flags_mask : int) -> Array[StringName]:
+	var flags : Array[StringName]
+
+	var flags_set : Array[StringName] = feature_flag_manager_def.feature_sets[set_name].flags
+	for i in range(0, flags_set.size()):
+		if (flags_mask & 1 << i) > 0:
+			flags.append(flags_set[i])
+
+	return flags
+
+func _build_flags_mask(set_name : StringName, flags : Array[StringName]) -> int:
 	var set : Array[StringName] = feature_flag_manager_def.feature_sets[set_name].flags
 	var mask : int = 0
 	for flag in flags:
@@ -34,8 +54,8 @@ func build_flags_mask(set_name : StringName, flags : Array[StringName]) -> int:
 func build_query(set_name : StringName, relevant_flags : Array[StringName], set_flags : Array[StringName]) -> FeatureFlagQuery:
 	var query : FeatureFlagQuery = FeatureFlagQuery.new()
 	query.set_name = set_name
-	query.relevant_flags_mask = build_flags_mask(set_name, relevant_flags)
-	query.set_flags_mask = build_flags_mask(set_name, set_flags)
+	query.relevant_flags_mask = _build_flags_mask(set_name, relevant_flags)
+	query.set_flags_mask = _build_flags_mask(set_name, set_flags)
 
 	var query_mask : int = query.relevant_flags_mask
 	query_mask |= query.set_flags_mask << 32

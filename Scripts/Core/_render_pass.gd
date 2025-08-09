@@ -53,12 +53,12 @@ func create_explicits_pso_from_defs(explicit_pso_defs : Dictionary[StringName, T
 		pso_instances[key] = _TL_Renderer_Factory.create_pso(explicit_pso_defs[key], framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
 	return pso_instances
 
-func create_pso_name_to_mask(pso_defs : Dictionary[StringName, TL_ExpicitPSODef]) -> Dictionary[StringName, int]:
-	var pso_name_to_mask : Dictionary[StringName, int]
-	for key in pso_defs.keys(): 
-		var material_features_def : TL_MaterialFeatureFlags_Def =  _TL_Renderer_Factory.get_material_feature_flags_def_from_pso_def(pso_defs[key])
-		pso_name_to_mask[key] = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(material_features_def)
-	return pso_name_to_mask
+#func create_pso_name_to_mask(pso_defs : Dictionary[StringName, TL_ExpicitPSODef]) -> Dictionary[StringName, int]:
+	#var pso_name_to_mask : Dictionary[StringName, int]
+	#for key in pso_defs.keys(): 
+		#var material_features_def : TL_MaterialFeatureFlags_Def =  _TL_Renderer_Factory.get_material_feature_flags_def_from_pso_def(pso_defs[key])
+		#pso_name_to_mask[key] = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(material_features_def)
+	#return pso_name_to_mask
 
 func create_piplines_from_defs(pso_defs : Dictionary[StringName, TL_ExpicitPSODef], pso_name_to_mask : Dictionary[StringName, int]) -> Dictionary[int, _TL_PSO]:
 	var pso_instances : Dictionary[int, _TL_PSO] 
