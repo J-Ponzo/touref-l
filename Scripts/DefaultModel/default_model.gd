@@ -100,7 +100,6 @@ class MaterialData:
 	var normal_sampler : RID
 	var orm_tex : RID
 	var orm_sampler : RID 
-	var mat_feat_flags_mask : int = -1					# TODO Remove
 	var cull_mode : RenderingDevice.PolygonCullMode
 	var render_mode : TL_ExpicitPSODef.ERenderMode
 
@@ -118,7 +117,8 @@ func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
 	return h & mask
 
 func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
-	var pso_id = surface_data.material_data.mat_feat_flags_mask
+	# TODO Temporary broken
+	#var pso_id = surface_data.material_data.mat_feat_flags_mask
 	
 	var color_hash : int = hash_int_to_bits(surface_data.material_data.albedo_buffer.get_id(), 4)
 	var albedo_hash : int = hash_int_to_bits(surface_data.material_data.albedo_sampler.get_id(), 4)
@@ -138,7 +138,8 @@ func generate_opaque_sort_key(surface_data : SurfaceData) -> int:
 	var custom_id : int = 0
 
 	var sort_key : int = 0
-	sort_key |= pso_id << 48		# PSO_ID
+	# TODO Temporary broken
+	#sort_key |= pso_id << 48		# PSO_ID
 	sort_key |= material_id << 32	# Material_ID
 	sort_key |= mesh_id << 16		# Mesh_ID
 	sort_key |= custom_id			# Custom_ID
@@ -191,23 +192,22 @@ func free_data(data : Object):
 	elif data is ParticlesData:
 		_free_particles(data)
 
-func _create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> MaterialData:
+func _create_from_material(material : BaseMaterial3D) -> MaterialData:
 	var material_data : TL_DefaultModel.MaterialData = TL_DefaultModel.MaterialData.new()
-
-	material_data.mat_feat_flags_mask = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(mat_feat_flags)
 	
 	var albedo_floats_array : PackedFloat32Array = [material.albedo_color.r, material.albedo_color.g, material.albedo_color.b, material.albedo_color.a]
 	var bytes : PackedByteArray =  albedo_floats_array.to_byte_array()
 	material_data.albedo_buffer = rd.uniform_buffer_create(bytes.size(), bytes)
 
-	if mat_feat_flags.has_albedo_map:
+	if material.albedo_texture != null:
 		material_data.albedo_tex = RenderingServer.texture_get_rd_texture(material.albedo_texture)
 		material_data.albedo_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
-	if mat_feat_flags.has_normal_map and mat_feat_flags.is_lit:
+	if material.normal_texture != null:
 		material_data.normal_tex = RenderingServer.texture_get_rd_texture(material.normal_texture)
 		material_data.normal_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
-	if mat_feat_flags.has_orm_map and mat_feat_flags.is_lit:
-		material_data.orm_tex = RenderingServer.texture_get_rd_texture(_TL_Renderer_Factory.try_extract_orm_from_material(material))
+	var orm_tex : Texture2D = _TL_Renderer_Factory.try_extract_orm_from_material(material)
+	if orm_tex != null:
+		material_data.orm_tex = RenderingServer.texture_get_rd_texture(orm_tex)
 		material_data.orm_sampler = rd.sampler_create(TL_RendererUtils.create_sampler_state())
 
 	if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
@@ -259,11 +259,11 @@ const HAS_UV2 = 		1 << 5
 const HAS_BONES = 		1 << 6
 const HAS_WEIGHTS = 	1 << 7
 
-func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> SurfaceData:
+func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, material : BaseMaterial3D, is_skeletal : bool) -> SurfaceData:
 	var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
 	surface_data.topology_data = _get_or_create_topology_data(mesh_resource, surface_idx)
 
-	var vf_def : TL_VertexFormatDef = _TL_Renderer_Factory.get_vertex_format_def_from_material_feature_flags(mat_feat_flags)
+	var vf_def : TL_VertexFormatDef = _TL_Renderer_Factory.get_vertex_format_def_from_material_data(material, is_skeletal)
 	var buffers : Array[RID]
 	buffers.append(surface_data.topology_data.position_buffer)
 	var vf_mask : int = surface_data.topology_data.vertex_format_mask
@@ -466,11 +466,9 @@ func _create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 
 	for i in range(0, mesh.mesh.get_surface_count()):
 		var material : BaseMaterial3D =  mesh.mesh.surface_get_material(i)
-		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.skeleton_data != null, false)
+		var material_data : MaterialData = _create_from_material(material)
 
-		var material_data : MaterialData = _create_from_material(material, mat_feat_flags)
-
-		var surface_data : SurfaceData = _create_orphan_surface(mesh.mesh, i, mat_feat_flags)
+		var surface_data : SurfaceData = _create_orphan_surface(mesh.mesh, i, material, mesh_data.skeleton_data != null)
 		surface_data.material_data = material_data
 		surface_data.mesh_data = mesh_data
 		mesh_data.surfaces_data.append(surface_data)
@@ -650,11 +648,9 @@ func _create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData
 
 	for i in range(0, cpu_particles.mesh.get_surface_count()):
 		var material : BaseMaterial3D =  cpu_particles.mesh.surface_get_material(i)
-		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.skeleton_data != null, true)
+		var material_data : MaterialData = _create_from_material(material)
 
-		var material_data : MaterialData = _create_from_material(material, mat_feat_flags)
-
-		var surface_data : SurfaceData = _create_orphan_surface(cpu_particles.mesh, i, mat_feat_flags)
+		var surface_data : SurfaceData = _create_orphan_surface(cpu_particles.mesh, i, material, mesh_data.skeleton_data != null)
 		surface_data.mesh_data = mesh_data
 		surface_data.material_data = material_data
 		mesh_data.surfaces_data.append(surface_data)

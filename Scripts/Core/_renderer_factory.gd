@@ -80,30 +80,17 @@ static func get_mask_from_bool_array(bools : Array[bool]) -> int:
 		mask |= 1 << i if bools[i] else 0
 	return mask
 
-static func get_pso_def_from_mask_and_shaders(material_data : TL_DefaultModel.MaterialData, mat_feats_mask : int, vertex_shader : TL_GLSLShader, fragment_shader : TL_GLSLShader) -> TL_ExpicitPSODef:
-	var pso_def : TL_ExpicitPSODef = TL_ExpicitPSODef.new()
-	pso_def.vertex_shader = vertex_shader
-	pso_def.fragment_shader = fragment_shader
-	# pso_def.material_features_def = get_material_feature_flags_def_from_mask(mat_feats_mask)
-	var mat_feat_flags : TL_MaterialFeatureFlags_Def = get_material_feature_flags_def_from_mask(mat_feats_mask)
-	pso_def.cull_mode = material_data.cull_mode
-	pso_def.render_mode = material_data.render_mode
-	pso_def.defines = create_defines_from_material_feature_flags(mat_feat_flags)
-	var material_features_def : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.get_material_feature_flags_def_from_pso_def(pso_def)
-	pso_def.vertex_format_def = get_vertex_format_def_from_material_feature_flags(material_features_def)
-	return pso_def
-
-static func get_vertex_format_def_from_material_feature_flags(mat_feats_def : TL_MaterialFeatureFlags_Def) -> TL_VertexFormatDef:
+static func get_vertex_format_def_from_material_data(material : BaseMaterial3D, is_skeletal : bool) -> TL_VertexFormatDef:
 	var vf_def : TL_VertexFormatDef = TL_VertexFormatDef.new()
 
 	vf_def.is_2d = false
-	vf_def.has_normal = mat_feats_def.is_lit
-	vf_def.has_tangent = mat_feats_def.is_lit
+	vf_def.has_normal = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
+	vf_def.has_tangent = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
 	vf_def.has_color = false
-	vf_def.has_uv = mat_feats_def.has_albedo_map or mat_feats_def.has_normal_map or mat_feats_def.has_orm_map
+	vf_def.has_uv = material.albedo_texture != null or material.normal_texture != null or try_extract_orm_from_material(material) != null
 	vf_def.has_uv2 = false
-	vf_def.has_bones = mat_feats_def.is_skeletal
-	vf_def.has_weights = mat_feats_def.is_skeletal
+	vf_def.has_bones = is_skeletal
+	vf_def.has_weights = is_skeletal
 
 	return vf_def
 
@@ -127,82 +114,6 @@ static func try_extract_orm_from_material(material : BaseMaterial3D) -> Texture2
 			return null
 
 	return texture
-
-static func create_material_feature_flags(material : BaseMaterial3D, is_skeletal : bool, is_instanced : bool) -> TL_MaterialFeatureFlags_Def:
-	var mat_feat_flags : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
-	mat_feat_flags.is_skeletal = is_skeletal
-	mat_feat_flags.is_lit = material.shading_mode != BaseMaterial3D.ShadingMode.SHADING_MODE_UNSHADED
-	mat_feat_flags.is_instanced = is_instanced
-	mat_feat_flags.has_albedo_map = material.albedo_texture != null
-	mat_feat_flags.has_normal_map = material.normal_texture != null
-	mat_feat_flags.has_orm_map = try_extract_orm_from_material(material) != null
-
-	# if material.cull_mode == BaseMaterial3D.CullMode.CULL_BACK:
-	# 	mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_BACK
-	# elif material.cull_mode == BaseMaterial3D.CullMode.CULL_DISABLED:
-	# 	mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_DISABLED
-	# elif material.cull_mode == BaseMaterial3D.CullMode.CULL_FRONT:
-	# 	mat_feat_flags.cull_mode = RenderingDevice.PolygonCullMode.POLYGON_CULL_FRONT
-
-	# if material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_DISABLED:
-	# 	mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Opaque
-	# elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_SCISSOR:
-	# 	mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.AlphaScissor
-	# elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_HASH:
-	# 	mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.AlphaHash
-	# elif material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA or material.transparency == BaseMaterial3D.Transparency.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS:
-	# 	if material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MIX:
-	# 		mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Mix
-	# 	elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_ADD:
-	# 		mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Add
-	# 	elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_SUB:
-	# 		mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Subtract
-	# 	elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_MUL:
-	# 		mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_Multiply
-	# 	elif material.blend_mode == BaseMaterial3D.BlendMode.BLEND_MODE_PREMULT_ALPHA:
-	# 		mat_feat_flags.render_mode = TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha
-
-	return mat_feat_flags
-
-static func get_material_feature_flags_def_from_mask(mask : int) -> TL_MaterialFeatureFlags_Def:
-	if mask < 0:
-		return null;
-	var mat_feats_def : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
-	mat_feats_def.is_skeletal = 	(mask & 1 << 0) > 0
-	mat_feats_def.is_lit = 			(mask & 1 << 1) > 0
-	mat_feats_def.is_instanced = 	(mask & 1 << 2) > 0
-	mat_feats_def.has_albedo_map = 	(mask & 1 << 3) > 0
-	mat_feats_def.has_normal_map = 	(mask & 1 << 4) > 0
-	mat_feats_def.has_orm_map = 	(mask & 1 << 5) > 0
-
-	# mat_feats_def.cull_mode = (mask >> 6) & 0b11
-	# mat_feats_def.render_mode = (mask >> 8) & 0b111
-
-	return mat_feats_def
-
-static func get_material_feature_flags_def_from_pso_def(pso_def : TL_ExpicitPSODef) -> TL_MaterialFeatureFlags_Def:
-	var mat_feats_def : TL_MaterialFeatureFlags_Def = TL_MaterialFeatureFlags_Def.new()
-	mat_feats_def.is_skeletal = pso_def.defines.has("SKELETAL")
-	mat_feats_def.is_lit = pso_def.defines.has("LIT")
-	mat_feats_def.is_instanced = pso_def.defines.has("INSTANCED")
-	mat_feats_def.has_albedo_map = pso_def.defines.has("ALBEDO_MAP")
-	mat_feats_def.has_normal_map = pso_def.defines.has("NORMAL_MAP")
-	mat_feats_def.has_orm_map = pso_def.defines.has("ORM_MAP")
-
-	# mat_feats_def.cull_mode = pso_def.cull_mode
-	# mat_feats_def.render_mode = pso_def.render_mode
-
-	return mat_feats_def
-
-static func get_mask_from_material_feature_flags_def(material_features_def : TL_MaterialFeatureFlags_Def) -> int:
-	if material_features_def == null:
-		return -1
-	var mask : int = get_mask_from_bool_array([material_features_def.is_skeletal, material_features_def.is_lit, material_features_def.is_instanced, material_features_def.has_albedo_map, material_features_def.has_normal_map, material_features_def.has_orm_map])
-
-	# mask |= material_features_def.cull_mode << 6	# 2 bits
-	# mask |= material_features_def.render_mode << 8	# 3 bits
-
-	return mask
 
 static func get_vertex_format_def_from_mask(mask : int) -> TL_VertexFormatDef:
 	if mask < 0:
@@ -305,25 +216,6 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 		attrs.append(weightsAttr)
 
 	return rd.vertex_format_create(attrs)
-
-static func create_defines_from_material_feature_flags(mat_feats_def : TL_MaterialFeatureFlags_Def) -> Array[StringName]:
-	if mat_feats_def == null:
-		return []
-	
-	var defines : Array[StringName]
-	if mat_feats_def.is_skeletal:
-		defines.append("SKELETAL")
-	if mat_feats_def.is_lit:
-		defines.append("LIT")
-	if mat_feats_def.is_instanced:
-		defines.append("INSTANCED")
-	if mat_feats_def.has_albedo_map:
-		defines.append("ALBEDO_MAP")
-	if mat_feats_def.has_normal_map:
-		defines.append("NORMAL_MAP")
-	if mat_feats_def.has_orm_map:
-		defines.append("ORM_MAP")
-	return defines
 
 static func create_pso(pso_def : TL_ExpicitPSODef, framebuffer_format : int, nb_color_attachments : int, depth_test : bool = true) -> _TL_PSO:
 	var instance = _TL_PSO.new()
