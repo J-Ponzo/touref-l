@@ -147,44 +147,45 @@ func generate_transparent_sort_key(surface_data : SurfaceData, camera_data : Cam
 
 	return sort_key
 
-# TODO add _ before specific create functions
-func create_from(obj : Object):
+func create_from(obj : Object) -> Object:
+	var data : Object = null
 	if obj is MeshInstance3D :
-		return create_from_mesh(obj)
+		data = _create_from_mesh(obj)
 	elif obj is Skeleton3D:
-		return get_or_create_from_skeleton(obj)
+		data = _get_or_create_from_skeleton(obj)
 	elif obj is OmniLight3D:
-		return create_from_omni_light(obj)
+		data = _create_from_omni_light(obj)
 	elif obj is SpotLight3D:
-		return create_from_spot_light(obj)
+		data = _create_from_spot_light(obj)
 	elif obj is DirectionalLight3D:
-		return create_from_directional_light(obj)
+		data = _create_from_directional_light(obj)
 	elif obj is Camera3D:
-		return create_from_camera(obj)
+		data = _create_from_camera(obj)
 	elif obj is CPUParticles3D:
-		return create_from_cpu_particles(obj)
+		data = _create_from_cpu_particles(obj)
+	return data
 
 func free_data(data : Object):
 	if data is MaterialData:
-		return free_material(data)
+		_free_material(data)
 	elif data is SkeletonData:
-		return free_skeleton(data)
+		_free_skeleton(data)
 	elif data is SurfaceData:
-		return free_surface(data)
+		_free_surface(data)
 	elif data is MeshData :
-		return free_mesh(data)
+		_free_mesh(data)
 	elif data is OmniLightData:
-		return free_omni_light(data)
+		_free_omni_light(data)
 	elif data is SpotLightData:
-		return free_spot_light(data)
+		_free_spot_light(data)
 	elif data is DirectionalLightData:
-		return free_directional_light(data)
+		_free_directional_light(data)
 	elif data is CameraData:
-		return free_camera(data)
+		_free_camera(data)
 	elif data is ParticlesData:
-		return free_particles(data)
+		_free_particles(data)
 
-func create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> MaterialData:
+func _create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_MaterialFeatureFlags_Def) -> MaterialData:
 	var material_data : TL_DefaultModel.MaterialData = TL_DefaultModel.MaterialData.new()
 
 	material_data.mat_feat_flags_mask = _TL_Renderer_Factory.get_mask_from_material_feature_flags_def(mat_feat_flags)
@@ -205,7 +206,7 @@ func create_from_material(material : BaseMaterial3D, mat_feat_flags : TL_Materia
 
 	return material_data
 
-func free_material(material_data : MaterialData):
+func _free_material(material_data : MaterialData):
 	if material_data == null:
 		return
 	
@@ -276,7 +277,7 @@ func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, mat_feat_fl
 
 	return surface_data
 
-func free_surface(surface_data : SurfaceData):
+func _free_surface(surface_data : SurfaceData):
 	surface_data.mesh_data = null
 
 	if surface_data.vertex_array != RID():
@@ -284,7 +285,7 @@ func free_surface(surface_data : SurfaceData):
 		surface_data.vertex_array = RID()
 
 	_free_or_decr_topology(surface_data.topology_data)
-	free_material(surface_data.material_data)
+	_free_material(surface_data.material_data)
 
 func _get_or_create_topology_data(mesh_resource : Mesh, surface_idx : int) -> TopologyData:
 	for i in range(existing_topologies_data.size()):
@@ -408,7 +409,7 @@ const SIZEOF_FLOAT = 4
 const SIZEOF_MAT4 = SIZEOF_FLOAT * 16
 const MAX_BONES = 128
 
-func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
+func _create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	var mesh_data : MeshData = MeshData.new()
 	mesh_data.bounding_box = mesh.get_aabb()
 
@@ -418,7 +419,7 @@ func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 	if node_at_skeleton_path != null and node_at_skeleton_path is Skeleton3D:
 		skeleton = node_at_skeleton_path
 	if skeleton != null && skin != null:
-		mesh_data.skeleton_data = get_or_create_from_skeleton(skeleton)
+		mesh_data.skeleton_data = _get_or_create_from_skeleton(skeleton)
 		var nb_bones : int = skeleton.get_bone_count()
 		var invert_bind_pose_array : PackedByteArray
 		for bone_idx in range(nb_bones):
@@ -436,7 +437,7 @@ func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		var material : BaseMaterial3D =  mesh.mesh.surface_get_material(i)
 		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.skeleton_data != null, false)
 
-		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
+		var material_data : MaterialData = _create_from_material(material, mat_feat_flags)
 
 		var surface_data : SurfaceData = _create_orphan_surface(mesh.mesh, i, mat_feat_flags)
 		surface_data.material_data = material_data
@@ -448,7 +449,7 @@ func create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 
 	return mesh_data
 
-func free_mesh(mesh_data : MeshData):
+func _free_mesh(mesh_data : MeshData):
 	if mesh_data.invert_bind_pose_array_buffer != RID():
 		rd.free_rid(mesh_data.invert_bind_pose_array_buffer)
 		mesh_data.invert_bind_pose_array_buffer = RID()
@@ -458,10 +459,10 @@ func free_mesh(mesh_data : MeshData):
 		mesh_data.instance_storage_buffer = RID()
 
 	for surface_data in mesh_data.surfaces_data:
-		free_surface(surface_data)
+		_free_surface(surface_data)
 
 # TODO find a way to notify weather it was created or not
-func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
+func _get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 	for existing_skeleton_data in existing_skeletons_data:
 		if existing_skeleton_data.instance_id == skeleton.get_instance_id():
 			return existing_skeleton_data
@@ -483,7 +484,7 @@ func get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 
 	return skeleton_data
 
-func free_skeleton(skeleton_data : SkeletonData):
+func _free_skeleton(skeleton_data : SkeletonData):
 	if skeleton_data.global_bone_pose_array_buffer != RID():
 		rd.free_rid(skeleton_data.global_bone_pose_array_buffer)
 		skeleton_data.global_bone_pose_array_buffer = RID()
@@ -491,7 +492,7 @@ func free_skeleton(skeleton_data : SkeletonData):
 	var idx : int = existing_skeletons_data.find(skeleton_data)
 	existing_skeletons_data.remove_at(idx)
 
-func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
+func _create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 	var omni_data = OmniLightData.new()
 	omni_data.color = omni.light_color
 	omni_data.intensity = omni.light_energy
@@ -517,10 +518,10 @@ func create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
 
 	return omni_data
 
-func free_omni_light(omni_light_data : OmniLightData):
+func _free_omni_light(omni_light_data : OmniLightData):
 	pass
 
-func create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
+func _create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
 	var spot_data : TL_DefaultModel.SpotLightData = TL_DefaultModel.SpotLightData.new()
 	spot_data.color = spot.light_color
 	spot_data.intensity = spot.light_energy
@@ -553,10 +554,10 @@ func create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
 
 	return spot_data
 	
-func free_spot_light(spot_light_data : SpotLightData):
+func _free_spot_light(spot_light_data : SpotLightData):
 	pass
 
-func create_from_directional_light(directional : DirectionalLight3D) -> DirectionalLightData:
+func _create_from_directional_light(directional : DirectionalLight3D) -> DirectionalLightData:
 	var directional_data = DirectionalLightData.new()
 	directional_data.color = directional.light_color
 	directional_data.intensity = directional.light_energy
@@ -576,10 +577,10 @@ func create_from_directional_light(directional : DirectionalLight3D) -> Directio
 
 	return directional_data
 
-func free_directional_light(directional_light_data : DirectionalLightData):
+func _free_directional_light(directional_light_data : DirectionalLightData):
 	pass
 
-func create_from_camera(cam : Camera3D) -> CameraData:
+func _create_from_camera(cam : Camera3D) -> CameraData:
 	var cam_data = CameraData.new()
 	cam_data.view_transform = cam.get_camera_transform().affine_inverse()
 	cam_data.view_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cam_data.view_transform))
@@ -592,12 +593,12 @@ func create_from_camera(cam : Camera3D) -> CameraData:
 
 	return cam_data;
 
-func free_camera(camera_data : CameraData):
+func _free_camera(camera_data : CameraData):
 	if camera_data.matrices_uniform_buffer != RID():
 		rd.free_rid(camera_data.matrices_uniform_buffer)
 		camera_data.matrices_uniform_buffer = RID()
 
-func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
+func _create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
 	var particles_data = ParticlesData.new()
 	particles_data.multi_mesh_rid = cpu_particles.get_multimesh_rid()
 
@@ -620,7 +621,7 @@ func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
 		var material : BaseMaterial3D =  cpu_particles.mesh.surface_get_material(i)
 		var mat_feat_flags : TL_MaterialFeatureFlags_Def = _TL_Renderer_Factory.create_material_feature_flags(material, mesh_data.skeleton_data != null, true)
 
-		var material_data : MaterialData = create_from_material(material, mat_feat_flags)
+		var material_data : MaterialData = _create_from_material(material, mat_feat_flags)
 
 		var surface_data : SurfaceData = _create_orphan_surface(cpu_particles.mesh, i, mat_feat_flags)
 		surface_data.mesh_data = mesh_data
@@ -632,5 +633,5 @@ func create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
 
 	return particles_data
 
-func free_particles(particles_data : ParticlesData):
-	free_mesh(particles_data.mesh_data)
+func _free_particles(particles_data : ParticlesData):
+	_free_mesh(particles_data.mesh_data)

@@ -1,4 +1,4 @@
 extends Resource
 class_name TL_FeatureFlagSet_Def
 
-@export var flags : Array[String]
+@export var flags : Array[StringName]

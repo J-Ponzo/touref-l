@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TL_RenderersRegistry_Def" load_steps=9 format=3 uid="uid://c4sxrwkppfe2k"]
+
+[ext_resource type="Script" uid="uid://cpodx2dxhl6m" path="res://addons/touref-l/Scripts/Definitions/renderer_def.gd" id="1_vdady"]
+[ext_resource type="Resource" uid="uid://v8bywuwk41wb" path="res://RendererDefs/uber_deferred.tres" id="2_5oofa"]
+[ext_resource type="Resource" uid="uid://2q5oo1ih7xtt" path="res://RendererDefs/simple_forward.tres" id="2_mrcq7"]
+[ext_resource type="Script" uid="uid://lo80l2017mxu" path="res://addons/touref-l/Scripts/Definitions/renderers_registry_def.gd" id="2_q2fcf"]
+[ext_resource type="Resource" uid="uid://cqt1v7cfrvv2m" path="res://RendererDefs/simple_deferred.tres" id="3_mrcq7"]
+[ext_resource type="Resource" uid="uid://2vixt04gghtb" path="res://RendererDefs/simple_forward_optimized.tres" id="4_oj5i2"]
+[ext_resource type="Resource" uid="uid://6jk08tk3o2pm" path="res://RendererDefs/simple_deferred_optimized.tres" id="5_kfbkc"]
+[ext_resource type="Resource" uid="uid://oc2rjj4ly4fq" path="res://RendererDefs/uber_forward.tres" id="6_0qvwh"]
+
+[resource]
+script = ExtResource("2_q2fcf")
+rederer_defs = Array[ExtResource("1_vdady")]([ExtResource("6_0qvwh"), ExtResource("2_5oofa"), ExtResource("2_mrcq7"), ExtResource("4_oj5i2"), ExtResource("3_mrcq7"), ExtResource("5_kfbkc")])
+metadata/_custom_type_script = "uid://lo80l2017mxu"
