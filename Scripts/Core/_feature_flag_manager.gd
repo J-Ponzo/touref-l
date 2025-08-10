@@ -18,7 +18,7 @@ class Data_NameMask_Pair:
 	var name_mask : Name_Mask_Pair
 
 var feature_flag_manager_def : TL_FeatureFlagManager_Def
-var proxy_data_lookup : Dictionary[_TL_SceneProxy.ProxyObject, DataBucket]
+var proxy_data_lookup : Dictionary[_TL_ProxyObject, DataBucket]
 var data_mask_lookup : Dictionary[Object, Name_Mask_Pair]
 var query_caches : Dictionary[StringName, QueryCache]
 var main_buckets : Dictionary[StringName, DataBucket]
@@ -89,7 +89,7 @@ func _create_bucket(query : FeatureFlagQuery) -> void:
 			bucket.data.append(object)
 	query_caches[query.set_name].buckets[query.mask] = bucket
 
-func _register(proxy_object : _TL_SceneProxy.ProxyObject) -> void:
+func _register(proxy_object : _TL_ProxyObject) -> void:
 	if proxy_data_lookup.has(proxy_object):
 		return
 
@@ -111,7 +111,7 @@ func _register(proxy_object : _TL_SceneProxy.ProxyObject) -> void:
 
 	proxy_data_lookup[proxy_object] = items_bucket
 
-func _unregister(proxy_object : _TL_SceneProxy.ProxyObject) -> void:
+func _unregister(proxy_object : _TL_ProxyObject) -> void:
 	if !proxy_data_lookup.has(proxy_object):
 		return
 	
@@ -129,5 +129,5 @@ func _unregister(proxy_object : _TL_SceneProxy.ProxyObject) -> void:
 
 	proxy_data_lookup.erase(proxy_object)
 
-func _extract_flagged_data(proxy_object : _TL_SceneProxy.ProxyObject) -> Array[Data_NameMask_Pair]:
+func _extract_flagged_data(proxy_object : _TL_ProxyObject) -> Array[Data_NameMask_Pair]:
 	return []

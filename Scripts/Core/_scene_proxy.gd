@@ -1,20 +1,6 @@
 class_name _TL_SceneProxy
 
-class ProxyObject:
-	var scene_proxy : _TL_SceneProxy	# TODO Remove
-	var node : Node
-	var data
-	var _is_active : bool
-
-	func update_data() -> void:
-		var visible_in_tree = node.is_visible_in_tree()
-		if _is_active != visible_in_tree:
-			set_active(visible_in_tree)
-	
-	func set_active(active : bool) -> void:
-		_is_active = active
-
-var proxy_objects_cache : Dictionary[Node, ProxyObject]
+var proxy_objects_cache : Dictionary[Node, _TL_ProxyObject]
 # var type_buckets_cache : Dictionary[StringName, DataBucket]	# TODO implement type search later
 
 var render : _TL_Renderer
@@ -31,25 +17,18 @@ func _setup(scene_root : Node) -> void:
 	_scene_root.get_tree().node_removed.connect(on_node_exit_tree)
 
 func on_node_enter_tree(node: Node) -> void:
-	var proxy_object : ProxyObject = _create_proxy_object(node)
+	var proxy_object : _TL_ProxyObject = _create_proxy_object(node)
 
 	if proxy_object != null:
 		proxy_object._is_active = node.is_visible_in_tree()
 		proxy_objects_cache[node] = proxy_object
 		proxy_object.node = node
 		proxy_object.scene_proxy = self
-
-		# TODO implement type search later
-		# var data_class = proxy_object.data.get_class()
-		# if !type_buckets_cache.has(data_class):
-		# 	type_buckets_cache[data_class] = DataBucket.new()
-		# type_buckets_cache[data_class].data.append(data)
-
 		if render.feature_flag_manager != null:
 			render.feature_flag_manager._register(proxy_object)
 
 
-func _create_proxy_object(node : Node) -> ProxyObject:
+func _create_proxy_object(node : Node) -> _TL_ProxyObject:
 	return null
 
 func _cleanup() -> void:
@@ -64,7 +43,7 @@ func on_node_exit_tree(node : Node) -> void:
 	if !proxy_objects_cache.has(node):
 		return
 
-	var proxy_object : ProxyObject = proxy_objects_cache[node]
+	var proxy_object : _TL_ProxyObject = proxy_objects_cache[node]
 	proxy_objects_cache.erase(node)
 
 	if render.feature_flag_manager != null:
@@ -72,7 +51,7 @@ func on_node_exit_tree(node : Node) -> void:
 
 	_free_proxy_object(proxy_object)
 
-func _free_proxy_object(proxy_object : ProxyObject) -> void:
+func _free_proxy_object(proxy_object : _TL_ProxyObject) -> void:
 	pass
 
 func _find_first_in_tree(root : Node, selector : Callable) -> Variant:
@@ -103,32 +82,31 @@ func _on_pre_render() -> void:
 func _on_post_render() -> void:
 	pass
 
-# TODO implement type search later
-# func get_data_from_type(type : StringName) -> Array[Object]: 
-# 	return []
+func get_data_from_type(type : StringName) -> Array[Object]: 
+	return render.proxy_model._get_data_from_type(type)
 
 func get_data_from_query(query : _TL_FeatureFlagManager.FeatureFlagQuery) -> Array[Object]:
 	if render.feature_flag_manager != null:
 		return render.feature_flag_manager.query_objects(query)
 	return []
 
-func get_current_camera() -> TL_DefaultModel.CameraData:
+func get_current_camera() -> CameraData:
 	return null
 	
-func get_static_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
+func get_static_surfaces() -> Array[SurfaceData]:
 	return []
 
-func get_skeletal_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
+func get_skeletal_surfaces() -> Array[SurfaceData]:
 	return []
 
-func get_instanced_surfaces() -> Array[TL_DefaultModel.SurfaceData]:
+func get_instanced_surfaces() -> Array[SurfaceData]:
 	return []
 
-func get_omni_lights() -> Array[TL_DefaultModel.OmniLightData]:
+func get_omni_lights() -> Array[OmniLightData]:
 	return []
 
-func get_spot_lights() -> Array[TL_DefaultModel.SpotLightData]:
+func get_spot_lights() -> Array[SpotLightData]:
 	return []
 	
-func get_directional_lights() -> Array[TL_DefaultModel.DirectionalLightData]:
+func get_directional_lights() -> Array[DirectionalLightData]:
 	return []

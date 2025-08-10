@@ -8,108 +8,108 @@ const WARN_SURFACE_SKIPPED_VF = "TourefL : The vertex format for %dth surface of
 
 static var rd = RenderingServer.get_rendering_device()
 
-class CameraData:
-	var view_transform : Transform3D
-	var view_matrix_bytes : PackedByteArray
-	var projection_matrix_bytes : PackedByteArray
+# class CameraData:
+# 	var view_transform : Transform3D
+# 	var view_matrix_bytes : PackedByteArray
+# 	var projection_matrix_bytes : PackedByteArray
 
-	var matrices_uniform_buffer : RID
+# 	var matrices_uniform_buffer : RID
 
-class LightData:
-	var light_buffer_float : PackedFloat32Array
-	var light_buffer_bytes : PackedByteArray
+# class _LightData:
+# 	var light_buffer_float : PackedFloat32Array
+# 	var light_buffer_bytes : PackedByteArray
 
-class OmniLightData extends LightData:
-	var color : Color
-	var intensity : float
-	var location : Vector3
-	var range : float
-	var attenuation : float
+# class OmniLightData extends _LightData:
+# 	var color : Color
+# 	var intensity : float
+# 	var location : Vector3
+# 	var range : float
+# 	var attenuation : float
 	
-class SpotLightData extends LightData:
-	var color : Color
-	var intensity : float
-	var location : Vector3
-	var range : float
-	var attenuation : float
-	var direction : Vector3
-	var angle : float
-	var angle_attenuation : float
+# class SpotLightData extends _LightData:
+# 	var color : Color
+# 	var intensity : float
+# 	var location : Vector3
+# 	var range : float
+# 	var attenuation : float
+# 	var direction : Vector3
+# 	var angle : float
+# 	var angle_attenuation : float
 	
-class DirectionalLightData extends LightData:
-	var color : Color
-	var intensity : float
-	var direction : Vector3
+# class DirectionalLightData extends _LightData:
+# 	var color : Color
+# 	var intensity : float
+# 	var direction : Vector3
 
-class MeshData:
-	var skeleton_data : SkeletonData
-	var invert_bind_pose_array_buffer : RID
+# class MeshData:
+# 	var skeleton_data : SkeletonData
+# 	var invert_bind_pose_array_buffer : RID
 
-	var is_instanced : bool
-	var nb_instances : int
-	var instance_storage_buffer : RID
+# 	var is_instanced : bool
+# 	var nb_instances : int
+# 	var instance_storage_buffer : RID
 
-	var bounding_box : AABB
-	var model_matrix_bytes : PackedByteArray
-	var surfaces_data : Array[SurfaceData]
+# 	var bounding_box : AABB
+# 	var model_matrix_bytes : PackedByteArray
+# 	var surfaces_data : Array[SurfaceData]
 
 var existing_skeletons_data : Array[SkeletonData]
 
-class SkeletonData:
-	var instance_id : int
+# class SkeletonData:
+# 	var instance_id : int
 
-	var global_bone_pose_array : Array[Projection]
-	var global_bone_pose_array_bytes_id : int
-	var global_bone_pose_array_buffer : RID
+# 	var global_bone_pose_array : Array[Projection]
+# 	var global_bone_pose_array_bytes_id : int
+# 	var global_bone_pose_array_buffer : RID
 
-class SurfaceData:
-	var sort_key : int
-	var mesh_data : MeshData
-	var topology_data : TopologyData
-	var vertex_array : RID
-	var material_data : MaterialData
+# class SurfaceData:
+# 	var sort_key : int
+# 	var mesh_data : MeshData
+# 	var topology_data : TopologyData
+# 	var vertex_array : RID
+# 	var material_data : MaterialData
 
 var existing_topologies_data : Array[TopologyData]
 var existing_topologies_ref_count : Array[int]
 
-class TopologyData:
-	var instance_id : int
-	var surface_id : int
+# class TopologyData:
+# 	var instance_id : int
+# 	var surface_id : int
 
-	var index_count : int
-	var index_buffer : RID
-	var index_array : RID
+# 	var index_count : int
+# 	var index_buffer : RID
+# 	var index_array : RID
 
-	var vertex_count : int
-	var position_buffer : RID
-	var normal_buffer : RID
-	var tangent_buffer : RID
-	var color_buffer : RID
-	var uv_buffer : RID
-	var uv2_buffer : RID
-	var bones_buffer : RID
-	var weights_buffer : RID
+# 	var vertex_count : int
+# 	var position_buffer : RID
+# 	var normal_buffer : RID
+# 	var tangent_buffer : RID
+# 	var color_buffer : RID
+# 	var uv_buffer : RID
+# 	var uv2_buffer : RID
+# 	var bones_buffer : RID
+# 	var weights_buffer : RID
 
-	var vertex_format_mask : int = -1
+# 	var vertex_format_mask : int = -1
 
-class MaterialData:
-	var albedo_buffer : RID
-	var albedo_tex : RID 
-	var albedo_sampler : RID 
-	var normal_tex : RID
-	var normal_sampler : RID
-	var orm_tex : RID
-	var orm_sampler : RID 
-	var cull_mode : RenderingDevice.PolygonCullMode
-	var render_mode : TL_ExpicitPSODef.ERenderMode
+# class MaterialData:
+# 	var albedo_buffer : RID
+# 	var albedo_tex : RID 
+# 	var albedo_sampler : RID 
+# 	var normal_tex : RID
+# 	var normal_sampler : RID
+# 	var orm_tex : RID
+# 	var orm_sampler : RID 
+# 	var cull_mode : RenderingDevice.PolygonCullMode
+# 	var render_mode : TL_ExpicitPSODef.ERenderMode
 
-	# TODO find something else to keep plein data objects
-	func is_transparent() -> bool:
-		return render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Subtract or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Multiply or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha
+# 	# TODO find something else to keep plein data objects
+# 	func is_transparent() -> bool:
+# 		return render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Subtract or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Multiply or render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha
 
-class ParticlesData:
-	var multi_mesh_rid : RID
-	var mesh_data : MeshData
+# class ParticlesData:
+# 	var multi_mesh_rid : RID
+# 	var mesh_data : MeshData
 
 func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
 	var h = hash(src_int)
@@ -192,8 +192,9 @@ func free_data(data : Object):
 	elif data is ParticlesData:
 		_free_particles(data)
 
-func _create_from_material(material : BaseMaterial3D) -> MaterialData:
-	var material_data : TL_DefaultModel.MaterialData = TL_DefaultModel.MaterialData.new()
+func _create_from_material(mesh_data : MeshData, material : BaseMaterial3D) -> MaterialData:
+	# var material_data : MaterialData = MaterialData.new()
+	var material_data : MaterialData = _TL_SecondaryData.construct(MaterialData, self, mesh_data)
 	
 	var albedo_floats_array : PackedFloat32Array = [material.albedo_color.r, material.albedo_color.g, material.albedo_color.b, material.albedo_color.a]
 	var bytes : PackedByteArray =  albedo_floats_array.to_byte_array()
@@ -259,9 +260,10 @@ const HAS_UV2 = 		1 << 5
 const HAS_BONES = 		1 << 6
 const HAS_WEIGHTS = 	1 << 7
 
-func _create_orphan_surface(mesh_resource : Mesh, surface_idx : int, material : BaseMaterial3D, is_skeletal : bool) -> SurfaceData:
-	var surface_data : TL_DefaultModel.SurfaceData = TL_DefaultModel.SurfaceData.new()
-	surface_data.topology_data = _get_or_create_topology_data(mesh_resource, surface_idx)
+func _create_orphan_surface(mesh_data : MeshData, mesh_resource : Mesh, surface_idx : int, material : BaseMaterial3D, is_skeletal : bool) -> SurfaceData:
+	# var surface_data : SurfaceData = SurfaceData.new()
+	var surface_data : SurfaceData = _TL_SecondaryData.construct(SurfaceData, self, mesh_data)
+	surface_data.topology_data = _get_or_create_topology_data(mesh_data, mesh_resource, surface_idx)
 
 	var vf_def : TL_VertexFormatDef = _TL_Renderer_Factory.get_vertex_format_def_from_material_data(material, is_skeletal)
 	var buffers : Array[RID]
@@ -318,14 +320,15 @@ func _free_surface(surface_data : SurfaceData):
 	_free_or_decr_topology(surface_data.topology_data)
 	_free_material(surface_data.material_data)
 
-func _get_or_create_topology_data(mesh_resource : Mesh, surface_idx : int) -> TopologyData:
+func _get_or_create_topology_data(mesh_data : MeshData, mesh_resource : Mesh, surface_idx : int) -> TopologyData:
 	for i in range(existing_topologies_data.size()):
 		var existing_topology_data : TopologyData = existing_topologies_data[i]
 		if existing_topology_data.surface_id == surface_idx and existing_topology_data.instance_id == mesh_resource.get_instance_id():
 			existing_topologies_ref_count[i] += 1
 			return existing_topology_data
 
-	var topology_data : TopologyData = TopologyData.new()
+	# var topology_data : TopologyData = TopologyData.new()
+	var topology_data : TopologyData = _TL_SecondaryData.construct(TopologyData, self, mesh_data)
 	topology_data.instance_id = mesh_resource.get_instance_id()
 	topology_data.surface_id = surface_idx
 
@@ -441,7 +444,8 @@ const SIZEOF_MAT4 = SIZEOF_FLOAT * 16
 const MAX_BONES = 128
 
 func _create_from_mesh(mesh : MeshInstance3D) -> MeshData:
-	var mesh_data : MeshData = MeshData.new()
+	# var mesh_data : MeshData = MeshData.new()
+	var mesh_data : MeshData = _TL_PrimaryData.construct(MeshData, self)
 	mesh_data.bounding_box = mesh.get_aabb()
 
 	var skin : Skin = mesh.skin
@@ -466,9 +470,9 @@ func _create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 
 	for i in range(0, mesh.mesh.get_surface_count()):
 		var material : BaseMaterial3D =  mesh.mesh.surface_get_material(i)
-		var material_data : MaterialData = _create_from_material(material)
+		var material_data : MaterialData = _create_from_material(mesh_data, material)
 
-		var surface_data : SurfaceData = _create_orphan_surface(mesh.mesh, i, material, mesh_data.skeleton_data != null)
+		var surface_data : SurfaceData = _create_orphan_surface(mesh_data, mesh.mesh, i, material, mesh_data.skeleton_data != null)
 		surface_data.material_data = material_data
 		surface_data.mesh_data = mesh_data
 		mesh_data.surfaces_data.append(surface_data)
@@ -496,7 +500,8 @@ func _get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 		if existing_skeleton_data.instance_id == skeleton.get_instance_id():
 			return existing_skeleton_data
 
-	var skeleton_data : SkeletonData = SkeletonData.new()
+	# var skeleton_data : SkeletonData = SkeletonData.new()
+	var skeleton_data : SkeletonData = _TL_PrimaryData.construct(SkeletonData, self)
 	skeleton_data.instance_id = skeleton.get_instance_id()
 
 	var nb_bones : int = skeleton.get_bone_count()
@@ -522,7 +527,8 @@ func _free_skeleton(skeleton_data : SkeletonData):
 	existing_skeletons_data.remove_at(idx)
 
 func _create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
-	var omni_data = OmniLightData.new()
+	# var omni_data = OmniLightData.new()
+	var omni_data = _TL_PrimaryData.construct(OmniLightData, self)
 	omni_data.color = omni.light_color
 	omni_data.intensity = omni.light_energy
 	omni_data.location = omni.global_position
@@ -551,7 +557,8 @@ func _free_omni_light(omni_light_data : OmniLightData):
 	pass
 
 func _create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
-	var spot_data : TL_DefaultModel.SpotLightData = TL_DefaultModel.SpotLightData.new()
+	# var spot_data : SpotLightData = SpotLightData.new()
+	var spot_data : SpotLightData = _TL_PrimaryData.construct(SpotLightData, self)
 	spot_data.color = spot.light_color
 	spot_data.intensity = spot.light_energy
 	spot_data.location = spot.global_position
@@ -587,7 +594,8 @@ func _free_spot_light(spot_light_data : SpotLightData):
 	pass
 
 func _create_from_directional_light(directional : DirectionalLight3D) -> DirectionalLightData:
-	var directional_data = DirectionalLightData.new()
+	# var directional_data = DirectionalLightData.new()
+	var directional_data = _TL_PrimaryData.construct(DirectionalLightData, self)
 	directional_data.color = directional.light_color
 	directional_data.intensity = directional.light_energy
 	directional_data.direction = -directional.global_basis.z
@@ -610,7 +618,8 @@ func _free_directional_light(directional_light_data : DirectionalLightData):
 	pass
 
 func _create_from_camera(cam : Camera3D) -> CameraData:
-	var cam_data = CameraData.new()
+	# var cam_data = CameraData.new()
+	var cam_data : CameraData = _TL_PrimaryData.construct(CameraData, self)
 	cam_data.view_transform = cam.get_camera_transform().affine_inverse()
 	cam_data.view_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cam_data.view_transform))
 	cam_data.projection_matrix_bytes = TL_RendererUtils.proj_to_bytes(cam.get_camera_projection().flipped_y())
@@ -628,10 +637,12 @@ func _free_camera(camera_data : CameraData):
 		camera_data.matrices_uniform_buffer = RID()
 
 func _create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
-	var particles_data = ParticlesData.new()
+	# var particles_data = ParticlesData.new()
+	var particles_data : ParticlesData= _TL_PrimaryData.construct(ParticlesData, self)
 	particles_data.multi_mesh_rid = cpu_particles.get_multimesh_rid()
 
-	var mesh_data = MeshData.new()
+	# var mesh_data = MeshData.new()
+	var mesh_data : MeshData = _TL_PrimaryData.construct(MeshData, self)
 	mesh_data.is_instanced = true
 	mesh_data.nb_instances = RenderingServer.multimesh_get_instance_count(particles_data.multi_mesh_rid)
 	var instance_transforms : Array[Transform3D]
@@ -648,9 +659,9 @@ func _create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData
 
 	for i in range(0, cpu_particles.mesh.get_surface_count()):
 		var material : BaseMaterial3D =  cpu_particles.mesh.surface_get_material(i)
-		var material_data : MaterialData = _create_from_material(material)
+		var material_data : MaterialData = _create_from_material(mesh_data, material)
 
-		var surface_data : SurfaceData = _create_orphan_surface(cpu_particles.mesh, i, material, mesh_data.skeleton_data != null)
+		var surface_data : SurfaceData = _create_orphan_surface(mesh_data, cpu_particles.mesh, i, material, mesh_data.skeleton_data != null)
 		surface_data.mesh_data = mesh_data
 		surface_data.material_data = material_data
 		mesh_data.surfaces_data.append(surface_data)
