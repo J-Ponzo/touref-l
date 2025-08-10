@@ -73,7 +73,7 @@ func _build_query_from_query_mask(set_name : StringName, query_mask : int) -> Fe
 	return query
 
 func query_objects(query : FeatureFlagQuery) -> Array[Object]:
-	if !query_caches[query.set_name].has(query.mask):
+	if !query_caches[query.set_name].buckets.has(query.mask):
 		_create_bucket(query)
 	return query_caches[query.set_name].buckets[query.mask].data
 
