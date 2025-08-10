@@ -1,7 +1,6 @@
 class_name _TL_SceneProxy
 
 var proxy_objects_cache : Dictionary[Node, _TL_ProxyObject]
-# var type_buckets_cache : Dictionary[StringName, DataBucket]	# TODO implement type search later
 
 var render : _TL_Renderer
 var _scene_root : Node
@@ -90,23 +89,23 @@ func get_data_from_query(query : _TL_FeatureFlagManager.FeatureFlagQuery) -> Arr
 		return render.feature_flag_manager.query_objects(query)
 	return []
 
-func get_current_camera() -> CameraData:
-	return null
+# func get_current_camera() -> CameraData:
+# 	return null
 	
-func get_static_surfaces() -> Array[SurfaceData]:
-	return []
+# func get_static_surfaces() -> Array[SurfaceData]:
+# 	return []
 
-func get_skeletal_surfaces() -> Array[SurfaceData]:
-	return []
+# func get_skeletal_surfaces() -> Array[SurfaceData]:
+# 	return []
 
-func get_instanced_surfaces() -> Array[SurfaceData]:
-	return []
+# func get_instanced_surfaces() -> Array[SurfaceData]:
+# 	return []
 
-func get_omni_lights() -> Array[OmniLightData]:
-	return []
+# func get_omni_lights() -> Array[OmniLightData]:
+# 	return []
 
-func get_spot_lights() -> Array[SpotLightData]:
-	return []
+# func get_spot_lights() -> Array[SpotLightData]:
+# 	return []
 	
-func get_directional_lights() -> Array[DirectionalLightData]:
-	return []
+# func get_directional_lights() -> Array[DirectionalLightData]:
+# 	return []
