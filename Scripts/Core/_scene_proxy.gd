@@ -76,7 +76,8 @@ func _find_all_in_tree(root : Node, selector : Callable) -> Array[Variant]:
 	return all_selected
 
 func _on_pre_render() -> void:
-	pass
+	for proxy_object in proxy_objects_cache.values():
+		proxy_object.update_data()
 
 func _on_post_render() -> void:
 	pass
