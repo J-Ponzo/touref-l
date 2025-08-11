@@ -95,7 +95,6 @@ func free_data(data : Object):
 		_free_particles(data)
 
 func _create_from_material(mesh_data : MeshData, material : BaseMaterial3D) -> MaterialData:
-	# var material_data : MaterialData = MaterialData.new()
 	var material_data : MaterialData = _TL_SecondaryData.construct(MaterialData, self, mesh_data)
 	
 	var albedo_floats_array : PackedFloat32Array = [material.albedo_color.r, material.albedo_color.g, material.albedo_color.b, material.albedo_color.a]
@@ -163,7 +162,6 @@ const HAS_BONES = 		1 << 6
 const HAS_WEIGHTS = 	1 << 7
 
 func _create_orphan_surface(primary_data : _TL_PrimaryData, mesh_resource : Mesh, surface_idx : int, material : BaseMaterial3D, is_skeletal : bool) -> SurfaceData:
-	# var surface_data : SurfaceData = SurfaceData.new()
 	var surface_data : SurfaceData = _TL_SecondaryData.construct(SurfaceData, self, primary_data)
 	surface_data.topology_data = _get_or_create_topology_data(primary_data, mesh_resource, surface_idx)
 
@@ -231,7 +229,6 @@ func _get_or_create_topology_data(primary_data : _TL_PrimaryData, mesh_resource 
 			existing_topologies_ref_count[i] += 1
 			return existing_topology_data
 
-	# var topology_data : TopologyData = TopologyData.new()
 	var topology_data : TopologyData = _TL_SecondaryData.construct(TopologyData, self, primary_data)
 	topology_data.instance_id = mesh_resource.get_instance_id()
 	topology_data.surface_id = surface_idx
@@ -344,13 +341,7 @@ func _free_or_decr_topology(topology_data : TopologyData):
 
 	_TL_ProxyData.destruct(topology_data, self)
 
-# TODO centralize this
-const SIZEOF_FLOAT = 4
-const SIZEOF_MAT4 = SIZEOF_FLOAT * 16
-const MAX_BONES = 128
-
 func _create_from_mesh(mesh : MeshInstance3D) -> MeshData:
-	# var mesh_data : MeshData = MeshData.new()
 	var mesh_data : MeshData = _TL_PrimaryData.construct(MeshData, self)
 	mesh_data.bounding_box = mesh.get_aabb()
 
@@ -366,11 +357,11 @@ func _create_from_mesh(mesh : MeshInstance3D) -> MeshData:
 		for bone_idx in range(nb_bones):
 			var inverse_bind : Transform3D = skin.get_bind_pose(bone_idx)
 			invert_bind_pose_array.append_array(TL_RendererUtils.proj_to_bytes(Projection(inverse_bind)))
-		for i in range(nb_bones, MAX_BONES):
-			for j in range(SIZEOF_MAT4):
+		for i in range(nb_bones, GlobalDefines.MAX_BONES):
+			for j in range(GlobalDefines.SIZEOF_MAT4):
 				invert_bind_pose_array.append(0)
 
-		mesh_data.invert_bind_pose_array_buffer = rd.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, invert_bind_pose_array)
+		mesh_data.invert_bind_pose_array_buffer = rd.uniform_buffer_create(GlobalDefines.MAX_BONES * GlobalDefines.SIZEOF_MAT4, invert_bind_pose_array)
 
 	mesh_data.model_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(mesh.global_transform))
 
@@ -402,13 +393,11 @@ func _free_mesh(mesh_data : MeshData):
 
 	_TL_ProxyData.destruct(mesh_data, self)
 
-# TODO find a way to notify weather it was created or not
 func _get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 	for existing_skeleton_data in existing_skeletons_data:
 		if existing_skeleton_data.instance_id == skeleton.get_instance_id():
 			return existing_skeleton_data
 
-	# var skeleton_data : SkeletonData = SkeletonData.new()
 	var skeleton_data : SkeletonData = _TL_PrimaryData.construct(SkeletonData, self)
 	skeleton_data.instance_id = skeleton.get_instance_id()
 
@@ -418,9 +407,9 @@ func _get_or_create_from_skeleton(skeleton : Skeleton3D) -> SkeletonData:
 		var global_bone_transform : Transform3D = skeleton.get_bone_global_pose(bone_idx)
 		skeleton_data.global_bone_pose_array[bone_idx] = Projection(global_bone_transform)
 
-	skeleton_data.global_bone_pose_array_bytes_id = TL_NativeMemory.ManagerInst.create_packed_byte_array(MAX_BONES * SIZEOF_MAT4)
+	skeleton_data.global_bone_pose_array_bytes_id = TL_NativeMemory.ManagerInst.create_packed_byte_array(GlobalDefines.MAX_BONES * GlobalDefines.SIZEOF_MAT4)
 	TL_NativeMemory.ManagerInst.fill_packed_byte_array_with_projections(skeleton_data.global_bone_pose_array_bytes_id, 0, skeleton_data.global_bone_pose_array)
-	skeleton_data.global_bone_pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(MAX_BONES * SIZEOF_MAT4, skeleton_data.global_bone_pose_array_bytes_id, 0)
+	skeleton_data.global_bone_pose_array_buffer = TL_NativeMemory.RenderingDeviceInst.uniform_buffer_create(GlobalDefines.MAX_BONES * GlobalDefines.SIZEOF_MAT4, skeleton_data.global_bone_pose_array_bytes_id, 0)
 
 	existing_skeletons_data.append(skeleton_data)
 
@@ -437,7 +426,6 @@ func _free_skeleton(skeleton_data : SkeletonData):
 	_TL_ProxyData.destruct(skeleton_data, self)
 
 func _create_from_omni_light(omni : OmniLight3D) -> OmniLightData:
-	# var omni_data = OmniLightData.new()
 	var omni_data = _TL_PrimaryData.construct(OmniLightData, self)
 	omni_data.color = omni.light_color
 	omni_data.intensity = omni.light_energy
@@ -467,7 +455,6 @@ func _free_omni_light(omni_light_data : OmniLightData):
 	_TL_ProxyData.destruct(omni_light_data, self)
 
 func _create_from_spot_light(spot : SpotLight3D) -> SpotLightData:
-	# var spot_data : SpotLightData = SpotLightData.new()
 	var spot_data : SpotLightData = _TL_PrimaryData.construct(SpotLightData, self)
 	spot_data.color = spot.light_color
 	spot_data.intensity = spot.light_energy
@@ -504,7 +491,6 @@ func _free_spot_light(spot_light_data : SpotLightData):
 	_TL_ProxyData.destruct(spot_light_data, self)
 
 func _create_from_directional_light(directional : DirectionalLight3D) -> DirectionalLightData:
-	# var directional_data = DirectionalLightData.new()
 	var directional_data = _TL_PrimaryData.construct(DirectionalLightData, self)
 	directional_data.color = directional.light_color
 	directional_data.intensity = directional.light_energy
@@ -528,7 +514,6 @@ func _free_directional_light(directional_light_data : DirectionalLightData):
 	_TL_ProxyData.destruct(directional_light_data, self)
 
 func _create_from_camera(cam : Camera3D) -> CameraData:
-	# var cam_data = CameraData.new()
 	var cam_data : CameraData = _TL_PrimaryData.construct(CameraData, self)
 	cam_data.view_transform = cam.get_camera_transform().affine_inverse()
 	cam_data.view_matrix_bytes = TL_RendererUtils.proj_to_bytes(Projection(cam_data.view_transform))
@@ -549,11 +534,9 @@ func _free_camera(camera_data : CameraData):
 	_TL_ProxyData.destruct(camera_data, self)
 
 func _create_from_cpu_particles(cpu_particles : CPUParticles3D) -> ParticlesData:
-	# var particles_data = ParticlesData.new()
 	var particles_data : ParticlesData= _TL_PrimaryData.construct(ParticlesData, self)
 	particles_data.multi_mesh_rid = cpu_particles.get_multimesh_rid()
 
-	# var mesh_data = MeshData.new()
 	var mesh_data : MeshData = _TL_PrimaryData.construct(MeshData, self)
 	mesh_data.is_instanced = true
 	mesh_data.nb_instances = RenderingServer.multimesh_get_instance_count(particles_data.multi_mesh_rid)
