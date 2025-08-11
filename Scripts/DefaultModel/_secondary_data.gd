@@ -12,3 +12,6 @@ static func construct(type : GDScript, proxy_model : _TL_ProxyModel, primary_dat
 	return instance
 
 var primary_data : _TL_PrimaryData
+
+func get_proxy_object() -> _TL_ProxyObject:
+	return primary_data.proxy_object

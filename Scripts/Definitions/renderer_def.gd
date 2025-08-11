@@ -7,3 +7,4 @@ class_name TL_RendererDef
 @export var attachment_format_defs : Dictionary[StringName, TL_AttachmentFormat_Def]
 @export var feature_flag_manager_def : TL_FeatureFlagManager_Def
 @export var proxy_model_script : GDScript
+@export var proxy_queues_manager_def : TL_ProxyQueueManagerDef

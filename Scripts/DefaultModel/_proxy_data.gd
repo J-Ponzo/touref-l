@@ -6,3 +6,6 @@ func get_class_name() -> StringName:
 
 static func destruct(instance : Object, proxy_model : _TL_ProxyModel) -> void:
 	proxy_model._unregister(instance)
+	
+func get_proxy_object() -> _TL_ProxyObject:
+	return null

@@ -107,6 +107,7 @@ func _process(delta: float) -> void:
 		if active_renderer_idx != INVALID_RENDERER_IDX and active_renderer_idx != NATIVE_RENDERER_IDX:
 			if scene != null:
 				renderers[active_renderer_idx].scene_proxy._on_pre_render()
+				renderers[active_renderer_idx]._pre_renderer()
 				renderers[active_renderer_idx]._render()
 				renderers[active_renderer_idx].scene_proxy._on_post_render()
 			

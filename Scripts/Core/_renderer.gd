@@ -7,6 +7,7 @@ var render_passes : Dictionary[StringName, _TL_RenderPass]
 var attachments : Dictionary[StringName, RID]
 var feature_flag_manager : _TL_FeatureFlagManager
 var proxy_model : _TL_ProxyModel
+var proxy_queues : Dictionary[StringName, DataBucket]
 
 var rd = RenderingServer.get_rendering_device()
 
@@ -17,6 +18,12 @@ func _setup() -> void:
 	attachments = create_attachments_from_def(renderer_def.attachment_format_defs)
 	for key : StringName in render_passes.keys():
 		render_passes[key]._setup()
+
+	renderer_def.proxy_queues_manager_def._setup(proxy_model)
+	var queues_def : Dictionary[StringName, TL_ProxyQueueDef] = renderer_def.proxy_queues_manager_def.queues_def
+	for queue_name : StringName in queues_def.keys():
+		proxy_queues[queue_name] = DataBucket.new()
+	
 	
 func create_attachments_from_def(attachment_format_defs : Dictionary[StringName, TL_AttachmentFormat_Def]) -> Dictionary[StringName, RID]:
 	var attachments : Dictionary[StringName, RID]
@@ -32,6 +39,15 @@ func get_attachments(names : Array[StringName]) -> Array[RID]:
 	for name in names:
 		named_attachments.append(attachments[name])
 	return named_attachments
+
+func _pre_renderer() -> void:
+	var queues_def : Dictionary[StringName, TL_ProxyQueueDef] = renderer_def.proxy_queues_manager_def.queues_def
+	for queue_name : StringName in queues_def.keys():
+		proxy_queues[queue_name].data.clear()
+		for queue_processor : TL_ProxyQueueProcessorDef in queues_def[queue_name].queue_processors:
+			if !queue_processor.active:
+				continue
+			proxy_queues[queue_name].data = queue_processor._process(proxy_model, proxy_queues[queue_name].data)
 
 func _render() -> void:
 	for key : StringName in render_passes.keys():
