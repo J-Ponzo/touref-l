@@ -82,10 +82,10 @@ func _on_pre_render() -> void:
 func _on_post_render() -> void:
 	pass
 
-func get_data_from_type(type : StringName) -> Array[Object]: 
+func get_data_from_type(type : StringName) -> Array[_TL_ProxyData]: 
 	return render.proxy_model._get_data_from_type(type)
 
-func get_data_from_query(query : _TL_FeatureFlagManager.FeatureFlagQuery) -> Array[Object]:
+func get_data_from_query(query : _TL_FeatureFlagManager.FeatureFlagQuery) -> Array[_TL_ProxyData]:
 	if render.feature_flag_manager != null:
 		return render.feature_flag_manager.query_objects(query)
 	return []

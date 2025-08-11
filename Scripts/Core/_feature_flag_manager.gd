@@ -51,6 +51,9 @@ func _build_flags_mask(set_name : StringName, flags : Array[StringName]) -> int:
 		mask |= 1 << idx
 	return mask
 
+func build_query_from_def(query_def : TL_FeatureFlagQueryDef) -> FeatureFlagQuery:
+	return build_query(query_def.set_name, query_def.relevant_flags, query_def.set_flags)
+
 func build_query(set_name : StringName, relevant_flags : Array[StringName], set_flags : Array[StringName]) -> FeatureFlagQuery:
 	var query : FeatureFlagQuery = FeatureFlagQuery.new()
 	query.set_name = set_name
@@ -72,7 +75,7 @@ func _build_query_from_query_mask(set_name : StringName, query_mask : int) -> Fe
 
 	return query
 
-func query_objects(query : FeatureFlagQuery) -> Array[Object]:
+func query_objects(query : FeatureFlagQuery) -> Array[_TL_ProxyData]:
 	if !query_caches[query.set_name].buckets.has(query.mask):
 		_create_bucket(query)
 	return query_caches[query.set_name].buckets[query.mask].data

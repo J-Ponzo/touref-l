@@ -1,3 +1,3 @@
 class_name DataBucket
 
-var data : Array[Object]
+var data : Array[_TL_ProxyData]

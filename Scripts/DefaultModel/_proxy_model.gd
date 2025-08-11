@@ -21,7 +21,7 @@ func _unregister(proxy_data : _TL_ProxyData) -> void:
 	var idx : int = data_registry[type].data.find(proxy_data)
 	data_registry[type].data.remove_at(idx)
 
-func _get_data_from_type(type : StringName) -> Array[Object]:
+func _get_data_from_type(type : StringName) -> Array[_TL_ProxyData]:
 	if !data_registry.has(type):
 		return []
 	return data_registry[type].data
