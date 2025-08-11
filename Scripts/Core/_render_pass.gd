@@ -18,7 +18,7 @@ func _setup() -> void:
 
 	var attachments : Array[RID] = renderer.get_attachments(render_pass_def.fb_format_def.get_all_attachment_keys())
 	framebuffer = renderer.rd.framebuffer_create(attachments, framebuffer_format)
-	explicits_pso = create_explicits_pso_from_defs(render_pass_def.pso_defs)
+	explicits_pso = create_explicits_pso_from_defs(render_pass_def.explicite_pso_defs)
 	pso_factories = create_pso_factories_from_defs(render_pass_def.generated_pso_defs, framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
 
 func create_pso_factories_from_defs(generated_pso_defs : Dictionary[StringName, TL_GeneratedPSODef], framebuffer_format : int, nb_color_attachment : int) -> Dictionary[StringName, _TL_PSOFactory]:

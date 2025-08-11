@@ -89,24 +89,3 @@ func get_data_from_query(query : _TL_FeatureFlagManager.FeatureFlagQuery) -> Arr
 	if render.feature_flag_manager != null:
 		return render.feature_flag_manager.query_objects(query)
 	return []
-
-# func get_current_camera() -> CameraData:
-# 	return null
-	
-# func get_static_surfaces() -> Array[SurfaceData]:
-# 	return []
-
-# func get_skeletal_surfaces() -> Array[SurfaceData]:
-# 	return []
-
-# func get_instanced_surfaces() -> Array[SurfaceData]:
-# 	return []
-
-# func get_omni_lights() -> Array[OmniLightData]:
-# 	return []
-
-# func get_spot_lights() -> Array[SpotLightData]:
-# 	return []
-	
-# func get_directional_lights() -> Array[DirectionalLightData]:
-# 	return []

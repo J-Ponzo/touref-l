@@ -1,9 +1,6 @@
 extends Node
 class_name autoload
 
-# const ERR_RENDERER_WRONG_PARENT = "TourefL : Cannot instantiate the renderer from class %s. It must inherit from _TL_Renderer."
-# const ERR_SCNPROXY_WRONG_PARENT = "TourefL : Cannot instantiate the scene proxy from class %s. It must inherit from _TL_SceneProxy."
-# const ERR_RENDERPASS_WRONG_PARENT = "TourefL : Cannot instantiate the render pass from class %s. It must inherit from _TL_RenderPass."
 const ERR_RENDERER_IDX_UNDEFINED = "TourefL: Cannot switch the active renderer to %d. No renderers are registered at this index. Check your renderers_registry.tres file."
 
 const NATIVE_RENDERER_IDX = -1
