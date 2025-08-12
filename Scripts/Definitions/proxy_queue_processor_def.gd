@@ -6,7 +6,7 @@ const ERR_BASE_PROCESSOR_INVOKED = "TourefL : TL_ProxyQueueProcessorDef is inten
 @export var active : bool = true
 
 func _setup(proxy_model : _TL_ProxyModel) -> void:
-    pass
+	pass
 
 func _process(proxy_model : _TL_ProxyModel, data : Array[_TL_ProxyData]) -> Array[_TL_ProxyData]:
-    return data
+	return data

@@ -22,10 +22,7 @@ func _setup() -> void:
 	for key : StringName in render_passes.keys():
 		render_passes[key]._setup()
 
-	renderer_def.proxy_queues_manager_def._setup(proxy_model)
-	var queues_def : Dictionary[StringName, TL_ProxyQueueDef] = renderer_def.proxy_queues_manager_def.queues_def
-	for queue_name : StringName in queues_def.keys():
-		proxy_queues[queue_name] = DataBucket.new()
+	proxy_queue_manager._setup()
 	
 func create_attachments_from_def(attachment_format_defs : Dictionary[StringName, TL_AttachmentFormat_Def]) -> Dictionary[StringName, RID]:
 	var attachments : Dictionary[StringName, RID]
@@ -43,13 +40,7 @@ func get_attachments(names : Array[StringName]) -> Array[RID]:
 	return named_attachments
 
 func _pre_renderer() -> void:
-	var queues_def : Dictionary[StringName, TL_ProxyQueueDef] = renderer_def.proxy_queues_manager_def.queues_def
-	for queue_name : StringName in queues_def.keys():
-		proxy_queues[queue_name].data.clear()
-		for queue_processor : TL_ProxyQueueProcessorDef in queues_def[queue_name].queue_processors:
-			if !queue_processor.active:
-				continue
-			proxy_queues[queue_name].data = queue_processor._process(proxy_model, proxy_queues[queue_name].data)
+	proxy_queue_manager._update()
 
 func _render() -> void:
 	for key : StringName in render_passes.keys():

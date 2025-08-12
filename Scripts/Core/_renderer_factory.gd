@@ -59,10 +59,8 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 			if proxy_queue_manager_inst is _TL_ProxyQueueManager:
 				var proxy_queue_manager : _TL_ProxyQueueManager = proxy_queue_manager_inst
 				proxy_queue_manager.renderer = renderer
+				proxy_queue_manager.proxy_queue_manager_def = renderer_def.proxy_queues_manager_def
 				renderer.proxy_queue_manager = proxy_queue_manager
-				#for key : StringName in renderer_def.proxy_queues_manager_def.sort_queues_def.keys():
-					#proxy_queue_manager.keygens[key] = renderer_def.proxy_queues_manager_def.sort_queues_def[key].new()		# TODO check keygens types
-					#proxy_queue_manager.sort_queues[key] = DataBucket.new()
 			else :
 				push_error(ERR_PROXYQUEUEMANAGER_WRONG_PARENT % renderer_def.proxy_queues_manager_def.manager_script)
 		var sort_key_manager_inst = renderer_def.sort_key_manager_script.new()
