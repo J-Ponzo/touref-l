@@ -22,6 +22,7 @@ const WEIGHT_NB_FLOATS = 4
 static var rd = RenderingServer.get_rendering_device()
 
 # TODO Handle more definition errors
+# TODO Refact make generic managers
 static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 	var renderer_inst = renderer_def.renderer_script.new()
 	if renderer_inst is _TL_Renderer:
@@ -53,17 +54,22 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
 		else :
 			push_error(ERR_PROXYMODEL_WRONG_PARENT % renderer_def.scene_proxy_script)
-		if renderer_def.proxy_queues_manager_def != null:	# TODO wikll be mandatory. Remove when setup
+		if renderer_def.proxy_queues_manager_def != null:	# TODO will be mandatory. Remove when setup
 			var proxy_queue_manager_inst = renderer_def.proxy_queues_manager_def.manager_script.new()
 			if proxy_queue_manager_inst is _TL_ProxyQueueManager:
 				var proxy_queue_manager : _TL_ProxyQueueManager = proxy_queue_manager_inst
 				proxy_queue_manager.renderer = renderer
 				renderer.proxy_queue_manager = proxy_queue_manager
-				for key : StringName in renderer_def.proxy_queues_manager_def.sort_queues_def.keys():
-					proxy_queue_manager.keygens[key] = renderer_def.proxy_queues_manager_def.sort_queues_def[key].new()		# TODO check keygens types
-					proxy_queue_manager.sort_queues[key] = DataBucket.new()
+				#for key : StringName in renderer_def.proxy_queues_manager_def.sort_queues_def.keys():
+					#proxy_queue_manager.keygens[key] = renderer_def.proxy_queues_manager_def.sort_queues_def[key].new()		# TODO check keygens types
+					#proxy_queue_manager.sort_queues[key] = DataBucket.new()
 			else :
 				push_error(ERR_PROXYQUEUEMANAGER_WRONG_PARENT % renderer_def.proxy_queues_manager_def.manager_script)
+		var sort_key_manager_inst = renderer_def.sort_key_manager_script.new()
+		if sort_key_manager_inst is _TL_SortKeyManager:
+			var sort_key_manager : _TL_SortKeyManager = sort_key_manager_inst
+			renderer.sort_key_manager = sort_key_manager
+			sort_key_manager.renderer = renderer
 		return renderer
 	else :
 		push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)

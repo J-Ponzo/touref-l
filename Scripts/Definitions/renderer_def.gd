@@ -8,3 +8,4 @@ class_name TL_RendererDef
 @export var feature_flag_manager_def : TL_FeatureFlagManager_Def
 @export var proxy_model_script : GDScript
 @export var proxy_queues_manager_def : TL_ProxyQueueManagerDef
+@export var sort_key_manager_script : GDScript

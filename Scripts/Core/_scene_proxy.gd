@@ -25,8 +25,8 @@ func on_node_enter_tree(node: Node) -> void:
 		proxy_object.scene_proxy = self
 		if render.feature_flag_manager != null:		# TODO check if mandatory
 			render.feature_flag_manager._register(proxy_object)
-		if render.proxy_queue_manager != null:		# TODO is mandatory, remove whene setup
-			render.proxy_queue_manager._register(proxy_object)
+		if render.sort_key_manager != null:		# TODO is mandatory, remove whene setup
+			render.sort_key_manager._register(proxy_object)
 
 
 func _create_proxy_object(node : Node) -> _TL_ProxyObject:
@@ -49,8 +49,8 @@ func on_node_exit_tree(node : Node) -> void:
 
 	if render.feature_flag_manager != null:			# TODO chack if mandatory
 		render.feature_flag_manager._unregister(proxy_object)
-	if render.proxy_queue_manager != null:		# TODO is mandatory, remove whene setup
-		render.proxy_queue_manager._unregister(proxy_object)
+	if render.sort_key_manager != null:		# TODO is mandatory, remove whene setup
+		render.sort_key_manager._unregister(proxy_object)
 
 	_free_proxy_object(proxy_object)
 
