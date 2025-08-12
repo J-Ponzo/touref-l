@@ -8,6 +8,7 @@ var attachments : Dictionary[StringName, RID]
 var feature_flag_manager : _TL_FeatureFlagManager
 var proxy_model : _TL_ProxyModel
 var proxy_queues : Dictionary[StringName, DataBucket]
+var proxy_queue_manager : _TL_ProxyQueueManager
 
 var rd = RenderingServer.get_rendering_device()
 

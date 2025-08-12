@@ -4,6 +4,7 @@ const ERR_RENDERER_WRONG_PARENT = "TourefL : Cannot instantiate the renderer fro
 const ERR_SCNPROXY_WRONG_PARENT = "TourefL : Cannot instantiate the scene proxy from class %s. It must inherit from _TL_SceneProxy."
 const ERR_RENDERPASS_WRONG_PARENT = "TourefL : Cannot instantiate the render pass from class %s. It must inherit from _TL_RenderPass."
 const ERR_FEATUREFLAG_WRONG_PARENT = "TourefL : Cannot instantiate the feature flag manager from class %s. It must inherit from _TL_FeatureFlagManager."
+const ERR_PROXYQUEUEMANAGER_WRONG_PARENT = "TourefL : Cannot instantiate the proxy queue manager from class %s. It must inherit from _TL_ProxyQueueManager."
 const ERR_PROXYMODEL_WRONG_PARENT = "TourefL : Cannot instantiate the feature flag manager from class %s. It must inherit from _TL_ProxyModel."
 
 const SIZEOF_FLOAT = 4
@@ -35,7 +36,7 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
 		else :
 			push_error(ERR_SCNPROXY_WRONG_PARENT % renderer_def.scene_proxy_script)
-		if renderer_def.feature_flag_manager_def != null:
+		if renderer_def.feature_flag_manager_def != null:	# TODO check if feature flag manager is mandatory
 			var feature_flag_manager_inst = renderer_def.feature_flag_manager_def.manager_script.new()
 			if feature_flag_manager_inst is _TL_FeatureFlagManager:
 				var feature_flag_manager : _TL_FeatureFlagManager = feature_flag_manager_inst
@@ -52,6 +53,17 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
 		else :
 			push_error(ERR_PROXYMODEL_WRONG_PARENT % renderer_def.scene_proxy_script)
+		if renderer_def.proxy_queues_manager_def != null:	# TODO wikll be mandatory. Remove when setup
+			var proxy_queue_manager_inst = renderer_def.proxy_queues_manager_def.manager_script.new()
+			if proxy_queue_manager_inst is _TL_ProxyQueueManager:
+				var proxy_queue_manager : _TL_ProxyQueueManager = proxy_queue_manager_inst
+				proxy_queue_manager.renderer = renderer
+				renderer.proxy_queue_manager = proxy_queue_manager
+				for key : StringName in renderer_def.proxy_queues_manager_def.sort_queues_def.keys():
+					proxy_queue_manager.keygens[key] = renderer_def.proxy_queues_manager_def.sort_queues_def[key].new()		# TODO check keygens types
+					proxy_queue_manager.sort_queues[key] = DataBucket.new()
+			else :
+				push_error(ERR_PROXYQUEUEMANAGER_WRONG_PARENT % renderer_def.proxy_queues_manager_def.manager_script)
 		return renderer
 	else :
 		push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)
