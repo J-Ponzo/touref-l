@@ -23,6 +23,7 @@ var data_mask_lookup : Dictionary[Object, Name_Mask_Pair]
 var query_caches : Dictionary[StringName, QueryCache]
 var main_buckets : Dictionary[StringName, DataBucket]
 
+# TODO user TL_ProxyData instead of Object
 func get_flags_mask(data : Object) -> int:
 	if data_mask_lookup.has(data):
 		return data_mask_lookup[data].flags_mask

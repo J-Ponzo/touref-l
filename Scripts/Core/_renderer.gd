@@ -15,6 +15,7 @@ var rd = RenderingServer.get_rendering_device()
 func get_render_target() -> RID:
 	return RID()
 
+# TODO harmonize this and autoload singleton setups
 func _setup() -> void:
 	attachments = create_attachments_from_def(renderer_def.attachment_format_defs)
 	for key : StringName in render_passes.keys():
@@ -24,6 +25,8 @@ func _setup() -> void:
 	var queues_def : Dictionary[StringName, TL_ProxyQueueDef] = renderer_def.proxy_queues_manager_def.queues_def
 	for queue_name : StringName in queues_def.keys():
 		proxy_queues[queue_name] = DataBucket.new()
+
+	proxy_queue_manager._setup()
 	
 	
 func create_attachments_from_def(attachment_format_defs : Dictionary[StringName, TL_AttachmentFormat_Def]) -> Dictionary[StringName, RID]:
