@@ -1,6 +1,6 @@
 class_name _TL_ProxyObject 
 
-var scene_proxy : _TL_SceneProxy	# TODO Remove
+var scene_proxy : _TL_SceneProxy
 var node : Node
 var _primary_data : _TL_PrimaryData
 var _is_active : bool

@@ -19,10 +19,7 @@ func on_node_enter_tree(node: Node) -> void:
 	var proxy_object : _TL_ProxyObject = _create_proxy_object(node)
 
 	if proxy_object != null:
-		proxy_object._is_active = node.is_visible_in_tree()
 		proxy_objects_cache[node] = proxy_object
-		proxy_object.node = node
-		proxy_object.scene_proxy = self
 		if render.feature_flag_manager != null:		# TODO check if mandatory
 			render.feature_flag_manager._register(proxy_object)
 		if render.sort_key_manager != null:		# TODO is mandatory, remove whene setup
