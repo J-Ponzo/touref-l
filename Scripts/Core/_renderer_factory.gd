@@ -5,6 +5,7 @@ const ERR_SCNPROXY_WRONG_PARENT = "TourefL : Cannot instantiate the scene proxy 
 const ERR_RENDERPASS_WRONG_PARENT = "TourefL : Cannot instantiate the render pass from class %s. It must inherit from _TL_RenderPass."
 const ERR_FEATUREFLAG_WRONG_PARENT = "TourefL : Cannot instantiate the feature flag manager from class %s. It must inherit from _TL_FeatureFlagManager."
 const ERR_PROXYQUEUEMANAGER_WRONG_PARENT = "TourefL : Cannot instantiate the proxy queue manager from class %s. It must inherit from _TL_ProxyQueueManager."
+const ERR_SORTKEYMANAGER_WRONG_PARENT = "TourefL : Cannot instantiate the sort key manager from class %s. It must inherit from _TL_SortKeyManager."
 const ERR_PROXYMODEL_WRONG_PARENT = "TourefL : Cannot instantiate the feature flag manager from class %s. It must inherit from _TL_ProxyModel."
 
 const SIZEOF_FLOAT = 4
@@ -52,7 +53,7 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 			proxy_model.renderer = renderer
 			for key : StringName in renderer_def.renderer_pass_defs.keys():
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
-		else :
+		else:
 			push_error(ERR_PROXYMODEL_WRONG_PARENT % renderer_def.scene_proxy_script)
 		if renderer_def.proxy_queues_manager_def != null:	# TODO will be mandatory. Remove when setup
 			var proxy_queue_manager_inst = renderer_def.proxy_queues_manager_def.manager_script.new()
@@ -61,13 +62,18 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 				proxy_queue_manager.renderer = renderer
 				proxy_queue_manager.proxy_queue_manager_def = renderer_def.proxy_queues_manager_def
 				renderer.proxy_queue_manager = proxy_queue_manager
-			else :
+			else:
 				push_error(ERR_PROXYQUEUEMANAGER_WRONG_PARENT % renderer_def.proxy_queues_manager_def.manager_script)
-		var sort_key_manager_inst = renderer_def.sort_key_manager_script.new()
-		if sort_key_manager_inst is _TL_SortKeyManager:
-			var sort_key_manager : _TL_SortKeyManager = sort_key_manager_inst
-			renderer.sort_key_manager = sort_key_manager
-			sort_key_manager.renderer = renderer
+		if renderer_def.sort_key_manager_def != null:	# TODO check if feature flag manager is mandatory
+			var sort_key_manager_inst = renderer_def.sort_key_manager_def.manager_script.new()
+			if sort_key_manager_inst is _TL_SortKeyManager:
+				var sort_key_manager : _TL_SortKeyManager = sort_key_manager_inst
+				sort_key_manager.sort_key_manager_def = renderer_def.sort_key_manager_def
+				sort_key_manager.renderer = renderer
+				renderer.sort_key_manager = sort_key_manager
+			else:
+				push_error(ERR_SORTKEYMANAGER_WRONG_PARENT % renderer_def.sort_key_manager_def.manager_script)
+
 		return renderer
 	else :
 		push_error(ERR_RENDERER_WRONG_PARENT % renderer_def.renderer_script)

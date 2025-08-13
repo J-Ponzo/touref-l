@@ -21,7 +21,9 @@ func _setup() -> void:
 	attachments = create_attachments_from_def(renderer_def.attachment_format_defs)
 	for key : StringName in render_passes.keys():
 		render_passes[key]._setup()
-
+	
+	if sort_key_manager != null:
+		sort_key_manager._setup()
 	proxy_queue_manager._setup()
 	
 func create_attachments_from_def(attachment_format_defs : Dictionary[StringName, TL_AttachmentFormat_Def]) -> Dictionary[StringName, RID]:
