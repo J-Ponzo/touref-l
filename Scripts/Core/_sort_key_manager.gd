@@ -29,10 +29,12 @@ func _setup() -> void:
 		var queue_info : SortQueueInfo = SortQueueInfo.new()
 		queue_info.is_dirty = true
 		queue_info.keygen = key_def.keygen_script.new()
+		queue_info.keygen.manager = self
 		if key_def.keysort_script != null:
 			queue_info.keysort = key_def.keysort_script.new()
 		else:
 			queue_info.keysort = TL_DefaultKeySort.new()
+		queue_info.keysort.manager = self
 		sort_queues_info[queue_name] = queue_info
 
 func _update() -> void:
@@ -41,8 +43,11 @@ func _update() -> void:
 			sort_queue(queue_name)
 
 func sort_queue(queue_name : StringName, clear_dirty : bool = true) -> void:
-	# sort
+	sort_queues_info[queue_name].keysort._sort(sort_queues[queue_name].data)
 	sort_queues_info[queue_name].is_dirty = false
+
+func set_queue_dirty(sort_queue_name : StringName) -> void:
+	sort_queues_info[sort_queue_name].is_dirty = true
 
 func _register(proxy_object : _TL_ProxyObject) -> void:
 	if proxy_data_lookup.has(proxy_object):
@@ -57,6 +62,7 @@ func _register(proxy_object : _TL_ProxyObject) -> void:
 		items_bucket.data.append(data)
 		data_key_lookup[keyed_item.data] = keyed_item.name_key
 		sort_queues[queue_name].data.append(data)
+		set_queue_dirty(queue_name)
 
 	proxy_data_lookup[proxy_object] = items_bucket
 

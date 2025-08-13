@@ -1,5 +1,7 @@
 class_name _TL_KeyGen
 
+var manager : _TL_SortKeyManager
+
 # TODO put in utils
 func hash_int_to_bits(src_int : int, trg_nb_bits : int) -> int:
 	var h = hash(src_int)

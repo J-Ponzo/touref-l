@@ -42,6 +42,8 @@ func get_attachments(names : Array[StringName]) -> Array[RID]:
 	return named_attachments
 
 func _pre_renderer() -> void:
+	if sort_key_manager != null:
+		sort_key_manager._update()
 	proxy_queue_manager._update()
 
 func _render() -> void:
