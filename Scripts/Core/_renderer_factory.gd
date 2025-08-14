@@ -38,6 +38,7 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
 		else :
 			push_error(ERR_SCNPROXY_WRONG_PARENT % renderer_def.scene_proxy_script)
+			
 		if renderer_def.feature_flag_manager_def != null:	# TODO check if feature flag manager is mandatory
 			var feature_flag_manager_inst = renderer_def.feature_flag_manager_def.manager_script.new()
 			if feature_flag_manager_inst is _TL_FeatureFlagManager:
@@ -46,6 +47,7 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 				renderer_inst.feature_flag_manager = feature_flag_manager
 			else:
 				push_error(ERR_FEATUREFLAG_WRONG_PARENT % renderer_def.feature_flag_manager_def.manager_script)
+
 		var proxy_model_inst = renderer_def.proxy_model_script.new()
 		if proxy_model_inst is _TL_ProxyModel:
 			var proxy_model : _TL_ProxyModel = proxy_model_inst
@@ -55,16 +57,17 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
 		else:
 			push_error(ERR_PROXYMODEL_WRONG_PARENT % renderer_def.scene_proxy_script)
-		if renderer_def.proxy_queues_manager_def != null:	# TODO will be mandatory. Remove when setup
-			var proxy_queue_manager_inst = renderer_def.proxy_queues_manager_def.manager_script.new()
-			if proxy_queue_manager_inst is _TL_ProxyQueueManager:
-				var proxy_queue_manager : _TL_ProxyQueueManager = proxy_queue_manager_inst
-				proxy_queue_manager.renderer = renderer
-				proxy_queue_manager.proxy_queue_manager_def = renderer_def.proxy_queues_manager_def
-				renderer.proxy_queue_manager = proxy_queue_manager
-			else:
-				push_error(ERR_PROXYQUEUEMANAGER_WRONG_PARENT % renderer_def.proxy_queues_manager_def.manager_script)
-		if renderer_def.sort_key_manager_def != null:	# TODO check if feature flag manager is mandatory
+		
+		var proxy_queue_manager_inst = renderer_def.proxy_queues_manager_def.manager_script.new()
+		if proxy_queue_manager_inst is _TL_ProxyQueueManager:
+			var proxy_queue_manager : _TL_ProxyQueueManager = proxy_queue_manager_inst
+			proxy_queue_manager.renderer = renderer
+			proxy_queue_manager.proxy_queue_manager_def = renderer_def.proxy_queues_manager_def
+			renderer.proxy_queue_manager = proxy_queue_manager
+		else:
+			push_error(ERR_PROXYQUEUEMANAGER_WRONG_PARENT % renderer_def.proxy_queues_manager_def.manager_script)
+
+		if renderer_def.sort_key_manager_def != null:	# TODO check ifsort key manager is mandatory
 			var sort_key_manager_inst = renderer_def.sort_key_manager_def.manager_script.new()
 			if sort_key_manager_inst is _TL_SortKeyManager:
 				var sort_key_manager : _TL_SortKeyManager = sort_key_manager_inst
