@@ -280,10 +280,10 @@ static func create_pso(pso_def : TL_ExpicitPSODef, framebuffer_format : int, nb_
 		var colorBlendStateAttachment : RDPipelineColorBlendStateAttachment = RDPipelineColorBlendStateAttachment.new()
 		if pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix:
 			colorBlendStateAttachment.enable_blend = true
+			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
 			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
 			colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
 			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
-			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
 			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
 			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add:
