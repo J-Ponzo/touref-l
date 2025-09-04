@@ -1,5 +1,5 @@
 extends Resource
-class_name _TL_PSOColorBlendAttachmentDef
+class_name TL_PSOColorBlendAttachmentDef
 
 @export var alpha_blend_op : RenderingDevice.BlendOperation = RenderingDevice.BlendOperation.BLEND_OP_ADD
 @export var color_blend_op : RenderingDevice.BlendOperation = RenderingDevice.BlendOperation.BLEND_OP_ADD

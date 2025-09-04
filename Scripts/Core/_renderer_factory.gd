@@ -242,6 +242,7 @@ static func create_vertex_format(vertex_format_def : TL_VertexFormatDef) -> int:
 
 	return rd.vertex_format_create(attrs)
 
+# TODO remove nb_color_attachments and depth_test
 static func create_pso(pso_def : TL_ExpicitPSODef, framebuffer_format : int, nb_color_attachments : int, depth_test : bool = true) -> _TL_PSO:
 	var instance = _TL_PSO.new()
 
@@ -260,66 +261,127 @@ static func create_pso(pso_def : TL_ExpicitPSODef, framebuffer_format : int, nb_
 	var vf_def : TL_VertexFormatDef = pso_def.vertex_format_def
 	instance.vertex_format = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 
+	# var rasterizationState = RDPipelineRasterizationState.new()
+	# rasterizationState.cull_mode = pso_def.cull_mode
 	var rasterizationState = RDPipelineRasterizationState.new()
-	rasterizationState.cull_mode = pso_def.cull_mode
+	rasterizationState.cull_mode = pso_def.rasterization_state.cull_mode
+	rasterizationState.depth_bias_clamp = pso_def.rasterization_state.depth_bias_clamp
+	rasterizationState.depth_bias_constant_factor = pso_def.rasterization_state.depth_bias_constant_factor
+	rasterizationState.depth_bias_enabled = pso_def.rasterization_state.depth_bias_enabled
+	rasterizationState.depth_bias_slope_factor = pso_def.rasterization_state.depth_bias_slope_factor
+	rasterizationState.discard_primitives = pso_def.rasterization_state.discard_primitives
+	rasterizationState.enable_depth_clamp = pso_def.rasterization_state.enable_depth_clamp
+	rasterizationState.front_face = pso_def.rasterization_state.front_face
+	rasterizationState.line_width = pso_def.rasterization_state.line_width
+	rasterizationState.patch_control_points = pso_def.rasterization_state.patch_control_points
+	rasterizationState.wireframe = pso_def.rasterization_state.wireframe
 
+	# var multisampleState = RDPipelineMultisampleState.new()
 	var multisampleState = RDPipelineMultisampleState.new()
+	multisampleState.enable_alpha_to_coverage = pso_def.multisample_state.enable_alpha_to_coverage
+	multisampleState.enable_alpha_to_one = pso_def.multisample_state.enable_alpha_to_one
+	multisampleState.enable_sample_shading = pso_def.multisample_state.enable_sample_shading
+	multisampleState.min_sample_shading = pso_def.multisample_state.min_sample_shading
+	multisampleState.sample_count = pso_def.multisample_state.sample_count
+	multisampleState.sample_masks = pso_def.multisample_state.sample_masks
 
+	# var depthStencilState = RDPipelineDepthStencilState.new()
+	# if depth_test:
+	# 	depthStencilState.enable_depth_test = true
+	# 	depthStencilState.enable_depth_write = true
+	# 	depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_LESS
+	# else:
+	# 	depthStencilState.enable_depth_test = false
+	# 	depthStencilState.enable_depth_write = false
+	# 	depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_ALWAYS
 	var depthStencilState = RDPipelineDepthStencilState.new()
-	if depth_test:
-		depthStencilState.enable_depth_test = true
-		depthStencilState.enable_depth_write = true
-		depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_LESS
-	else:
-		depthStencilState.enable_depth_test = false
-		depthStencilState.enable_depth_write = false
-		depthStencilState.depth_compare_operator = RenderingDevice.COMPARE_OP_ALWAYS
+	depthStencilState.back_op_compare = pso_def.depth_stencil_state.back_op_compare
+	depthStencilState.back_op_compare_mask = pso_def.depth_stencil_state.back_op_compare_mask
+	depthStencilState.back_op_depth_fail = pso_def.depth_stencil_state.back_op_depth_fail
+	depthStencilState.back_op_fail = pso_def.depth_stencil_state.back_op_fail
+	depthStencilState.back_op_pass = pso_def.depth_stencil_state.back_op_pass
+	depthStencilState.back_op_reference = pso_def.depth_stencil_state.back_op_reference
+	depthStencilState.back_op_write_mask = pso_def.depth_stencil_state.back_op_write_mask
+	depthStencilState.depth_compare_operator = pso_def.depth_stencil_state.depth_compare_operator
+	depthStencilState.depth_range_max = pso_def.depth_stencil_state.depth_range_max
+	depthStencilState.depth_range_min = pso_def.depth_stencil_state.depth_range_min
+	depthStencilState.enable_depth_range = pso_def.depth_stencil_state.enable_depth_range
+	depthStencilState.enable_depth_test = pso_def.depth_stencil_state.enable_depth_test
+	depthStencilState.enable_depth_write = pso_def.depth_stencil_state.enable_depth_write
+	depthStencilState.enable_stencil = pso_def.depth_stencil_state.enable_stencil
+	depthStencilState.front_op_compare = pso_def.depth_stencil_state.front_op_compare
+	depthStencilState.front_op_compare_mask = pso_def.depth_stencil_state.front_op_compare_mask
+	depthStencilState.front_op_depth_fail = pso_def.depth_stencil_state.front_op_depth_fail
+	depthStencilState.front_op_fail = pso_def.depth_stencil_state.front_op_fail
+	depthStencilState.front_op_pass = pso_def.depth_stencil_state.front_op_pass
+	depthStencilState.front_op_reference = pso_def.depth_stencil_state.front_op_reference
+	depthStencilState.front_op_write_mask = pso_def.depth_stencil_state.front_op_write_mask
 	
-	var colorBlendState = RDPipelineColorBlendState.new()
-	for i in range(nb_color_attachments):
-		var colorBlendStateAttachment : RDPipelineColorBlendStateAttachment = RDPipelineColorBlendStateAttachment.new()
-		if pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix:
-			colorBlendStateAttachment.enable_blend = true
-			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
-			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
-			colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
-			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
-			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
-		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add:
-			colorBlendStateAttachment.enable_blend = true
-			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
-			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
-			colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
-			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
-			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Subtract:
-			colorBlendStateAttachment.enable_blend = true
-			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_REVERSE_SUBTRACT
-			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_REVERSE_SUBTRACT
-			colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
-			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
-			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Multiply:
-			colorBlendStateAttachment.enable_blend = true
-			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
-			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
-			colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_DST_COLOR
-			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ZERO
-			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_DST_ALPHA
-			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ZERO
-		elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha:
-			colorBlendStateAttachment.enable_blend = true
-			colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
-			colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
-			colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-			colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
-			colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
-			colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+	# var colorBlendState = RDPipelineColorBlendState.new()
+	# for i in range(nb_color_attachments):
+	# 	var colorBlendStateAttachment : RDPipelineColorBlendStateAttachment = RDPipelineColorBlendStateAttachment.new()
+	# 	if pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Mix:
+	# 		colorBlendStateAttachment.enable_blend = true
+	# 		colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
+	# 		colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
+	# 		colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+	# 		colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+	# 		colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+	# 		colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+	# 	elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Add:
+	# 		colorBlendStateAttachment.enable_blend = true
+	# 		colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
+	# 		colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
+	# 		colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+	# 		colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+	# 		colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+	# 		colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+	# 	elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Subtract:
+	# 		colorBlendStateAttachment.enable_blend = true
+	# 		colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_REVERSE_SUBTRACT
+	# 		colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_REVERSE_SUBTRACT
+	# 		colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+	# 		colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+	# 		colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_SRC_ALPHA
+	# 		colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+	# 	elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_Multiply:
+	# 		colorBlendStateAttachment.enable_blend = true
+	# 		colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
+	# 		colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
+	# 		colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_DST_COLOR
+	# 		colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ZERO
+	# 		colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_DST_ALPHA
+	# 		colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ZERO
+	# 	elif pso_def.render_mode == TL_ExpicitPSODef.ERenderMode.Transparent_PremultAlpha:
+	# 		colorBlendStateAttachment.enable_blend = true
+	# 		colorBlendStateAttachment.alpha_blend_op = RenderingDevice.BLEND_OP_ADD
+	# 		colorBlendStateAttachment.color_blend_op = RenderingDevice.BLEND_OP_ADD
+	# 		colorBlendStateAttachment.src_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+	# 		colorBlendStateAttachment.dst_color_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+	# 		colorBlendStateAttachment.src_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE
+	# 		colorBlendStateAttachment.dst_alpha_blend_factor = RenderingDevice.BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 
+	# 	colorBlendState.attachments.append(colorBlendStateAttachment)
+
+	var colorBlendState = RDPipelineColorBlendState.new()
+	for color_blend_attachment_def : TL_PSOColorBlendAttachmentDef in pso_def.blend_attachments:
+		var colorBlendStateAttachment : RDPipelineColorBlendStateAttachment = RDPipelineColorBlendStateAttachment.new()
+		colorBlendStateAttachment.alpha_blend_op = color_blend_attachment_def.alpha_blend_op
+		colorBlendStateAttachment.color_blend_op = color_blend_attachment_def.color_blend_op
+		colorBlendStateAttachment.dst_alpha_blend_factor = color_blend_attachment_def.dst_alpha_blend_factor
+		colorBlendStateAttachment.dst_color_blend_factor = color_blend_attachment_def.dst_color_blend_factor
+		colorBlendStateAttachment.enable_blend = color_blend_attachment_def.enable_blend
+		colorBlendStateAttachment.src_alpha_blend_factor = color_blend_attachment_def.src_alpha_blend_factor
+		colorBlendStateAttachment.src_color_blend_factor = color_blend_attachment_def.src_color_blend_factor
+		colorBlendStateAttachment.write_a = color_blend_attachment_def.write_a
+		colorBlendStateAttachment.write_b = color_blend_attachment_def.write_b
+		colorBlendStateAttachment.write_g = color_blend_attachment_def.write_g
+		colorBlendStateAttachment.write_r = color_blend_attachment_def.write_r
 		colorBlendState.attachments.append(colorBlendStateAttachment)
+
+	colorBlendState.blend_constant = pso_def.blend_constant
+	colorBlendState.enable_logic_op = pso_def.enable_logic_op
+	colorBlendState.logic_op = pso_def.logic_op
 
 	instance.pipeline = rd.render_pipeline_create(instance.shader_program, framebuffer_format, instance.vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
 

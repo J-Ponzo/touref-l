@@ -1,5 +1,5 @@
 extends Resource
-class_name _TL_PSOMultisampleDef
+class_name TL_PSOMultisampleDef
 
 @export var enable_alpha_to_coverage : bool = false
 @export var enable_alpha_to_one : bool = false

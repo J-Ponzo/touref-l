@@ -1,5 +1,5 @@
 extends Resource
-class_name _TL_PSORasterisationDef
+class_name TL_PSORasterisationDef
 
 @export var cull_mode : RenderingDevice.PolygonCullMode = RenderingDevice.PolygonCullMode.POLYGON_CULL_DISABLED
 @export var depth_bias_clamp : float = 0.0

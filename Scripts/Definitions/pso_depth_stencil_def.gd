@@ -1,5 +1,5 @@
 extends Resource
-class_name _TL_PSODepthStencilDef
+class_name TL_PSODepthStencilDef
 
 @export var back_op_compare : RenderingDevice.CompareOperator = RenderingDevice.CompareOperator.COMPARE_OP_ALWAYS
 @export var back_op_compare_mask : int = 0
