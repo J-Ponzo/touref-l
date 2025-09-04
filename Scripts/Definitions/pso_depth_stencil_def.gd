@@ -11,10 +11,10 @@ class_name _TL_PSODepthStencilDef
 @export var depth_compare_operator : RenderingDevice.CompareOperator = RenderingDevice.CompareOperator.COMPARE_OP_ALWAYS
 @export var depth_range_max : float = 0.0
 @export var depth_range_min : float = 0.0
-@export var enable_depth_range : bool = RenderingDevice.StencilOperation.STENCIL_OP_ZERO
-@export var enable_depth_test : bool = RenderingDevice.StencilOperation.STENCIL_OP_ZERO
-@export var enable_depth_write : bool = RenderingDevice.StencilOperation.STENCIL_OP_ZERO
-@export var enable_stencil : bool = RenderingDevice.StencilOperation.STENCIL_OP_ZERO
+@export var enable_depth_range : bool = false
+@export var enable_depth_test : bool = false
+@export var enable_depth_write : bool = false
+@export var enable_stencil : bool = false
 @export var front_op_compare : RenderingDevice.CompareOperator = RenderingDevice.CompareOperator.COMPARE_OP_ALWAYS
 @export var front_op_compare_mask : int = 0
 @export var front_op_depth_fail : RenderingDevice.StencilOperation = RenderingDevice.StencilOperation.STENCIL_OP_ZERO
