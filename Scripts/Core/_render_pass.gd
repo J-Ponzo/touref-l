@@ -39,14 +39,14 @@ func create_pso_factories_from_defs(generated_pso_defs : Dictionary[StringName, 
 func create_explicits_pso_from_defs(explicit_pso_defs : Dictionary[StringName, TL_ExpicitPSODef]) -> Dictionary[StringName, _TL_PSO]:
 	var pso_instances : Dictionary[StringName, _TL_PSO] 
 	for key in explicit_pso_defs.keys():
-		pso_instances[key] = _TL_Renderer_Factory.create_pso(explicit_pso_defs[key], framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
+		pso_instances[key] = _TL_Renderer_Factory.create_pso(explicit_pso_defs[key], framebuffer_format)
 	return pso_instances
 
 func create_piplines_from_defs(pso_defs : Dictionary[StringName, TL_ExpicitPSODef], pso_name_to_mask : Dictionary[StringName, int]) -> Dictionary[int, _TL_PSO]:
 	var pso_instances : Dictionary[int, _TL_PSO] 
 	for key in pso_defs.keys():
 		var mask : int = pso_name_to_mask[key]
-		pso_instances[mask] = _TL_Renderer_Factory.create_pso(pso_defs[key], framebuffer_format, get_nb_color_attachments(render_pass_def.fb_format_def))
+		pso_instances[mask] = _TL_Renderer_Factory.create_pso(pso_defs[key], framebuffer_format)
 	return pso_instances
 
 func create_framebuffer_format_from_def(fb_format_def : TL_FramebufferFormat_Def) -> int:
