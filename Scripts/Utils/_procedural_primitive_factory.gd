@@ -41,7 +41,7 @@ static func _generate_vertex_array_from_data(primitive : TL_Procedural_Primitive
 	if vf_def.has_color:
 		src_buffers.append(primitive.color_buffer)
 	if vf_def.has_uv:
-		src_buffers.append(primitive.uv)
+		src_buffers.append(primitive.uv_buffer)
 	if vf_def.has_uv2:
 		src_buffers.append(primitive.uv2_buffer)
 	if vf_def.has_bones:
@@ -52,3 +52,26 @@ static func _generate_vertex_array_from_data(primitive : TL_Procedural_Primitive
 	var vertex_format : int = _TL_Renderer_Factory.get_or_create_vertex_format(vf_def)
 
 	primitive.vertex_array = _TL_Renderer_Factory.rd.vertex_array_create(vertex_count, vertex_format, src_buffers)
+
+static func free_rids(primitive : TL_Procedural_Primitive) -> void:
+	if primitive.index_array != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.index_array)
+	if primitive.index_buffer != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.index_buffer)
+
+	if primitive.vertex_array != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.vertex_array)
+	if primitive.position_buffer != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.position_buffer)
+	if primitive.normal_buffer != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.normal_buffer)
+	if primitive.tangent_buffer != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.tangent_buffer)
+	if primitive.color_buffer != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.color_buffer)
+	if primitive.uv_buffer != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.uv_buffer)
+	if primitive.uv2_buffer != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.uv2_buffer)
+	if primitive.bones_buffer != RID():
+		_TL_Renderer_Factory.rd.free_rid(primitive.weights_buffer)
