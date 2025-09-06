@@ -1,15 +1,16 @@
 class_name TL_Procedural_Primitive_Factory
 
-static func create_screen_quad() -> TL_Procedural_Primitive:
+static func create_screen_quad(setup_uv : bool = false) -> TL_Procedural_Primitive:
 	var primitive : TL_Procedural_Primitive = TL_Procedural_Primitive.new()
 
 	var position_data : PackedVector2Array = [Vector2(-1.0, -1.0), Vector2(1.0, -1.0), Vector2(1.0, 1.0), Vector2(-1.0, 1.0)]
 	var byte_array : PackedByteArray = position_data.to_byte_array()
 	primitive.position_buffer = _TL_Renderer_Factory.rd.vertex_buffer_create(byte_array.size(), byte_array)
 
-	var uv_data : PackedVector2Array = [Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, 1.0), Vector2(0.0, 1.0)]
-	byte_array = uv_data.to_byte_array()
-	primitive.uv_buffer = _TL_Renderer_Factory.rd.vertex_buffer_create(byte_array.size(), byte_array)
+	if setup_uv:
+		var uv_data : PackedVector2Array = [Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, 1.0), Vector2(0.0, 1.0)]
+		byte_array = uv_data.to_byte_array()
+		primitive.uv_buffer = _TL_Renderer_Factory.rd.vertex_buffer_create(byte_array.size(), byte_array)
 
 	var index_data : PackedInt32Array = [0, 1, 2, 0, 2, 3]
 	byte_array = index_data.to_byte_array()
