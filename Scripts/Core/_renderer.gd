@@ -1,5 +1,7 @@
 class_name _TL_Renderer
 
+const ERR_RENDERFUNC_NOT_OVERRIDEN = "TourefL: 'func _render() -> void:' is expected to be implemented in _TL_Renderer subclasses"
+
 var renderer_def : TL_RendererDef
 
 var scene_proxy : _TL_SceneProxy
@@ -47,8 +49,7 @@ func _pre_renderer() -> void:
 	proxy_queue_manager._update()
 
 func _render() -> void:
-	for key : StringName in render_passes.keys():
-		render_passes[key]._render()
+	push_warning(ERR_RENDERFUNC_NOT_OVERRIDEN)
 
 func _cleanup() -> void:
 	for key : StringName in render_passes.keys():
