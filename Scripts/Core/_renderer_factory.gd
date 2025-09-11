@@ -329,7 +329,9 @@ static func create_pso(pso_def : TL_ExpicitPSODef, framebuffer_format : int) -> 
 
 	return instance
 	
-static func create_texture_attachment(tex_attach_def : TL_AttachmentFormat_Def, width : int = -1, height : int = -1) -> RID:
+static func create_texture_attachment(tex_attach_def : TL_AttachmentFormat_Def) -> RID:
+	var width : int = tex_attach_def.width
+	var height : int = tex_attach_def.height
 	if width == -1:
 		width = ProjectSettings.get_setting("display/window/size/viewport_width")
 	if height == -1:
