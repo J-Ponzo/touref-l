@@ -66,7 +66,8 @@ func get_nb_color_attachments(fb_format_def : TL_FramebufferFormat_Def) -> int :
 	return fb_format_def.color_keys.size()
 	
 func _cleanup() -> void:
-	renderer.rd.free_rid(framebuffer)
+	if framebuffer != RID():
+		renderer.rd.free_rid(framebuffer)
 	for pso_factorie in pso_factories.values():
 		pso_factorie._cleanup()
 	explicits_pso.clear()

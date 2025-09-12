@@ -20,7 +20,10 @@ func get_render_target() -> RID:
 
 # TODO harmonize this and autoload singleton setups
 func _setup() -> void:
-	attachments = create_attachments_from_def(renderer_def.attachment_format_defs)
+	var created_attachments = create_attachments_from_def(renderer_def.attachment_format_defs)
+	for key in created_attachments.keys():
+		attachments[key] = created_attachments[key]
+	
 	for key : StringName in render_passes.keys():
 		render_passes[key]._setup()
 	
