@@ -328,10 +328,19 @@ static func create_pso(pso_def : TL_ExpicitPSODef, framebuffer_format : int) -> 
 	instance.pipeline = rd.render_pipeline_create(instance.shader_program, framebuffer_format, instance.vertex_format, RenderingDevice.RENDER_PRIMITIVE_TRIANGLES, rasterizationState, multisampleState, depthStencilState, colorBlendState)
 
 	return instance
-	
-static func create_texture_attachment(tex_attach_def : TL_AttachmentFormat_Def) -> RID:
-	var width : int = tex_attach_def.width
-	var height : int = tex_attach_def.height
+
+static func create_attachment_format(attach_format_def : TL_AttachmentFormat_Def) -> RDAttachmentFormat:
+	var attach_format : RDAttachmentFormat = RDAttachmentFormat.new()
+	attach_format.format = attach_format_def.format
+	attach_format.samples = attach_format_def.samples
+	attach_format.usage_flags = 0
+	for usage_flag in attach_format_def.usage_flags:
+		attach_format.usage_flags |= usage_flag
+	return attach_format
+
+static func create_texture_attachment(attach_format_def : TL_AttachmentFormat_Def) -> RID:
+	var width : int = attach_format_def.width
+	var height : int = attach_format_def.height
 	if width == -1:
 		width = ProjectSettings.get_setting("display/window/size/viewport_width")
 	if height == -1:
@@ -339,11 +348,11 @@ static func create_texture_attachment(tex_attach_def : TL_AttachmentFormat_Def) 
 	
 	var tf = RDTextureFormat.new();
 	tf.usage_bits = 0
-	for bit in tex_attach_def.usage_flags:
+	for bit in attach_format_def.usage_flags:
 		tf.usage_bits |= bit
 	tf.width = width
 	tf.height = height
-	tf.format = tex_attach_def.format
+	tf.format = attach_format_def.format
 	var view = RDTextureView.new();
 
 	return rd.texture_create(tf, view)
