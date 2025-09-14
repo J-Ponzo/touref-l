@@ -9,14 +9,14 @@ var nb_color_attachments : int
 var mask_lookup : Dictionary[Object, int]
 var pso_lookup : Dictionary[int, _TL_PSO]
 
-func get_or_create_pso_from_object(object : Object) -> _TL_PSO:
+func get_or_create_pso_from_object(object : Object, forced_defines : Array[StringName] = []) -> _TL_PSO:
 	object.get_instance_id()
 	if !mask_lookup.has(object):
-		_create_pso_from_object(object)
+		_create_pso_from_object(object, forced_defines)
 	var mask = mask_lookup[object]
 	return pso_lookup[mask]
 
-func _create_pso_from_object(object : Object) -> void:
+func _create_pso_from_object(object : Object, forced_defines : Array[StringName]) -> void:
 	pass
 
 func _cleanup() -> void:
