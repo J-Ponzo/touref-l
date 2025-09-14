@@ -88,5 +88,5 @@ func get_data_from_type(type : StringName) -> Array[_TL_ProxyData]:
 
 func get_data_from_query(query : _TL_FeatureFlagManager.FeatureFlagQuery) -> Array[_TL_ProxyData]:
 	if render.feature_flag_manager != null:
-		return render.feature_flag_manager.query_objects(query)
+		return render.feature_flag_manager.query_data(query)
 	return []

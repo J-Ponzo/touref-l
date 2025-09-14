@@ -12,26 +12,29 @@ class FeatureFlagQuery:
 class Name_Mask_Pair:
 	var set_name : StringName
 	var flags_mask : int
-
+	
 class Data_NameMask_Pair:
-	var data : Object
+	var data : _TL_ProxyData
 	var name_mask : Name_Mask_Pair
+
+class Masks_Dictionnary:
+	var masks : Dictionary[StringName, int]
 
 var feature_flag_manager_def : TL_FeatureFlagManager_Def
 var proxy_data_lookup : Dictionary[_TL_ProxyObject, DataBucket]
-var data_mask_lookup : Dictionary[Object, Name_Mask_Pair]
+var data_mask_lookup : Dictionary[_TL_ProxyData, Masks_Dictionnary]
 var query_caches : Dictionary[StringName, QueryCache]
 var main_buckets : Dictionary[StringName, DataBucket]
 
 # TODO user TL_ProxyData instead of Object
-func get_flags_mask(data : Object) -> int:
+func get_flags_mask(set_name : StringName, data : _TL_ProxyData) -> int:
 	if data_mask_lookup.has(data):
-		return data_mask_lookup[data].flags_mask
+		return data_mask_lookup[data].masks[set_name]
 	return 0
 
-func get_flags(data : Object) -> Array[StringName]:
+func get_flags(set_name : StringName, data : _TL_ProxyData) -> Array[StringName]:
 	if data_mask_lookup.has(data):
-		return _get_flags_from_name_and_mask(data_mask_lookup[data].set_name, data_mask_lookup[data].flags_mask)
+		return _get_flags_from_name_and_mask(set_name, data_mask_lookup[data].masks[set_name])
 	return []
 
 func _get_flags_from_name_and_mask(set_name : StringName, flags_mask : int) -> Array[StringName]:
@@ -76,7 +79,7 @@ func _build_query_from_query_mask(set_name : StringName, query_mask : int) -> Fe
 
 	return query
 
-func query_objects(query : FeatureFlagQuery) -> Array[_TL_ProxyData]:
+func query_data(query : FeatureFlagQuery) -> Array[_TL_ProxyData]:
 	if !query_caches[query.set_name].buckets.has(query.mask):
 		_create_bucket(query)
 	return query_caches[query.set_name].buckets[query.mask].data
@@ -87,10 +90,10 @@ func match_query(flags_mask : int, query_mask : FeatureFlagQuery) -> bool:
 
 func _create_bucket(query : FeatureFlagQuery) -> void:
 	var bucket : DataBucket = DataBucket.new()
-	for object in main_buckets[query.set_name].data:
-		var flags_mask : int = data_mask_lookup[object].flags_mask
+	for data in main_buckets[query.set_name].data:
+		var flags_mask : int = data_mask_lookup[data].masks[query.set_name]
 		if match_query(flags_mask, query):
-			bucket.data.append(object)
+			bucket.data.append(data)
 	query_caches[query.set_name].buckets[query.mask] = bucket
 
 func _register(proxy_object : _TL_ProxyObject) -> void:
@@ -98,11 +101,12 @@ func _register(proxy_object : _TL_ProxyObject) -> void:
 		return
 
 	# TODO make this block more readable
-	var flagged_items = _extract_flagged_data(proxy_object)
+	var flagged_items : Array[Data_NameMask_Pair] = _extract_flagged_data(proxy_object)
 	var items_bucket : DataBucket = DataBucket.new()
-	for flagged_item in flagged_items:
+	for flagged_item : Data_NameMask_Pair in flagged_items:
 		items_bucket.data.append(flagged_item.data)
-		data_mask_lookup[flagged_item.data] = flagged_item.name_mask
+		data_mask_lookup[flagged_item.data] = Masks_Dictionnary.new()
+		data_mask_lookup[flagged_item.data].masks[flagged_item.name_mask.set_name] = flagged_item.name_mask.flags_mask
 		if !main_buckets.has(flagged_item.name_mask.set_name):
 			main_buckets[flagged_item.name_mask.set_name] = DataBucket.new()
 		main_buckets[flagged_item.name_mask.set_name].data.append(flagged_item.data)
@@ -121,15 +125,19 @@ func _unregister(proxy_object : _TL_ProxyObject) -> void:
 	
 	# TODO make this block more readable
 	for data in proxy_data_lookup[proxy_object].data:
-		var name_mask : Name_Mask_Pair = data_mask_lookup[data]
+		if !data_mask_lookup.has(data):
+			continue
+		var masks : Dictionary[StringName, int] = data_mask_lookup[data].masks
 		data_mask_lookup.erase(data)
-		var idx = main_buckets[name_mask.set_name].data.find(data)
-		main_buckets[name_mask.set_name].data.remove_at(idx)
-		for query_mask : int in query_caches[name_mask.set_name].buckets.keys():
-			var query : FeatureFlagQuery = _build_query_from_query_mask(name_mask.set_name, query_mask)
-			if match_query(name_mask.flags_mask, query):
-				idx = query_caches[name_mask.set_name].buckets[query_mask].data.find(data)
-				query_caches[name_mask.set_name].buckets[query_mask].data.remove_at(idx)
+		for set_name : StringName in masks.keys():
+			var idx = main_buckets[set_name].data.find(data)
+			main_buckets[set_name].data.remove_at(idx)
+			for query_mask : int in query_caches[set_name].buckets.keys():
+				var query : FeatureFlagQuery = _build_query_from_query_mask(set_name, query_mask)
+				if match_query(masks[set_name], query):
+					idx = query_caches[set_name].buckets[query_mask].data.find(data)
+					query_caches[set_name].buckets[query_mask].data.remove_at(idx)
+		masks.clear()
 
 	proxy_data_lookup.erase(proxy_object)
 
