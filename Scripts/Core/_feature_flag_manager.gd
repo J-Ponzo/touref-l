@@ -105,7 +105,8 @@ func _register(proxy_object : _TL_ProxyObject) -> void:
 	var items_bucket : DataBucket = DataBucket.new()
 	for flagged_item : Data_NameMask_Pair in flagged_items:
 		items_bucket.data.append(flagged_item.data)
-		data_mask_lookup[flagged_item.data] = Masks_Dictionnary.new()
+		if !data_mask_lookup.has(flagged_item.data):
+			data_mask_lookup[flagged_item.data] = Masks_Dictionnary.new()
 		data_mask_lookup[flagged_item.data].masks[flagged_item.name_mask.set_name] = flagged_item.name_mask.flags_mask
 		if !main_buckets.has(flagged_item.name_mask.set_name):
 			main_buckets[flagged_item.name_mask.set_name] = DataBucket.new()
