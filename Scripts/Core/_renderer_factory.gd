@@ -53,8 +53,6 @@ static func create_renderer(renderer_def : TL_RendererDef) -> _TL_Renderer:
 			var proxy_model : _TL_ProxyModel = proxy_model_inst
 			renderer.proxy_model = proxy_model
 			proxy_model.renderer = renderer
-			for key : StringName in renderer_def.renderer_pass_defs.keys():
-				create_render_pass(renderer, key, renderer_def.renderer_pass_defs[key])
 		else:
 			push_error(ERR_PROXYMODEL_WRONG_PARENT % renderer_def.scene_proxy_script)
 		
